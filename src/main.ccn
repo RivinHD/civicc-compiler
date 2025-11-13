@@ -3,8 +3,8 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
-        Demo;
-        print;
+        Optimization;
+        Print;
     }
 };
 
@@ -12,21 +12,8 @@ traversal Print {
     uid = PRT
 };
 
-phase Demo {
+phase Optimization {
     actions {
-        traversal RenameIdentifiers {
-            uid = RI,
-            nodes = { Var, VarLet }
-        };
-
-        traversal SumInts {
-            uid = SI,
-            nodes = { Stmts, Num },
-            travdata {
-                int sum
-            }
-        };
-
         traversal OptSubstraction {
             uid = OS,
             nodes = { Binop }
@@ -53,6 +40,7 @@ enum BinOpType {
 
 nodeset Expr = {Num, Float, Bool, Binop, Var};
 nodeset Stmt = {Assign};
+nodeset Decleration = {FunDec, FunDef, GlobalDef, GlobalDec};
 
 // Nodes you want to be able to link to from your symbol table.
 nodeset Link = Expr | Stmt;
@@ -61,6 +49,16 @@ root node Program {
     children {
         Stmts stmts { constructor, mandatory }
     }
+};
+
+node Declerations {
+    children {
+        Decleration decl { constructor, mandatory },
+        Declerations decls { constructor }
+    }
+};
+
+node FunDec {
 };
 
 node Stmts {

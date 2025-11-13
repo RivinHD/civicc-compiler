@@ -6,9 +6,7 @@ set(SOURCE_FILES
     src/global/globals.c
     src/print/print.c
     src/scanparse/scanParse.c
-    src/demo/opt_sub.c
-    src/demo/rename_identifiers.c
-    src/demo/sum_ints.c
+    src/optimization/opt_sub.c
 )
 
 get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
