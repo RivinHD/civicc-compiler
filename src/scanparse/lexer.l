@@ -36,6 +36,9 @@ int yycolumn = 1;
 %option nounput
 %option yylineno
 
+SEP [ /t/r/n]
+SEPB ({SEP}|\()
+SEPC ({SEP}|\{)
 
 %%
 
@@ -43,6 +46,10 @@ int yycolumn = 1;
 ")"                        { FILTER( BRACKET_R); }
 ","                        { FILTER( COMMA); }
 ";"                        { FILTER( SEMICOLON); }
+"{"                        { FILTER( CURLY_L); }
+"}"                        { FILTER( CURLY_R); }
+"["                        { FILTER( SQUARE_L); }
+"]"                        { FILTER( SQUARE_R); }
 
 "-"                        { FILTER( MINUS); }
 "+"                        { FILTER( PLUS);  }
@@ -56,20 +63,80 @@ int yycolumn = 1;
 ">"                        { FILTER( GT);    }
 "=="                       { FILTER( EQ);    }
 "!="                       { FILTER( NE);    }
+
 "&&"                       { FILTER( AND);    }
 "||"                       { FILTER( OR);    }
 
+"!"                        { FILTER( EXCLAMATION_MARK)}
+
 "="                        { FILTER( LET);    }
 
-"true"                     { FILTER( TRUEVAL); }
-"false"                    { FILTER( FALSEVAL); }
+"true"[^A-Za-z]            { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( TRUEVAL); }
+"false"[^A-Za-z]           { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( FALSEVAL); }
+
+"extern"{SEP}                   { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( EXTERN); }
+"export"{SEP}                   { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( EXPORT); }
+"return"{SEPB}             { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng); 
+                             FILTER( RETURN); }
+
+
+"void"{SEP}                { FILTER( VOID); }
+"bool"({SEP}|\[)                { FILTER( BOOL); }
+"int"({SEP}|\[)                 { FILTER( INT); }
+"float"({SEP}|\[)               { FILTER( FLOAT);}
+
+
+"if"{SEPB}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( IF);
+                            }
+"while"{SEPB}               { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( WHILE);
+                            }
+"for"{SEPB}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( FOR);
+                            }
+"do"{SEPC}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( DO);
+                            }
+"else"{SEPC}              {
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( ELSE);
+                            }
 
 [A-Za-z][A-Za-z0-9_]*      { yylval.id = STRcpy(yytext);
                              FILTER( ID);
                            }
 
+[0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9])? {
+    yylval.cflt = atof(yytext);
+    FILTER( FLOATCONST);
+    }
+
 [0-9]+                     { yylval.cint=atoi(yytext);
-                             FILTER( NUM);
+                             FILTER( NUMCONST);
                            }
 
 \n.*                       {

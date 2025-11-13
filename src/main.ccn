@@ -40,7 +40,7 @@ enum BinOpType {
 
 nodeset Expr = {Num, Float, Bool, Binop, Var};
 nodeset Stmt = {Assign};
-nodeset Decleration = {FunDec, FunDef, GlobalDef, GlobalDec};
+// nodeset Decleration = {FunDec, FunDef, GlobalDef, GlobalDec};
 
 // Nodes you want to be able to link to from your symbol table.
 nodeset Link = Expr | Stmt;
@@ -53,7 +53,7 @@ root node Program {
 
 node Declerations {
     children {
-        Decleration decl { constructor, mandatory },
+//        Decleration decl { constructor, mandatory },
         Declerations decls { constructor }
     }
 };

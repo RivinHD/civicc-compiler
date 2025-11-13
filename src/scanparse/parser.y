@@ -31,12 +31,15 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
 %locations
 
-%token BRACKET_L BRACKET_R COMMA SEMICOLON
+%token BRACKET_L BRACKET_R COMMA SEMICOLON CURLY_L CURLY_R SQUARE_L SQUARE_R
+%token EXTERN EXPORT EXCLAMATION_MARK RETURN
+%token VOID BOOL INT FLOAT
+%token IF WHILE FOR DO ELSE
 %token MINUS PLUS STAR SLASH PERCENT LE LT GE GT EQ NE OR AND
 %token TRUEVAL FALSEVAL LET
 
-%token <cint> NUM
-%token <cflt> FLOAT
+%token <cint> NUMCONST
+%token <cflt> FLOATCONST
 %token <id> ID
 
 %type <node> intval floatval boolval constant expr
@@ -52,6 +55,27 @@ program: stmts
            parseresult = ASTprogram($1);
          }
          ;
+declerations: decleration declerations {
+                // $$ = ASTdeclerations($1, $2);
+            }
+            | decleration {
+                // $$ = ASTdeclerations($1, NULL);
+            };
+
+decleration: funDec {
+         } 
+         | funDef {
+         } 
+         | globalDec {
+         } 
+         | globalDef {
+         };
+
+funDec: {};
+funDef: {};
+globalDec: {};
+globalDef: {};
+
 
 stmts: stmt stmts
         {
@@ -112,13 +136,13 @@ constant: floatval
           }
         ;
 
-floatval: FLOAT
+floatval: FLOATCONST
            {
              $$ = ASTfloat($1);
            }
          ;
 
-intval: NUM
+intval: NUMCONST
         {
           $$ = ASTnum($1);
         }

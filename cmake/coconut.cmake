@@ -61,3 +61,8 @@ function(coconut_target_generate TARGET DSL_FILE BACKEND)
     target_include_directories("${TARGET}" PRIVATE "${PROJECT_BINARY_DIR}/ccngen/" "${COCONUT_ROOT_DIR}/copra/")
     target_link_libraries("${TARGET}" PRIVATE coconut::palm)
 endfunction()
+
+function(coconut_add_resources TARGET)
+    target_include_directories("${TARGET}" PRIVATE "${PROJECT_BINARY_DIR}/ccngen/" "${COCONUT_ROOT_DIR}/copra/")
+    target_link_libraries("${TARGET}" PRIVATE coconut::palm)
+endfunction()
