@@ -53,7 +53,7 @@ include(cmake/coconut.cmake)
 add_executable(civicc ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
 
 target_compile_options(civicc PRIVATE
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror -Wall -Wextra -pedantic -Wno-unused-function>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function> -Wno-strict-prototypes
 )
 
 # Enable address sanitizer

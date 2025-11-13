@@ -23,7 +23,7 @@ if(NOT EXISTS "${COCOGEN_DIR}/cocogen")
 
     message(STATUS "Build the cocogen executable")
     message(STATUS "Parallel Build: ${CPU_COUNT} cores")
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -B "${COCONUT_BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release 
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -B "${COCONUT_BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
         WORKING_DIRECTORY "${COCONUT_ROOT_DIR}")
     execute_process(COMMAND ${CMAKE_COMMAND} --build "${COCONUT_BUILD_DIR}" --config Release --parallel ${CPU_COUNT} --target cocogen
         WORKING_DIRECTORY "${COCONUT_ROOT_DIR}")
