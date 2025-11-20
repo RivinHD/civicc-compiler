@@ -23,6 +23,10 @@ phase Optimization {
 
 /*** AST ***/
 
+/**********************/
+/* Enums **************/
+/**********************/
+
 enum MonOpType {
     prefix = MO,
     values {
@@ -38,37 +42,149 @@ enum BinOpType {
     }
 };
 
-nodeset Expr = {Num, Float, Bool, Binop, Var};
-nodeset Stmt = {Assign};
-// nodeset Decleration = {FunDec, FunDef, GlobalDef, GlobalDec};
+/**********************/
+/* Nodesets ***********/
+/**********************/
+
+nodeset Expr = {NestedExpr, Binop, Monop, Cast, ProcCall, Var} | BasicType;
+nodeset BasicType = {Num, Float, Bool};
+nodeset RetType = BasicType | {void};
+nodeset Stmt = {Assign, ProcCall, IfStmt, WhileLoop, DoWhileLoop, ForLoop, RetStmt};
+nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
+nodeset Block = {Stmts} | stmt;
+nodeset Vars {
+    nodes = {VarLet, Var},
+
+    attributes {
+        string name,
+        Link decl
+    }
+};
 
 // Nodes you want to be able to link to from your symbol table.
 nodeset Link = Expr | Stmt;
 
+/**********************/
+/* Nodes **************/
+/**********************/
+
 root node Program {
     children {
-        Stmts stmts { constructor, mandatory }
+        Declarations decls { constructor, mandatory },
+        Declaration decl { constructor, mandatory }
     }
 };
 
-node Declerations {
+node Declarations {
     children {
-//        Decleration decl { constructor, mandatory },
-        Declerations decls { constructor }
+        Declaration decl { constructor, mandatory },
+        Declarations next { constructor }
     }
 };
 
 node FunDec {
+    children {
+        FunHeader funHeader { constructor, mandatory }
+    },
+
+    attributes {
+        string extern { constructor, mandatory }            // has to be 'extern'
+    }
+};
+
+node FunDef {
+    children {
+        FunHeader funHeader { constructor, mandatory },
+        FunBody funBody { constructor, mandatory }
+    },
+
+    attributes {
+        string export { constructor }                       // if exists, has to be 'export'
+    }
+};
+
+node GlobalDec {
+    children {
+        BasicType type { constructor, mandatory },
+        Var var { constructor, mandatory } 
+    },
+
+    attributes {
+        string extern { constructor, mandatory }            // has to be 'extern'
+    }
+};
+
+node GlobalDef {
+    children {
+        BasicType type { constructor, mandatory },
+        VarDec varDec { constructor, mandatory }
+    },
+
+    attributes {
+        string export { constructor }                       // if exists, has to be 'export'
+    }
+};
+
+node FunHeader {
+    children {
+        RetType ret { constructor, mandatory },
+        Var var { constructor, mandatory },
+        Params params { constructor }
+    }
+};
+
+node Params {
+    children {
+        Param param { constructor, mandatory },
+        Params next { constructor }
+    }
+};
+
+node Param {
+    children {
+        BasicType type { constructor, mandatory },
+        Var var { constructor, mandatory }
+    }
+};
+
+node FunBody {
+    children {
+        VarDecs varDecs { constructor },
+        LocalFunDefs localFunDefs { constructor },      // Extension 1
+        Stmts stmts { constructor }
+    }
+};
+
+node VarDecs {
+    children {
+        VarDec varDec { constructor },
+        VarDecs next { constructor }
+    }
+};
+
+node LocalFunDefs {
+    children {
+        LocalFunDef localFunDef { constructor },
+        LocalFunDefs next { constructor }
+    }
+};
+
+// Extension 1
+node LocalFunDef {
+    children {
+        FunHeader funHeader { constructor, mandatory },
+        FunBody funBody { constructor, mandatory }
+    }
 };
 
 node Stmts {
     children {
-        Stmt stmt { constructor, mandatory },
+        Stmt stmt { constructor },
         Stmts next { constructor }
     }
 };
 
-node Assign {
+node Assign {                                   // Id = Expr
     children {
         VarLet let { constructor },
         Expr expr { constructor, mandatory }
@@ -86,13 +202,97 @@ node Binop {
     }
 };
 
-nodeset Vars {
-    nodes = {VarLet, Var},
+node Monop {
+    children {
+        Expr left { constructor, mandatory }
+    },
 
     attributes {
-        string name,
-        Link decl
+        MonOpType op { constructor }
     }
+};
+
+node VarDec {
+    children {
+        BasicType type { constructor, mandatory },
+        Var var { constructor, mandatory },
+        Expr expr { constructor }
+    }
+};
+
+node ProcCall {
+    children {
+        VarLet let { constructor, mandatory },
+        Exprs exprs { constructor }
+    }
+};
+
+node Exprs {
+    children {
+        Expr expr { constructor, mandatory },
+        Exprs next { constructor }
+    }
+};
+
+node IfStmt {
+    children {
+        Expr expr { constructor, mandatory },
+        Block block { constructor, mandatory },
+        ElseStmt else { constructor }
+    }
+};
+
+node ElseStmt {
+    children {
+        Block block { constructor, mandatory }
+    }
+};
+
+node WhileLoop {
+    children {
+        Expr expr { constructor, mandatory },
+        Block block { constructor, mandatory }
+    }
+};
+
+node DoWhileLoop {
+    children {
+        Block block { constructor, mandatory },
+        Expr expr { constructor, mandatory }
+    }
+};
+
+node ForLoop {
+    children {
+        Assign assign { constructor, mandatory },
+        Expr cond { constructor, mandatory },
+        Expr iter { constructor },
+        Block block { constructor, mandatory }
+    }
+};
+
+node RetStmt {
+    children {
+        Expr expr { constructor }
+    }
+};
+
+// Expr -> ( Expr )
+node NestedExpr {
+    children { 
+        Expr expr { constructor, mandatory }
+    }
+};
+
+// ( BasicType ) Expr
+node Cast {
+    children {
+        BasicType type { constructor, mandatory },
+        Expr expr { constructor, mandatory }
+    }
+};
+
+node void {
 };
 
 node VarLet {
