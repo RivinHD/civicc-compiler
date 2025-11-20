@@ -22,10 +22,11 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %}
 
 %union {
- char               *id;
+ char               *var;
  int                 cint;
  float               cflt;
  enum BinOpType     cbinop;
+ enum MonOpType     cmonop;
  node_st             *node;
 }
 
@@ -38,26 +39,37 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %token MINUS PLUS STAR SLASH PERCENT LE LT GE GT EQ NE OR AND
 %token TRUEVAL FALSEVAL LET
 
+
 %token <cint> NUMCONST
 %token <cflt> FLOATCONST
-%token <id> ID
+%token <var> VAR
 
 %type <node> program declarations declaration 
-%type <node> funDec funDef funHeader funBody localFunDefs localFunDef retType 
-%type <node> type basicType 
+%type <node> funDec funDef funHeader funBody localFunDefs localFunDef 
+%type <node> basicType retType 
 %type <node> globalDec globalDef 
 %type <node> params param varDecs varDec statements statement 
-%type <node> arrInits arrInit 
+%type <node> arrayInits arrayInit 
 %type <node> block exprs expr 
-%type <node> constant floatval intval boolval 
-%type <node> monop ids 
+%type <node> constant floatval intval boolval vars 
 %type <cbinop> binop
+%type <cmonop> monop
 
 %start program
 
+%left COMMA
+%left OR 
+%left AND
+%left EQ NE
+%left LE LT GE GT 
+%left MINUS PLUS
+%left STAR SLASH PERCENT
+%right EXCLAMATION_MARK
+%left BRACKET_L BRACKET_R SQUARE_L SQUARE_R
+
 %%
 
-program: declarations
+program: declarations 
          {
            parseresult = ASTprogram($1);
          }
@@ -69,15 +81,15 @@ declarations: declaration declarations {
                 $$ = ASTdeclarations($1, NULL);
             };
 
-declaration: funDec {
-         } 
-         | funDef 
-         {
+declaration: globalDef {
          } 
          | globalDec 
          {
          } 
-         | globalDef 
+         | funDef 
+         {
+         } 
+         | funDec
          {
          };
 
@@ -92,10 +104,10 @@ funDef: EXPORT funHeader CURLY_L funBody CURLY_R
       {
       };
 
-funHeader: retType ID BRACKET_L params BRACKET_R 
+funHeader: retType VAR BRACKET_L params BRACKET_R 
          {
          }
-         | retType ID BRACKET_L BRACKET_R 
+         | retType VAR BRACKET_L BRACKET_R 
          {
          };
 
@@ -124,8 +136,6 @@ retType: VOID
        {
        };
 
-type: basicType;
-
 basicType: BOOL 
          {
          }
@@ -136,28 +146,28 @@ basicType: BOOL
          {
          };
 
-globalDec: EXTERN type SQUARE_L ids SQUARE_R ID SEMICOLON
+globalDec: EXTERN basicType SQUARE_L vars SQUARE_R VAR SEMICOLON
          {
          }
-         | EXTERN type ID SEMICOLON
+         | EXTERN basicType VAR SEMICOLON
          {
          };
-globalDef: EXPORT type SQUARE_L exprs SQUARE_R ID LET arrInit SEMICOLON
+globalDef: EXPORT basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
          {
          }
-         |EXPORT type SQUARE_L exprs SQUARE_R ID SEMICOLON
+         | EXPORT basicType SQUARE_L exprs SQUARE_R VAR SEMICOLON
          {
          }
-         | EXPORT type ID SEMICOLON
+         | EXPORT basicType VAR SEMICOLON
          {
          }
-         | EXPORT type ID LET expr SEMICOLON
+         | EXPORT basicType VAR LET expr SEMICOLON
          {
          }
-         | type ID SEMICOLON
+         | basicType VAR SEMICOLON
          {
          }
-         | type ID LET expr SEMICOLON   
+         | basicType VAR LET expr SEMICOLON   
          {
          };
 
@@ -168,10 +178,10 @@ params: param COMMA params
       {
       };
 
-param: type SQUARE_L ids SQUARE_R ID
+param: basicType SQUARE_L vars SQUARE_R VAR
      {
      }
-     | type ID
+     | basicType VAR
      {
      };
 
@@ -182,16 +192,16 @@ varDecs: varDec varDecs
     {
     };
 
-varDec: type SQUARE_L exprs SQUARE_R ID LET arrInit SEMICOLON
+varDec: basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
       {
       }
-      | type SQUARE_L exprs SQUARE_R ID SEMICOLON
+      | basicType SQUARE_L exprs SQUARE_R VAR SEMICOLON
       {
       }
-      | type ID LET expr SEMICOLON
+      | basicType VAR LET expr SEMICOLON
       {
       }
-      type ID SEMICOLON
+      | basicType VAR SEMICOLON
       {
       };
 
@@ -205,13 +215,13 @@ statements: statement statements
         }
         ;
 
-statement: ID LET expr SEMICOLON
+statement: VAR LET expr SEMICOLON
        {
        }
-       | ID BRACKET_L exprs BRACKET_R SEMICOLON
+       | VAR BRACKET_L exprs BRACKET_R SEMICOLON
        {
        }
-       | ID BRACKET_L BRACKET_R SEMICOLON
+       | VAR BRACKET_L BRACKET_R SEMICOLON
        {
        }
        | IF BRACKET_L expr BRACKET_R block ELSE block
@@ -226,10 +236,10 @@ statement: ID LET expr SEMICOLON
        | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
        {
        }
-       | FOR BRACKET_L INT ID LET expr COMMA expr COMMA expr BRACKET_R block
+       | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block
        {
        }
-       | FOR BRACKET_L INT ID LET expr COMMA expr BRACKET_R block
+       | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block
        {
        }
        | RETURN expr SEMICOLON
@@ -238,18 +248,18 @@ statement: ID LET expr SEMICOLON
        | RETURN SEMICOLON
        {
        }
-       | ID SQUARE_L exprs SQUARE_R LET expr SEMICOLON
+       | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
        {
        };
 
-arrInits: arrInit COMMA arrInits
+arrayInits: arrayInit COMMA arrayInits
         {
         }
-        | arrInit
+        | arrayInit
         {
         };
 
-arrInit: SQUARE_L arrInits SQUARE_R
+arrayInit: SQUARE_L arrayInits SQUARE_R
        {
        }
        | expr
@@ -284,13 +294,13 @@ expr: BRACKET_L expr BRACKET_R
       | BRACKET_L basicType BRACKET_R expr
       {
       }
-      | ID BRACKET_L exprs BRACKET_R
+      | VAR BRACKET_L exprs BRACKET_R
       {
       }
-      | ID BRACKET_L BRACKET_R
+      | VAR BRACKET_L BRACKET_R
       {
       }
-      | ID
+      | VAR
       {
         $$ = ASTvar($1);
       }
@@ -298,7 +308,7 @@ expr: BRACKET_L expr BRACKET_R
       {
         $$ = $1;
       }
-      | ID SQUARE_L exprs SQUARE_R
+      | VAR SQUARE_L exprs SQUARE_R
       {
       };
 
@@ -355,15 +365,17 @@ binop: PLUS      { $$ = BO_add; }
 
 monop: MINUS 
      {
+     $$ = MO_neg;
      }
      | EXCLAMATION_MARK
      {
+     $$ = MO_not;
      };
 
-ids: ID COMMA ids
+vars: VAR COMMA vars
    {
    }
-   | ID
+   | VAR
    {
    };
 

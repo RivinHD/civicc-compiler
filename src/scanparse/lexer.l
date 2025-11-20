@@ -126,8 +126,8 @@ SEPC ({SEP}|\{)
                              FILTER( ELSE);
                             }
 
-[A-Za-z][A-Za-z0-9_]*      { yylval.id = STRcpy(yytext);
-                             FILTER( ID);
+[A-Za-z][A-Za-z0-9_]*      { yylval.var = STRcpy(yytext);
+                             FILTER( VAR);
                            }
 
 [0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9])? {

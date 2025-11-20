@@ -39,7 +39,9 @@ find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
 bison_target(CivicParser src/scanparse/parser.y "${CMAKE_CURRENT_BINARY_DIR}/parser.c"
-    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h" VERBOSE)
+    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h" 
+    VERBOSE
+    COMPILE_FLAGS "-Wcounterexamples")
 
 flex_target(CivicLexer src/scanparse/lexer.l "${CMAKE_CURRENT_BINARY_DIR}/lexer.c"
     DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/lexer.h")

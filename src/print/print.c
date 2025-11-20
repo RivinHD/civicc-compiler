@@ -16,16 +16,90 @@
  */
 node_st *PRTprogram(node_st *node)
 {
-    TRAVstmts(node);
+    // TODO
+    // TRAVstatements(node);
+    return node;
+}
+
+node_st *PRTdeclarations(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTfundec(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTfundef(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTglobaldec(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTglobaldef(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTfunheader(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTparams(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTparam(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTfunbody(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTvardecs(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTlocalfundefs(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTlocalfundef(node_st *node)
+{
+    // TODO
     return node;
 }
 
 /**
- * @fn PRTstmts
+ * @fn PRTstatements
  */
-node_st *PRTstmts(node_st *node)
+node_st *PRTstatements(node_st *node)
 {
-    TRAVstmt(node);
+    // TODO
+    // TRAVstatement(node);
     TRAVnext(node);
     return node;
 }
@@ -111,6 +185,78 @@ node_st *PRTbinop(node_st *node)
     return node;
 }
 
+node_st *PRTmonop(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTvardec(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTproccall(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTexprs(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTifstatement(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTelsestatement(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTwhileloop(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTdowhileloop(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTforloop(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTretstatement(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTcast(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTvoid(node_st *node)
+{
+    // TODO
+    return node;
+}
+
 /**
  * @fn PRTvar
  */
@@ -120,6 +266,41 @@ node_st *PRTvar(node_st *node)
     return node;
 }
 
+node_st *PRTarrayvar(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTdimensionvars(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTarrayexpr(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTdimensionexprs(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTarrayinit(node_st *node)
+{
+    // TODO
+    return node;
+}
+
+node_st *PRTarrayassign(node_st *node)
+{
+    // TODO
+    return node;
+}
 /**
  * @fn PRTnum
  */

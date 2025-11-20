@@ -46,7 +46,7 @@ enum BinOpType {
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {NestedExpr, Binop, Monop, Cast, ProcCall, Var, ArrayExpr} | BasicType;
+nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr} | BasicType;
 nodeset BasicType = {Num, Float, Bool};
 nodeset RetType = BasicType | {Void};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
@@ -208,7 +208,7 @@ node VarDec {
     children {
         BasicType type { constructor, mandatory },
         VarOptArrayExpr var { constructor, mandatory },
-        ArrInit expr { constructor }
+        ArrayInit expr { constructor }
     }
 };
 
@@ -269,13 +269,6 @@ node RetStatement {
     }
 };
 
-// Expr -> ( Expr )
-node NestedExpr {
-    children { 
-        Expr expr { constructor, mandatory }
-    }
-};
-
 // ( BasicType ) Expr
 node Cast {
     children {
@@ -285,6 +278,9 @@ node Cast {
 };
 
 node Void {
+    attributes {
+        string nothing
+    }
 };
 
 node Var {
@@ -322,10 +318,10 @@ node DimensionExprs {
     }
 };
 
-node ArrInit {
+node ArrayInit {
     children {
         Expr expr { constructor, mandatory },
-        ArrInit next { constructor }
+        ArrayInit next { constructor }
     }
 };
 
