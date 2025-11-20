@@ -7,7 +7,6 @@
  *
  */
 
-#include "ccn/ccn.h"
 #include "ccngen/ast.h"
 #include "ccngen/trav.h"
 #include "palm/dbug.h"
@@ -36,15 +35,14 @@ node_st *PRTstmts(node_st *node)
  */
 node_st *PRTassign(node_st *node)
 {
-
-    if (ASSIGN_LET(node) != NULL) {
+    if (ASSIGN_VAR(node) != NULL)
+    {
         TRAVlet(node);
-        printf( " = ");
+        printf(" = ");
     }
 
     TRAVexpr(node);
-    printf( ";\n");
-
+    printf(";\n");
 
     return node;
 }
@@ -55,69 +53,61 @@ node_st *PRTassign(node_st *node)
 node_st *PRTbinop(node_st *node)
 {
     char *tmp = NULL;
-    printf( "( ");
+    printf("( ");
 
     TRAVleft(node);
 
-    switch (BINOP_OP(node)) {
+    switch (BINOP_OP(node))
+    {
     case BO_add:
-      tmp = "+";
-      break;
+        tmp = "+";
+        break;
     case BO_sub:
-      tmp = "-";
-      break;
+        tmp = "-";
+        break;
     case BO_mul:
-      tmp = "*";
-      break;
+        tmp = "*";
+        break;
     case BO_div:
-      tmp = "/";
-      break;
+        tmp = "/";
+        break;
     case BO_mod:
-      tmp = "%";
-      break;
+        tmp = "%";
+        break;
     case BO_lt:
-      tmp = "<";
-      break;
+        tmp = "<";
+        break;
     case BO_le:
-      tmp = "<=";
-      break;
+        tmp = "<=";
+        break;
     case BO_gt:
-      tmp = ">";
-      break;
+        tmp = ">";
+        break;
     case BO_ge:
-      tmp = ">=";
-      break;
+        tmp = ">=";
+        break;
     case BO_eq:
-      tmp = "==";
-      break;
+        tmp = "==";
+        break;
     case BO_ne:
-      tmp = "!=";
-      break;
+        tmp = "!=";
+        break;
     case BO_or:
-      tmp = "||";
-      break;
+        tmp = "||";
+        break;
     case BO_and:
-      tmp = "&&";
-      break;
+        tmp = "&&";
+        break;
     case BO_NULL:
-      DBUG_ASSERT(false, "unknown binop detected!");
+        DBUG_ASSERT(false, "unknown binop detected!");
     }
 
-    printf( " %s ", tmp);
+    printf(" %s ", tmp);
 
     TRAVright(node);
 
-    printf( ")(%d:%d-%d)", NODE_BLINE(node), NODE_BCOL(node), NODE_ECOL(node));
+    printf(")(%d:%d-%d)", NODE_BLINE(node), NODE_BCOL(node), NODE_ECOL(node));
 
-    return node;
-}
-
-/**
- * @fn PRTvarlet
- */
-node_st *PRTvarlet(node_st *node)
-{
-    printf("%s(%d:%d)", VARLET_NAME(node), NODE_BLINE(node), NODE_BCOL(node));
     return node;
 }
 
@@ -126,7 +116,7 @@ node_st *PRTvarlet(node_st *node)
  */
 node_st *PRTvar(node_st *node)
 {
-    printf( "%s", VAR_NAME(node));
+    printf("%s", VAR_NAME(node));
     return node;
 }
 
@@ -144,7 +134,7 @@ node_st *PRTnum(node_st *node)
  */
 node_st *PRTfloat(node_st *node)
 {
-    printf( "%f", FLOAT_VAL(node));
+    printf("%f", FLOAT_VAL(node));
     return node;
 }
 

@@ -42,12 +42,12 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %token <cflt> FLOATCONST
 %token <id> ID
 
-%type <node> program declerations decleration 
+%type <node> program declarations declaration 
 %type <node> funDec funDef funHeader funBody localFunDefs localFunDef retType 
 %type <node> type basicType 
 %type <node> globalDec globalDef 
 %type <node> params param varDecs varDec statements statement 
-%type <node> arrExprs arrExpr 
+%type <node> arrInits arrInit 
 %type <node> block exprs expr 
 %type <node> constant floatval intval boolval 
 %type <node> monop ids 
@@ -57,19 +57,19 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
 %%
 
-program: declerations
+program: declarations
          {
            parseresult = ASTprogram($1);
          }
          ;
-declerations: decleration declerations {
-                // $$ = ASTdeclerations($1, $2);
+declarations: declaration declarations {
+                $$ = ASTdeclarations($1, $2);
             }
-            | decleration {
-                // $$ = ASTdeclerations($1, NULL);
+            | declaration {
+                $$ = ASTdeclarations($1, NULL);
             };
 
-decleration: funDec {
+declaration: funDec {
          } 
          | funDef 
          {
@@ -142,7 +142,7 @@ globalDec: EXTERN type SQUARE_L ids SQUARE_R ID SEMICOLON
          | EXTERN type ID SEMICOLON
          {
          };
-globalDef: EXPORT type SQUARE_L exprs SQUARE_R ID LET arrExpr SEMICOLON
+globalDef: EXPORT type SQUARE_L exprs SQUARE_R ID LET arrInit SEMICOLON
          {
          }
          |EXPORT type SQUARE_L exprs SQUARE_R ID SEMICOLON
@@ -182,7 +182,7 @@ varDecs: varDec varDecs
     {
     };
 
-varDec: type SQUARE_L exprs SQUARE_R ID LET arrExpr SEMICOLON
+varDec: type SQUARE_L exprs SQUARE_R ID LET arrInit SEMICOLON
       {
       }
       | type SQUARE_L exprs SQUARE_R ID SEMICOLON
@@ -197,11 +197,11 @@ varDec: type SQUARE_L exprs SQUARE_R ID LET arrExpr SEMICOLON
 
 statements: statement statements
         {
-          $$ = ASTstmts($1, $2);
+          $$ = ASTstatements($1, $2);
         }
       | statement
         {
-          $$ = ASTstmts($1, NULL);
+          $$ = ASTstatements($1, NULL);
         }
         ;
 
@@ -242,14 +242,14 @@ statement: ID LET expr SEMICOLON
        {
        };
 
-arrExprs: arrExpr COMMA arrExprs
+arrInits: arrInit COMMA arrInits
         {
         }
-        | arrExpr
+        | arrInit
         {
         };
 
-arrExpr: SQUARE_L arrExprs SQUARE_R
+arrInit: SQUARE_L arrInits SQUARE_R
        {
        }
        | expr
