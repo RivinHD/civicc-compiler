@@ -42,15 +42,22 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %token <cflt> FLOATCONST
 %token <id> ID
 
-%type <node> intval floatval boolval constant expr
-%type <node> stmts stmt assign varlet program
-%type <cbinop> binop
+%type <node> program declerations decleration 
+%type <node> funDec funDef funHeader funBody localFunDefs localFunDef retType 
+%type <node> type basicType 
+%type <node> globalDec globalDef 
+%type <node> params param varDecs varDec statements statement 
+%type <node> arrExprs arrExpr 
+%type <node> block varlet exprs expr 
+%type <node> constant floatval intval boolval 
+%type <node> monop ids 
+%type <> binop
 
 %start program
 
 %%
 
-program: stmts
+program: declerations
          {
            parseresult = ASTprogram($1);
          }
@@ -64,40 +71,182 @@ declerations: decleration declerations {
 
 decleration: funDec {
          } 
-         | funDef {
+         | funDef 
+         {
          } 
-         | globalDec {
+         | globalDec 
+         {
          } 
-         | globalDef {
+         | globalDef 
+         {
          };
 
-funDec: {};
-funDef: {};
-globalDec: {};
-globalDef: {};
+funDec: EXTERN funHeader SEMICOLON 
+      {
+      };
 
+funDef: EXPORT funHeader CURLY_L funBody CURLY_R 
+      {
+      }
+      | funHeader CURLY_L funBody CURLY_R
+      {
+      };
 
-stmts: stmt stmts
+funHeader: retType ID BRACKET_L params BRACKET_R 
+         {
+         }
+         | retType ID BRACKET_L BRACKET_R 
+         {
+         };
+
+funBody: varDecs localFuncDefs statements
+       {
+       }
+       | varDecs statements
+       {
+       };
+
+localFunDefs: localFunDef localFunDefs
+            {
+            }
+            | localFunDef
+            {
+            };
+
+localFunDef: funHeader CURLY_L funBody CURLY_R
+           {
+           };
+
+retType: VOID | basicType;
+type: basicType;
+basicType: BOOL | INT | FLOAT;
+
+globalDec: EXTERN type SQUARE_L ids SQUARE_R ID SEMICOLON
+         {
+         }
+         | EXTERN type ID SEMICOLON
+         {
+         };
+globalDef: EXPORT type SQUARE_L exprs SQUARE_R ID LET arrExpr SEMICOLON
+         {
+         }
+         |EXPORT type SQUARE_L exprs SQUARE_R ID SEMICOLON
+         {
+         }
+         | EXPORT type ID SEMICOLON
+         {
+         }
+         | EXPORT type ID LET expr SEMICOLON
+         {
+         }
+         | type ID SEMICOLON
+         {
+         }
+         | type ID LET expr SEMICOLON   
+         {
+         };
+
+params: param COMMA params
+      {
+      }
+      | param
+      {
+      };
+
+param: type SQUARE_L ids SQUARE_R ID
+     {
+     }
+     | type ID
+     {
+     };
+
+varDecs: varDec varDecs
+    {
+    }
+    | varDec
+    {
+    };
+
+varDec: type SQUARE_L exprs SQUARE_R ID LET arrExpr SEMICOLON
+      {
+      }
+      | type SQUARE_L exprs SQUARE_R ID SEMICOLON
+      {
+      }
+      | type ID LET expr SEMICOLON
+      {
+      }
+      type ID SEMICOLON
+      {
+      };
+
+statements: statement statements
         {
           $$ = ASTstmts($1, $2);
         }
-      | stmt
+      | statement
         {
           $$ = ASTstmts($1, NULL);
         }
         ;
 
-stmt: assign
+statement: ID = LET expr SEMICOLON
        {
-         $$ = $1;
        }
-       ;
+       | ID BRACKET_L exprs BRACKET_R SEMICOLON
+       {
+       }
+       | ID BRACKET_L BRACKET_R SEMICOLON
+       {
+       }
+       | IF BRACKET_L expr BRACKET_R block ELSE block
+       {
+       }
+       | IF BRACKET_L expr BRACKET_R block 
+       {
+       }
+       | WHILE BRACKET_L expr BRACKET_R block
+       {
+       }
+       | DO block while BRACKET_L expr BRACKET_R SEMICOLON
+       {
+       }
+       | FOR BRACKET_L INT ID LET expr COMMA expr COMMA expr BRACKET_R block
+       {
+       }
+       | FOR BRACKET_L INT ID LET expr COMMA expr BRACKET_R block
+       {
+       }
+       | RETURN expr SEMICOLON
+       {
+       }
+       | RETURN SEMICOLON
+       {
+       }
+       | ID SQUARE_L exprs SQUARE_R LET expr SEMICOLON
+       {
+       };
 
-assign: varlet LET expr SEMICOLON
+arrExprs: arrExpr COMMA arrExprs
         {
-          $$ = ASTassign($1, $3);
         }
-        ;
+        | arrExpr
+        {
+        };
+
+arrExpr: SQUARE_L arrExprs SQUARE_R
+       {
+       }
+       | expr
+       {
+       }
+
+block: CURLY_L statements CURLY_R
+     {
+     }
+     | statement
+     {
+     };
 
 varlet: ID
         {
@@ -106,21 +255,44 @@ varlet: ID
         }
         ;
 
+exprs: expr COMMA exprs
+     {
+     }
+     | expr
+     {
+     };
 
-expr: constant
+expr: BRACKET_L expr BRACKET_R
       {
-        $$ = $1;
       }
-    | ID
-      {
-        $$ = ASTvar($1);
-      }
-    | BRACKET_L expr[left] binop[type] expr[right] BRACKET_R
+      | expr[left] binop[type] expr[right] 
       {
         $$ = ASTbinop( $left, $right, $type);
         AddLocToNode($$, &@left, &@right);
       }
-    ;
+      | monop expr
+      {
+      }
+      | BRACKET_L basicType BRACKET_R expr
+      {
+      }
+      | ID BRACKET_L exprs BRACKET_R
+      {
+      }
+      | ID BRACKET_L BRACKET_R
+      {
+      }
+      | ID
+      {
+        $$ = ASTvar($1);
+      }
+      | constant
+      {
+        $$ = $1;
+      }
+      | ID SQUARE_L exprs SQUARE_R
+      {
+      };
 
 constant: floatval
           {
@@ -163,14 +335,29 @@ binop: PLUS      { $$ = BO_add; }
      | STAR      { $$ = BO_mul; }
      | SLASH     { $$ = BO_div; }
      | PERCENT   { $$ = BO_mod; }
-     | LE        { $$ = BO_le; }
-     | LT        { $$ = BO_lt; }
-     | GE        { $$ = BO_ge; }
-     | GT        { $$ = BO_gt; }
      | EQ        { $$ = BO_eq; }
+     | NE        { $$ = BO_ne; }
+     | LT        { $$ = BO_lt; }
+     | LE        { $$ = BO_le; }
+     | GT        { $$ = BO_gt; }
+     | GE        { $$ = BO_ge; }
      | OR        { $$ = BO_or; }
      | AND       { $$ = BO_and; }
      ;
+
+monop: MINUS 
+     {
+     }
+     | EXCLAMATION_MARK
+     {
+     };
+
+ids: ID COMMA ids
+   {
+   }
+   | ID
+   {
+   };
 
 %%
 
