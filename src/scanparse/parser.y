@@ -48,10 +48,10 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %type <node> globalDec globalDef 
 %type <node> params param varDecs varDec statements statement 
 %type <node> arrExprs arrExpr 
-%type <node> block varlet exprs expr 
+%type <node> block exprs expr 
 %type <node> constant floatval intval boolval 
 %type <node> monop ids 
-%type <> binop
+%type <cbinop> binop
 
 %start program
 
@@ -99,7 +99,7 @@ funHeader: retType ID BRACKET_L params BRACKET_R
          {
          };
 
-funBody: varDecs localFuncDefs statements
+funBody: varDecs localFunDefs statements
        {
        }
        | varDecs statements
@@ -117,9 +117,24 @@ localFunDef: funHeader CURLY_L funBody CURLY_R
            {
            };
 
-retType: VOID | basicType;
+retType: VOID 
+       {
+       }
+       | basicType
+       {
+       };
+
 type: basicType;
-basicType: BOOL | INT | FLOAT;
+
+basicType: BOOL 
+         {
+         }
+         | INT 
+         {
+         }
+         | FLOAT
+         {
+         };
 
 globalDec: EXTERN type SQUARE_L ids SQUARE_R ID SEMICOLON
          {
@@ -190,7 +205,7 @@ statements: statement statements
         }
         ;
 
-statement: ID = LET expr SEMICOLON
+statement: ID LET expr SEMICOLON
        {
        }
        | ID BRACKET_L exprs BRACKET_R SEMICOLON
@@ -208,7 +223,7 @@ statement: ID = LET expr SEMICOLON
        | WHILE BRACKET_L expr BRACKET_R block
        {
        }
-       | DO block while BRACKET_L expr BRACKET_R SEMICOLON
+       | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
        {
        }
        | FOR BRACKET_L INT ID LET expr COMMA expr COMMA expr BRACKET_R block
@@ -247,13 +262,6 @@ block: CURLY_L statements CURLY_R
      | statement
      {
      };
-
-varlet: ID
-        {
-          $$ = ASTvarlet($1);
-          AddLocToNode($$, &@1, &@1);
-        }
-        ;
 
 exprs: expr COMMA exprs
      {
