@@ -46,52 +46,48 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
 %type <node> program declarations declaration 
 %type <node> funDec funDef funHeader funBody localFunDefs localFunDef 
-%type <node> basicType retType 
+%type <node> basicType 
 %type <node> globalDec globalDef 
-%type <node> params param varDecs varDec statements statement 
+%type <node> params param varDecs varDec varDecs_localFunDefs
+%type <node> statements statement statement_no_else
 %type <node> arrayInits arrayInit 
-%type <node> block exprs expr 
+%type <node> block block_if
+%type <node> exprs expr expr_binop expr_binop_no_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
+%type <node> expr_binop_LTLEGTGE expr_binop_PLUSMINUS expr_monop expr_cast
 %type <node> constant floatval intval boolval vars 
-%type <cbinop> binop
+%type <cbinop> binop_EQNE binop_LTLEGTGE binop_PLUSMINUS binop_STARSLASHPERCENT
 %type <cmonop> monop
 
 %start program
-
-%left COMMA
-%left OR 
-%left AND
-%left EQ NE
-%left LE LT GE GT 
-%left MINUS PLUS
-%left STAR SLASH PERCENT
-%right EXCLAMATION_MARK
-%left BRACKET_L BRACKET_R SQUARE_L SQUARE_R
 
 %%
 
 program: declarations 
          {
            parseresult = ASTprogram($1);
-         }
-         ;
-declarations: declaration declarations {
+         };
+
+declarations: declaration declarations 
+            {
                 $$ = ASTdeclarations($1, $2);
             }
-            | declaration {
+            | declaration 
+            {
                 $$ = ASTdeclarations($1, NULL);
             };
 
-declaration: globalDef {
-         } 
-         | globalDec 
-         {
-         } 
-         | funDef 
-         {
-         } 
-         | funDec
-         {
-         };
+declaration: globalDef 
+           {
+           } 
+           | globalDec 
+           {
+           } 
+           | funDef 
+           {
+           } 
+           | funDec
+           {
+           };
 
 funDec: EXTERN funHeader SEMICOLON 
       {
@@ -104,19 +100,38 @@ funDef: EXPORT funHeader CURLY_L funBody CURLY_R
       {
       };
 
-funHeader: retType VAR BRACKET_L params BRACKET_R 
+funHeader: VOID VAR BRACKET_L params BRACKET_R 
          {
          }
-         | retType VAR BRACKET_L BRACKET_R 
+         | basicType VAR BRACKET_L params BRACKET_R 
+         {
+         }
+         | VOID VAR BRACKET_L BRACKET_R 
+         {
+         }
+         | basicType VAR BRACKET_L BRACKET_R 
          {
          };
 
-funBody: varDecs localFunDefs statements
+funBody: varDecs_localFunDefs statements
        {
        }
        | varDecs statements
        {
+       }
+       | localFunDefs statements
+       {
+       }
+       | statements
+       {
+       }
+       | varDecs 
+       {
+       }
+       | localFunDefs
+       {
        };
+
 
 localFunDefs: localFunDef localFunDefs
             {
@@ -128,13 +143,6 @@ localFunDefs: localFunDef localFunDefs
 localFunDef: funHeader CURLY_L funBody CURLY_R
            {
            };
-
-retType: VOID 
-       {
-       }
-       | basicType
-       {
-       };
 
 basicType: BOOL 
          {
@@ -152,6 +160,7 @@ globalDec: EXTERN basicType SQUARE_L vars SQUARE_R VAR SEMICOLON
          | EXTERN basicType VAR SEMICOLON
          {
          };
+
 globalDef: EXPORT basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
          {
          }
@@ -192,6 +201,13 @@ varDecs: varDec varDecs
     {
     };
 
+varDecs_localFunDefs: varDec varDecs_localFunDefs
+                    {
+                    }
+                    | varDec localFunDefs
+                    {
+                    };
+
 varDec: basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
       {
       }
@@ -206,65 +222,98 @@ varDec: basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
       };
 
 statements: statement statements
-        {
+          {
           $$ = ASTstatements($1, $2);
-        }
-      | statement
-        {
+          }
+          | statement
+          {
           $$ = ASTstatements($1, NULL);
-        }
-        ;
+          };
 
 statement: VAR LET expr SEMICOLON
-       {
-       }
-       | VAR BRACKET_L exprs BRACKET_R SEMICOLON
-       {
-       }
-       | VAR BRACKET_L BRACKET_R SEMICOLON
-       {
-       }
-       | IF BRACKET_L expr BRACKET_R block ELSE block
-       {
-       }
-       | IF BRACKET_L expr BRACKET_R block 
-       {
-       }
-       | WHILE BRACKET_L expr BRACKET_R block
-       {
-       }
-       | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
-       {
-       }
-       | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block
-       {
-       }
-       | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block
-       {
-       }
-       | RETURN expr SEMICOLON
-       {
-       }
-       | RETURN SEMICOLON
-       {
-       }
-       | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
-       {
-       };
+         {
+         }
+         | VAR BRACKET_L exprs BRACKET_R SEMICOLON
+         {
+         }
+         | VAR BRACKET_L BRACKET_R SEMICOLON
+         {
+         }
+         | IF BRACKET_L expr BRACKET_R block_if ELSE block
+         {
+         }
+         | IF BRACKET_L expr BRACKET_R block_if
+         {
+         }
+         | WHILE BRACKET_L expr BRACKET_R block
+         {
+         }
+         | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
+         {
+         }
+         | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block
+         {
+         }
+         | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block
+         {
+         }
+         | RETURN expr SEMICOLON
+         {
+         }
+         | RETURN SEMICOLON
+         {
+         }
+         | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
+         {
+         };
+
+statement_no_else: VAR LET expr SEMICOLON
+                 {
+                 }
+                 | VAR BRACKET_L exprs BRACKET_R SEMICOLON
+                 {
+                 }
+                 | VAR BRACKET_L BRACKET_R SEMICOLON
+                 {
+                 }
+                 | IF BRACKET_L expr BRACKET_R block_if
+                 {
+                 }
+                 | WHILE BRACKET_L expr BRACKET_R block_if
+                 {
+                 }
+                 | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
+                 {
+                 }
+                 | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block_if
+                 {
+                 }
+                 | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block_if
+                 {
+                 }
+                 | RETURN expr SEMICOLON
+                 {
+                 }
+                 | RETURN SEMICOLON
+                 {
+                 }
+                 | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
+                 {
+                 };
 
 arrayInits: arrayInit COMMA arrayInits
-        {
-        }
-        | arrayInit
-        {
-        };
+          {
+          }
+          | arrayInit
+          {
+          };
 
 arrayInit: SQUARE_L arrayInits SQUARE_R
-       {
-       }
-       | expr
-       {
-       }
+         {
+         }
+         | expr
+         {
+         }
 
 block: CURLY_L statements CURLY_R
      {
@@ -272,6 +321,13 @@ block: CURLY_L statements CURLY_R
      | statement
      {
      };
+
+block_if: CURLY_L statements CURLY_R
+        {
+        }
+        | statement_no_else
+        {
+        };
 
 exprs: expr COMMA exprs
      {
@@ -281,87 +337,210 @@ exprs: expr COMMA exprs
      };
 
 expr: BRACKET_L expr BRACKET_R
-      {
-      }
-      | expr[left] binop[type] expr[right] 
-      {
-        $$ = ASTbinop( $left, $right, $type);
-        AddLocToNode($$, &@left, &@right);
-      }
-      | monop expr
-      {
-      }
-      | BRACKET_L basicType BRACKET_R expr
-      {
-      }
-      | VAR BRACKET_L exprs BRACKET_R
-      {
-      }
-      | VAR BRACKET_L BRACKET_R
-      {
-      }
-      | VAR
-      {
-        $$ = ASTvar($1);
-      }
-      | constant
-      {
-        $$ = $1;
-      }
-      | VAR SQUARE_L exprs SQUARE_R
-      {
-      };
+    {
+    }
+    | expr_binop
+    {
+      $$ = $1;
+    }
+    | monop expr_monop
+    {
+    }
+    | BRACKET_L basicType BRACKET_R expr_cast
+    {
+    }
+    | VAR BRACKET_L exprs BRACKET_R
+    {
+    }
+    | VAR BRACKET_L BRACKET_R
+    {
+    }
+    | VAR
+    {
+      $$ = ASTvar($1);
+    }
+    | constant
+    {
+      $$ = $1;
+    }
+    | VAR SQUARE_L exprs SQUARE_R
+    {
+    };
+
+// Extract binops based on predecence OR > AND > EQ, NE > LT, LE, GT, GE > PLUS, MINUS > STAR, SLASH, PERCENT
+// Naming follows the logic: We come from the binop_<OP> and process one predecnece lower
+expr_binop: expr_binop_OR 
+          {
+          }
+          // with this the left associativity is ensured
+          | expr_binop OR expr_binop_OR
+          {
+          };
+
+expr_binop_OR: expr_binop_AND
+             {
+             }
+             | expr_binop_OR AND expr_binop_AND
+             {
+             };
+
+expr_binop_AND: expr_binop_EQNE
+              {
+              }
+              | expr_binop_AND binop_EQNE expr_binop_EQNE
+              {
+              };
+
+expr_binop_EQNE: expr_binop_LTLEGTGE
+               {
+               }
+               | expr_binop_EQNE binop_LTLEGTGE expr_binop_LTLEGTGE
+               {
+               };
+
+expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
+                   {
+                   }
+                   | expr_binop_LTLEGTGE binop_PLUSMINUS expr_binop_PLUSMINUS
+                   {
+                   };
+
+expr_binop_PLUSMINUS: expr_binop_no_binop binop_STARSLASHPERCENT expr_binop_no_binop
+                    {
+                    }
+                    | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_binop_no_binop
+                    {
+                    };
+
+// Expression from binopt that does not include the binop itself.
+expr_binop_no_binop: BRACKET_L expr BRACKET_R
+                   {
+                   }
+                   | monop expr_monop
+                   {
+                   }
+                   | BRACKET_L basicType BRACKET_R expr_cast
+                   {
+                   }
+                   | VAR BRACKET_L exprs BRACKET_R
+                   {
+                   }
+                   | VAR BRACKET_L BRACKET_R
+                   {
+                   }
+                   | VAR
+                   {
+                     $$ = ASTvar($1);
+                   }
+                   | constant
+                   {
+                     $$ = $1;
+                   }
+                   | VAR SQUARE_L exprs SQUARE_R
+                   {
+                   };
+
+
+expr_monop: BRACKET_L expr BRACKET_R
+          {
+          }
+          | monop expr_monop
+          {
+          }
+          | BRACKET_L basicType BRACKET_R expr_cast
+          {
+          }
+          | VAR BRACKET_L exprs BRACKET_R
+          {
+          }
+          | VAR BRACKET_L BRACKET_R
+          {
+          }
+          | VAR
+          {
+            $$ = ASTvar($1);
+          }
+          | constant
+          {
+            $$ = $1;
+          }
+          | VAR SQUARE_L exprs SQUARE_R
+          {
+          };
+
+expr_cast: BRACKET_L expr BRACKET_R
+         {
+         }
+         | monop expr_monop
+         {
+         }
+         | BRACKET_L basicType BRACKET_R expr_cast
+         {
+         }
+         | VAR BRACKET_L exprs BRACKET_R
+         {
+         }
+         | VAR BRACKET_L BRACKET_R
+         {
+         }
+         | VAR
+         {
+           $$ = ASTvar($1);
+         }
+         | constant
+         {
+           $$ = $1;
+         }
+         | VAR SQUARE_L exprs SQUARE_R
+         {
+         };
 
 constant: floatval
-          {
-            $$ = $1;
-          }
+        {
+        $$ = $1;
+        }
         | intval
-          {
-            $$ = $1;
-          }
+        {
+        $$ = $1;
+        }
         | boolval
-          {
-            $$ = $1;
-          }
-        ;
+        {
+        $$ = $1;
+        };
 
 floatval: FLOATCONST
-           {
-             $$ = ASTfloat($1);
-           }
-         ;
+        {
+        $$ = ASTfloat($1);
+        };
 
 intval: NUMCONST
-        {
-          $$ = ASTnum($1);
-        }
-      ;
+      {
+      $$ = ASTnum($1);
+      };
 
-boolval: TRUEVAL
-         {
-           $$ = ASTbool(true);
-         }
+boolval: TRUEVAL 
+       {
+       $$ = ASTbool(true);
+       }
        | FALSEVAL
-         {
-           $$ = ASTbool(false);
-         }
-       ;
+       {
+       $$ = ASTbool(false);
+       };
 
-binop: PLUS      { $$ = BO_add; }
-     | MINUS     { $$ = BO_sub; }
-     | STAR      { $$ = BO_mul; }
-     | SLASH     { $$ = BO_div; }
-     | PERCENT   { $$ = BO_mod; }
-     | EQ        { $$ = BO_eq; }
-     | NE        { $$ = BO_ne; }
-     | LT        { $$ = BO_lt; }
-     | LE        { $$ = BO_le; }
-     | GT        { $$ = BO_gt; }
-     | GE        { $$ = BO_ge; }
-     | OR        { $$ = BO_or; }
-     | AND       { $$ = BO_and; }
-     ;
+binop_EQNE: EQ        { $$ = BO_eq; }
+          | NE        { $$ = BO_ne; };
+
+binop_LTLEGTGE: LT        { $$ = BO_lt; }
+              | LE        { $$ = BO_le; }
+              | GT        { $$ = BO_gt; }
+              | GE        { $$ = BO_ge; };
+
+binop_PLUSMINUS: PLUS      { $$ = BO_add; }
+     | MINUS     { $$ = BO_sub; };
+
+binop_STARSLASHPERCENT:  STAR     { $$ = BO_mul; }
+                      | SLASH     { $$ = BO_div; }
+                      | PERCENT   { $$ = BO_mod; } ;
 
 monop: MINUS 
      {
