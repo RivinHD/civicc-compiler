@@ -40,7 +40,13 @@ SEP [ /t/r/n]
 SEPB ({SEP}|\()
 SEPC ({SEP}|\{)
 
+%x MULTI_COMMENT
+
 %%
+
+
+"/*"                       { BEGIN(MULTI_COMMENT); }
+"//"[^\n]*$                { global.col += yyleng; }
 
 "("                        { FILTER( BRACKET_L); }
 ")"                        { FILTER( BRACKET_R); }
@@ -146,8 +152,18 @@ SEPC ({SEP}|\{)
                              yyless(1);
                            }
 
-[ \t]                      { global.col += yyleng;
-                           }
+[ \t]                      { global.col += yyleng; }
+
+<MULTI_COMMENT>{
+    [^*\n]*         { global.col += yyleng; }
+    "*"+[^*\/\n]*   { global.col += yyleng; }
+    \n              { 
+                      yycolumn = 1;
+                      global.line += 1;
+                      global.col = 0; 
+                    }
+    "*"+"/"         { BEGIN(INITIAL); }
+}
 %%
 
 static inline void token_action() {
