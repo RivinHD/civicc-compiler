@@ -1,9 +1,30 @@
 cmake_minimum_required(VERSION 3.13)
-
 project(civicc VERSION 1.0 LANGUAGES C)
+
+set(SOURCE_FILES
+    src/main.c
+    src/global/globals.c
+    src/print/print.c
+    src/scanparse/scanParse.c
+    src/optimization/opt_sub.c
+)
+
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(IS_MULTI_CONFIG)
+    message(NOTICE "Using multi-config generator. Compile with: cmake --build build --config [Debug|Release] --target <target>")
+else()
+    message(NOTICE "Using single-config generator. Generate with: cmake -B build -DCMAKE_BUILD_TYPE=[Debug|Release]")
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE "Debug")
+        message(WARNING "No Build type is set. Using ${CMAKE_BUILD_TYPE}!")
+    endif()
+endif()
+
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(DISABLE_ASAN "Disable address sanitizer")
 
@@ -18,26 +39,21 @@ find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
 bison_target(CivicParser src/scanparse/parser.y "${CMAKE_CURRENT_BINARY_DIR}/parser.c"
-    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h" VERBOSE)
+    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h" 
+    VERBOSE
+    COMPILE_FLAGS "-Wcounterexamples")
 
 flex_target(CivicLexer src/scanparse/lexer.l "${CMAKE_CURRENT_BINARY_DIR}/lexer.c"
     DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/lexer.h")
 ADD_FLEX_BISON_DEPENDENCY(CivicLexer CivicParser)
 
-
-include(./coconut/coconut.cmake)
+include(cmake/coconut.cmake)
 
 # Whenever you add a file, add it here too.
-add_executable(civicc ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS}
-    src/main.c src/print/print.c src/scanparse/scanParse.c
-    src/global/globals.c src/global/globals.h
-
-    # Youre free to remove the demo directory and these entries.
-    src/demo/opt_sub.c src/demo/sum_ints.c src/demo/rename_identifiers.c
-)
+add_executable(civicc ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
 
 target_compile_options(civicc PRIVATE
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function> -Wno-strict-prototypes
 )
 
 # Enable address sanitizer
@@ -58,5 +74,5 @@ target_include_directories(civicc
 
 add_custom_target(dot
     dot -Tpng ccngen/ast.dot > ast.png
-    COMMENT "Generate a png of your ast based on the generated dot diagram."
+    COMMENT "Generated a png of your ast based on the generated dot diagram."
 )
