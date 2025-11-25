@@ -3,7 +3,8 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
-        Demo;
+        Assignment;
+        Optimization;
         print;
     }
 };
@@ -12,21 +13,24 @@ traversal Print {
     uid = PRT
 };
 
-phase Demo {
+phase Assignment {
     actions {
-        traversal RenameIdentifiers {
-            uid = RI,
-            nodes = { Var, VarLet }
-        };
-
-        traversal SumInts {
-            uid = SI,
-            nodes = { Stmts, Num },
+        traversal CountIds {
+            uid = CID,
+            nodes = {
+                Var, 
+                VarLet,
+                Program
+            },
             travdata {
-                int sum
+                user htable_stptr count_ids
             }
         };
+    }
+};
 
+phase Optimization {
+    actions {
         traversal OptSubstraction {
             uid = OS,
             nodes = { Binop }
