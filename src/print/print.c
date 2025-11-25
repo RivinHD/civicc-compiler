@@ -8,105 +8,167 @@
  */
 
 #include "ccngen/ast.h"
+#include "ccngen/enum.h"
 #include "ccngen/trav.h"
 #include "palm/dbug.h"
+#include <stdio.h>
 
-/**
- * @fn PRTprogram
- */
 node_st *PRTprogram(node_st *node)
 {
-    // TODO
-    // TRAVstatements(node);
+    TRAVdecls(node);
     return node;
 }
 
 node_st *PRTdeclarations(node_st *node)
 {
-    // TODO
+    // TODO print something useful
+    TRAVdecl(node);
+    if (DECLARATIONS_NEXT(node) != NULL)
+    {
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTfundec(node_st *node)
 {
-    // TODO
+    if (FUNDEC_EXTERN_ATT(node))
+    {
+        printf("extern ");
+    }
+    TRAVfunHeader(node);
     return node;
 }
 
 node_st *PRTfundef(node_st *node)
 {
-    // TODO
+    if (FUNDEF_EXPORT(node))
+    {
+        printf("export ");
+    }
+    TRAVfunHeader(node);
+    printf("{\n");
+    TRAVfunBody(node);
+    printf("}\n");
     return node;
 }
 
 node_st *PRTglobaldec(node_st *node)
 {
-    // TODO
+    if (GLOBALDEC_EXTERN_ATT(node))
+    {
+        printf("extern ");
+    }
+    TRAVtype(node);
+    TRAVvar(node);
+    printf(";");
     return node;
 }
 
 node_st *PRTglobaldef(node_st *node)
 {
-    // TODO
+    if (GLOBALDEF_EXPORT(node))
+    {
+        printf("export ");
+    }
+    TRAVvarDec(node);
+    printf(";");
     return node;
 }
 
 node_st *PRTfunheader(node_st *node)
 {
-    // TODO
+    TRAVret(node);
+    TRAVvar(node);
+    printf("(");
+    if (FUNHEADER_PARAMS(node) != NULL)
+    {
+        TRAVparams(node);
+    }
+    printf(")");
     return node;
 }
 
 node_st *PRTparams(node_st *node)
 {
-    // TODO
+    TRAVparam(node);
+    if (PARAMS_NEXT(node) != NULL)
+    {
+        printf(", ");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTparam(node_st *node)
 {
-    // TODO
+    TRAVtype(node);
+    printf(" ");
+    TRAVvar(node);
     return node;
 }
 
 node_st *PRTfunbody(node_st *node)
 {
-    // TODO
+    if (FUNBODY_VARDECS(node) != NULL)
+    {
+        printf("\n");
+        TRAVvarDecs(node);
+    }
+    if (FUNBODY_LOCALFUNDEFS(node) != NULL)
+    {
+        printf("\n");
+        TRAVlocalFunDefs(node);
+    }
+    if (FUNBODY_STMTS(node) != NULL)
+    {
+        printf("\n");
+        TRAVstmts(node);
+    }
     return node;
 }
 
 node_st *PRTvardecs(node_st *node)
 {
-    // TODO
+    TRAVvarDec(node);
+    if (VARDECS_NEXT(node) != NULL)
+    {
+        printf("\n");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTlocalfundefs(node_st *node)
 {
-    // TODO
+    TRAVlocalFunDef(node);
+    if (LOCALFUNDEFS_NEXT(node) != NULL)
+    {
+        printf("\n");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTlocalfundef(node_st *node)
 {
-    // TODO
+    TRAVfunHeader(node);
+    printf("\n");
+    TRAVfunBody(node);
     return node;
 }
 
-/**
- * @fn PRTstatements
- */
 node_st *PRTstatements(node_st *node)
 {
-    // TODO
-    // TRAVstatement(node);
-    TRAVnext(node);
+    TRAVstmt(node);
+    if (STATEMENTS_NEXT(node) != NULL)
+    {
+        printf("\n");
+        TRAVnext(node);
+    }
     return node;
 }
 
-/**
- * @fn PRTassign
- */
 node_st *PRTassign(node_st *node)
 {
     if (ASSIGN_VAR(node) != NULL)
@@ -121,9 +183,6 @@ node_st *PRTassign(node_st *node)
     return node;
 }
 
-/**
- * @fn PRTbinop
- */
 node_st *PRTbinop(node_st *node)
 {
     char *tmp = NULL;
@@ -187,13 +246,36 @@ node_st *PRTbinop(node_st *node)
 
 node_st *PRTmonop(node_st *node)
 {
-    // TODO
+    char *op = "";
+    switch (MONOP_OP(node))
+    {
+    case MO_neg:
+        op = "-";
+        break;
+    case MO_not:
+        op = "!";
+        break;
+    case MO_NULL:
+        DBUG_ASSERT(false, "unkown monop detected!");
+    }
+
+    printf("( %s ", op);
+    TRAVleft(node);
+    printf(")");
     return node;
 }
 
 node_st *PRTvardec(node_st *node)
 {
-    // TODO
+    TRAVtype(node);
+    printf(" ");
+    TRAVvar(node);
+    if (VARDEC_EXPR(node) != NULL)
+    {
+        printf(" ");
+        TRAVexpr(node);
+    }
+    printf(";");
     return node;
 }
 

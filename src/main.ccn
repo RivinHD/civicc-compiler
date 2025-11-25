@@ -149,14 +149,14 @@ node FunBody {
 
 node VarDecs {
     children {
-        VarDec varDec { constructor },
+        VarDec varDec { constructor, mandatory },
         VarDecs next { constructor }
     }
 };
 
 node LocalFunDefs {
     children {
-        LocalFunDef localFunDef { constructor },
+        LocalFunDef localFunDef { constructor, mandatory },
         LocalFunDefs next { constructor }
     }
 };
@@ -171,7 +171,7 @@ node LocalFunDef {
 
 node Statements {
     children {
-        Statement stmt { constructor },
+        Statement stmt { constructor, mandatory },
         Statements next { constructor }
     }
 };
@@ -190,7 +190,7 @@ node Binop {
     },
 
     attributes {
-        BinOpType op { constructor }
+        BinOpType op { constructor }  // mandatory not possible, but required for construction
     }
 };
 
@@ -200,7 +200,7 @@ node Monop {
     },
 
     attributes {
-        MonOpType op { constructor }
+        MonOpType op { constructor }  // mandatory not possible, but required for construction
     }
 };
 
