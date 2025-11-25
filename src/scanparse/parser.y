@@ -55,11 +55,11 @@ program: stmts
 
 stmts: stmt stmts
         {
-          $$ = ASTstatements($1, $2);
+          $$ = ASTstmts($1, $2);
         }
       | stmt
         {
-          $$ = ASTstatements($1, NULL);
+          $$ = ASTstmts($1, NULL);
         }
         ;
 
@@ -77,6 +77,8 @@ assign: varlet LET expr SEMICOLON
 
 varlet: ID
         {
+          $$ = ASTvarlet($1);
+          AddLocToNode($$, &@1, &@1);
         }
         ;
 
