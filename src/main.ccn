@@ -214,7 +214,7 @@ node VarDec {
 
 node ProcCall {
     children {
-        Var let { constructor, mandatory },
+        Var var { constructor, mandatory },
         Exprs exprs { constructor }
     }
 };

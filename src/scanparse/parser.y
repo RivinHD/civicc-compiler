@@ -47,13 +47,13 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 %type <node> program declarations declaration 
 %type <node> funDec funDef funHeader funBody localFunDefs localFunDef 
 %type <node> basicType 
-%type <node> globalDec globalDef 
+%type <node> globalDec globalDef
 %type <node> params param varDecs varDec varDecs_localFunDefs
 %type <node> statements statement statement_no_else
 %type <node> arrayInits arrayInit 
 %type <node> block block_if
-%type <node> exprs expr expr_binop expr_binop_no_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
-%type <node> expr_binop_LTLEGTGE expr_binop_PLUSMINUS expr_monop expr_cast
+%type <node> exprs expr expr_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
+%type <node> expr_binop_LTLEGTGE expr_binop_PLUSMINUS expr_monopcast
 %type <node> constant floatval intval boolval vars 
 %type <cbinop> binop_EQNE binop_LTLEGTGE binop_PLUSMINUS binop_STARSLASHPERCENT
 %type <cmonop> monop
@@ -100,16 +100,10 @@ funDef: EXPORT funHeader CURLY_L funBody CURLY_R
       {
       };
 
-funHeader: VOID VAR BRACKET_L params BRACKET_R 
+funHeader: VOID VAR BRACKET_L optParams BRACKET_R 
          {
          }
-         | basicType VAR BRACKET_L params BRACKET_R 
-         {
-         }
-         | VOID VAR BRACKET_L BRACKET_R 
-         {
-         }
-         | basicType VAR BRACKET_L BRACKET_R 
+         | basicType VAR BRACKET_L optParams BRACKET_R 
          {
          };
 
@@ -161,22 +155,16 @@ globalDec: EXTERN basicType SQUARE_L vars SQUARE_R VAR SEMICOLON
          {
          };
 
-globalDef: EXPORT basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
+globalDef: EXPORT basicType SQUARE_L exprs SQUARE_R VAR optArrayInit SEMICOLON
          {
          }
-         | EXPORT basicType SQUARE_L exprs SQUARE_R VAR SEMICOLON
+         | EXPORT basicType VAR optVarInit SEMICOLON
          {
          }
-         | EXPORT basicType VAR SEMICOLON
+         | basicType SQUARE_L exprs SQUARE_R VAR optArrayInit SEMICOLON
          {
          }
-         | EXPORT basicType VAR LET expr SEMICOLON
-         {
-         }
-         | basicType VAR SEMICOLON
-         {
-         }
-         | basicType VAR LET expr SEMICOLON   
+         | basicType VAR optVarInit SEMICOLON   
          {
          };
 
@@ -194,6 +182,14 @@ param: basicType SQUARE_L vars SQUARE_R VAR
      {
      };
 
+optParams: params
+         {
+         }
+         |
+         {
+         };
+
+
 varDecs: varDec varDecs
     {
     }
@@ -208,18 +204,20 @@ varDecs_localFunDefs: varDec varDecs_localFunDefs
                     {
                     };
 
-varDec: basicType SQUARE_L exprs SQUARE_R VAR LET arrayInit SEMICOLON
+varDec: basicType SQUARE_L exprs SQUARE_R VAR optArrayInit SEMICOLON
       {
       }
-      | basicType SQUARE_L exprs SQUARE_R VAR SEMICOLON
-      {
-      }
-      | basicType VAR LET expr SEMICOLON
-      {
-      }
-      | basicType VAR SEMICOLON
+      | basicType VAR optVarInit SEMICOLON
       {
       };
+
+optVarInit: LET expr
+          {
+          }
+          |
+          {
+          };
+
 
 statements: statement statements
           {
@@ -230,50 +228,17 @@ statements: statement statements
           $$ = ASTstatements($1, NULL);
           };
 
-statement: VAR LET expr SEMICOLON
-         {
-         }
-         | VAR BRACKET_L exprs BRACKET_R SEMICOLON
-         {
-         }
-         | VAR BRACKET_L BRACKET_R SEMICOLON
+statement: statement_no_else
          {
          }
          | IF BRACKET_L expr BRACKET_R block_if ELSE block
-         {
-         }
-         | IF BRACKET_L expr BRACKET_R block_if
-         {
-         }
-         | WHILE BRACKET_L expr BRACKET_R block
-         {
-         }
-         | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
-         {
-         }
-         | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block
-         {
-         }
-         | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block
-         {
-         }
-         | RETURN expr SEMICOLON
-         {
-         }
-         | RETURN SEMICOLON
-         {
-         }
-         | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
          {
          };
 
 statement_no_else: VAR LET expr SEMICOLON
                  {
                  }
-                 | VAR BRACKET_L exprs BRACKET_R SEMICOLON
-                 {
-                 }
-                 | VAR BRACKET_L BRACKET_R SEMICOLON
+                 | VAR BRACKET_L optExprs BRACKET_R SEMICOLON
                  {
                  }
                  | IF BRACKET_L expr BRACKET_R block_if
@@ -285,21 +250,36 @@ statement_no_else: VAR LET expr SEMICOLON
                  | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
                  {
                  }
-                 | FOR BRACKET_L INT VAR LET expr COMMA expr COMMA expr BRACKET_R block_if
+                 | FOR BRACKET_L INT VAR LET expr COMMA expr optForStep BRACKET_R block_if
                  {
                  }
-                 | FOR BRACKET_L INT VAR LET expr COMMA expr BRACKET_R block_if
-                 {
-                 }
-                 | RETURN expr SEMICOLON
-                 {
-                 }
-                 | RETURN SEMICOLON
+                 | RETURN optExpr SEMICOLON
                  {
                  }
                  | VAR SQUARE_L exprs SQUARE_R LET expr SEMICOLON
                  {
                  };
+
+optForStep: COMMA expr
+          {
+          }
+          |
+          {
+          };
+
+optExprs: exprs
+        {
+        }
+        |
+        {
+        };
+
+optExpr: expr
+       {
+       }
+       |
+       {
+       };
 
 arrayInits: arrayInit COMMA arrayInits
           {
@@ -314,6 +294,14 @@ arrayInit: SQUARE_L arrayInits SQUARE_R
          | expr
          {
          }
+
+optArrayInit: LET arrayInit
+            {
+            }
+            |
+            {
+            };
+
 
 block: CURLY_L statements CURLY_R
      {
@@ -336,35 +324,12 @@ exprs: expr COMMA exprs
      {
      };
 
-expr: BRACKET_L expr BRACKET_R
+expr: expr_monopcast
     {
     }
     | expr_binop
     {
       $$ = $1;
-    }
-    | monop expr_monop
-    {
-    }
-    | BRACKET_L basicType BRACKET_R expr_cast
-    {
-    }
-    | VAR BRACKET_L exprs BRACKET_R
-    {
-    }
-    | VAR BRACKET_L BRACKET_R
-    {
-    }
-    | VAR
-    {
-      $$ = ASTvar($1);
-    }
-    | constant
-    {
-      $$ = $1;
-    }
-    | VAR SQUARE_L exprs SQUARE_R
-    {
     };
 
 // Extract binops based on predecence OR > AND > EQ, NE > LT, LE, GT, GE > PLUS, MINUS > STAR, SLASH, PERCENT
@@ -405,49 +370,21 @@ expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
                    {
                    };
 
-expr_binop_PLUSMINUS: expr_binop_no_binop binop_STARSLASHPERCENT expr_binop_no_binop
+// expr_monopcast = all Expression except binop.
+expr_binop_PLUSMINUS: expr_monopcast binop_STARSLASHPERCENT expr_monopcast
                     {
                     }
-                    | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_binop_no_binop
+                    | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_monopcast
                     {
                     };
 
-// Expression from binopt that does not include the binop itself.
-expr_binop_no_binop: BRACKET_L expr BRACKET_R
-                   {
-                   }
-                   | monop expr_monop
-                   {
-                   }
-                   | BRACKET_L basicType BRACKET_R expr_cast
-                   {
-                   }
-                   | VAR BRACKET_L exprs BRACKET_R
-                   {
-                   }
-                   | VAR BRACKET_L BRACKET_R
-                   {
-                   }
-                   | VAR
-                   {
-                     $$ = ASTvar($1);
-                   }
-                   | constant
-                   {
-                     $$ = $1;
-                   }
-                   | VAR SQUARE_L exprs SQUARE_R
-                   {
-                   };
-
-
-expr_monop: BRACKET_L expr BRACKET_R
+expr_monopcast: BRACKET_L expr BRACKET_R
           {
           }
-          | monop expr_monop
+          | monop expr_monopcast
           {
           }
-          | BRACKET_L basicType BRACKET_R expr_cast
+          | BRACKET_L basicType BRACKET_R expr_monopcast
           {
           }
           | VAR BRACKET_L exprs BRACKET_R
@@ -467,33 +404,6 @@ expr_monop: BRACKET_L expr BRACKET_R
           | VAR SQUARE_L exprs SQUARE_R
           {
           };
-
-expr_cast: BRACKET_L expr BRACKET_R
-         {
-         }
-         | monop expr_monop
-         {
-         }
-         | BRACKET_L basicType BRACKET_R expr_cast
-         {
-         }
-         | VAR BRACKET_L exprs BRACKET_R
-         {
-         }
-         | VAR BRACKET_L BRACKET_R
-         {
-         }
-         | VAR
-         {
-           $$ = ASTvar($1);
-         }
-         | constant
-         {
-           $$ = $1;
-         }
-         | VAR SQUARE_L exprs SQUARE_R
-         {
-         };
 
 constant: floatval
         {

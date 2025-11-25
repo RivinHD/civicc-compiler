@@ -173,7 +173,7 @@ node_st *PRTassign(node_st *node)
 {
     if (ASSIGN_VAR(node) != NULL)
     {
-        TRAVlet(node);
+        TRAVvar(node);
         printf(" = ");
     }
 
