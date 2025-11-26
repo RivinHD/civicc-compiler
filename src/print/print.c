@@ -1,16 +1,13 @@
 /**
- * @file
- *
  * This file contains the code for the Print traversal.
  * The traversal has the uid: PRT
- *
- *
  */
 
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "ccngen/trav.h"
 #include "palm/dbug.h"
+#include <stdbool.h>
 #include <stdio.h>
 
 node_st *PRTprogram(node_st *node)
@@ -21,10 +18,11 @@ node_st *PRTprogram(node_st *node)
 
 node_st *PRTdeclarations(node_st *node)
 {
-    // TODO print something useful
+
     TRAVdecl(node);
     if (DECLARATIONS_NEXT(node) != NULL)
     {
+        printf("`");
         TRAVnext(node);
     }
     return node;
@@ -60,6 +58,7 @@ node_st *PRTglobaldec(node_st *node)
         printf("extern ");
     }
     TRAVtype(node);
+    printf(" ");
     TRAVvar(node);
     printf(";");
     return node;
@@ -79,6 +78,7 @@ node_st *PRTglobaldef(node_st *node)
 node_st *PRTfunheader(node_st *node)
 {
     TRAVret(node);
+    printf(" ");
     TRAVvar(node);
     printf("(");
     if (FUNHEADER_PARAMS(node) != NULL)
@@ -270,7 +270,112 @@ node_st *PRTvardec(node_st *node)
     TRAVtype(node);
     printf(" ");
     TRAVvar(node);
+    bool is_array = NODE_TYPE(VARDEC_VAR(node)) == NT_ARRAYEXPR;
     if (VARDEC_EXPR(node) != NULL)
+    {
+        printf(" = ");
+        if (is_array)
+        {
+            printf("[");
+            TRAVexpr(node);
+            printf("]");
+        }
+        else
+        {
+            TRAVexpr(node);
+        }
+    }
+    printf(";");
+    return node;
+}
+
+node_st *PRTproccall(node_st *node)
+{
+    TRAVvar(node);
+    printf("(");
+    if (PROCCALL_EXPRS(node) != NULL)
+    {
+        TRAVexprs(node);
+    }
+    printf(")");
+    return node;
+}
+
+node_st *PRTexprs(node_st *node)
+{
+    TRAVexpr(node);
+    if (EXPRS_NEXT(node) != NULL)
+    {
+        printf(", ");
+        TRAVnext(node);
+    }
+    return node;
+}
+
+node_st *PRTifstatement(node_st *node)
+{
+    printf("if (");
+    TRAVexpr(node);
+    printf(") {\n");
+    TRAVblock(node);
+    printf("\n}");
+    if (IFSTATEMENT_ELSE_BLOCK(node) != NULL)
+    {
+        printf(" else ");
+        TRAVelse_block(node);
+    }
+    return node;
+}
+
+node_st *PRTelsestatement(node_st *node)
+{
+    printf("{\n");
+    TRAVblock(node);
+    printf("\n}");
+    return node;
+}
+
+node_st *PRTwhileloop(node_st *node)
+{
+    printf("while (");
+    TRAVexpr(node);
+    printf(") {\n");
+    TRAVblock(node);
+    printf("\n}");
+    return node;
+}
+
+node_st *PRTdowhileloop(node_st *node)
+{
+    printf("do {\n");
+    TRAVblock(node);
+    printf("\n} while (");
+    TRAVexpr(node);
+    printf(")");
+    return node;
+}
+
+node_st *PRTforloop(node_st *node)
+{
+    printf("for (");
+    TRAVassign(node);
+    printf(", ");
+    TRAVcond(node);
+    if (FORLOOP_ITER(node) != NULL)
+    {
+        printf(", ");
+        TRAViter(node);
+    }
+    printf(") {\n");
+    TRAVblock(node);
+    printf("\n}");
+    return node;
+}
+
+node_st *PRTretstatement(node_st *node)
+{
+    printf("return");
+    if (RETSTATEMENT_EXPR(node) != NULL)
     {
         printf(" ");
         TRAVexpr(node);
@@ -279,69 +384,21 @@ node_st *PRTvardec(node_st *node)
     return node;
 }
 
-node_st *PRTproccall(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTexprs(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTifstatement(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTelsestatement(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTwhileloop(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTdowhileloop(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTforloop(node_st *node)
-{
-    // TODO
-    return node;
-}
-
-node_st *PRTretstatement(node_st *node)
-{
-    // TODO
-    return node;
-}
-
 node_st *PRTcast(node_st *node)
 {
-    // TODO
+    printf("(");
+    TRAVtype(node);
+    printf(")");
+    TRAVexpr(node);
     return node;
 }
 
 node_st *PRTvoid(node_st *node)
 {
-    // TODO
+    printf("void");
     return node;
 }
 
-/**
- * @fn PRTvar
- */
 node_st *PRTvar(node_st *node)
 {
     printf("%s", VAR_NAME(node));
@@ -350,60 +407,75 @@ node_st *PRTvar(node_st *node)
 
 node_st *PRTarrayvar(node_st *node)
 {
-    // TODO
+    printf("[");
+    TRAVdims(node);
+    printf("] ");
+    TRAVvar(node);
     return node;
 }
 
 node_st *PRTdimensionvars(node_st *node)
 {
-    // TODO
+    TRAVdim(node);
+    if (DIMENSIONVARS_NEXT(node) != NULL)
+    {
+        printf(", ");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTarrayexpr(node_st *node)
 {
-    // TODO
+    TRAVvar(node);
+    printf("[");
+    TRAVdims(node);
+    printf("]");
     return node;
 }
 
 node_st *PRTdimensionexprs(node_st *node)
 {
-    // TODO
+    TRAVdim(node);
+    if (DIMENSIONEXPRS_NEXT(node) != NULL)
+    {
+        printf(", ");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTarrayinit(node_st *node)
 {
-    // TODO
+    TRAVexpr(node);
+    if (ARRAYINIT_NEXT(node) != NULL)
+    {
+        printf(", ");
+        TRAVnext(node);
+    }
     return node;
 }
 
 node_st *PRTarrayassign(node_st *node)
 {
-    // TODO
+    TRAVvar(node);
+    printf(" = ");
+    TRAVexpr(node);
     return node;
 }
-/**
- * @fn PRTnum
- */
+
 node_st *PRTnum(node_st *node)
 {
     printf("%d", NUM_VAL(node));
     return node;
 }
 
-/**
- * @fn PRTfloat
- */
 node_st *PRTfloat(node_st *node)
 {
     printf("%f", FLOAT_VAL(node));
     return node;
 }
 
-/**
- * @fn PRTbool
- */
 node_st *PRTbool(node_st *node)
 {
     char *bool_str = BOOL_VAL(node) ? "true" : "false";

@@ -279,7 +279,7 @@ node Cast {
 
 node Void {
     attributes {
-        string nothing
+        string nothing // not used, but needed because an empty node is not possible
     }
 };
 
