@@ -1,0 +1,6 @@
+extern bool test();
+extern bool test1(bool test);
+extern bool test2(bool test, int testi, float testf);
+extern bool test3(bool[dim] test);
+extern bool test4(bool[dim1, dim2] test);
+extern bool test5(float[dim1, dim2, dim3] test, bool hi);

@@ -1,0 +1,110 @@
+void funcDefFirst()
+{
+
+}
+
+export void funcDefSecond()
+{
+    
+}
+
+void funcDefThird( int value )
+{
+    
+}
+
+export void funcDefFourth( int value )
+{
+    
+}
+
+void funcDefSixth( float value )
+{
+    
+}
+
+export void funcDefSeventh( float value )
+{
+    
+}
+
+void funcDefEighth( bool value )
+{
+    
+}
+
+export void funcDefNinth( bool value )
+{
+
+}
+
+void funcDefTenth( int[dim1] values )
+{
+    
+}
+
+export void funcDefEleventh( int[dim1] values )
+{
+    
+}
+
+void funcDefTwelfth( float[dim1] values )
+{
+    
+}
+
+export void funcDefThirteenth( float[dim1] values )
+{
+    
+}
+
+void funcDefFourteenth( bool[dim1] values )
+{
+    
+}
+
+export void funcDefFifteenth( bool[dim1] values )
+{
+
+}
+
+void funcDefSixteenth( int[dim1, dim2] values )
+{
+    
+}
+
+export void funcDefSeventeenth( int[dim1, dim2] values )
+{
+    
+}
+
+void funcDefEighteenth( float[dim1, dim2] values )
+{
+    
+}
+
+export void funcDefNineteenth( float[dim1, dim2] values )
+{
+    
+}
+
+void funcDefTwentieth( bool[dim1, dim2] values )
+{
+    
+}
+
+export void funcDefTwentyfirst( bool[dim1, dim2] values )
+{
+
+}
+
+
+void funcDefTwentysecond( int valueOne, float valueTwo, bool valueThree, int[dim1] intValues, float[dim2, dim3] floatValues, bool[dim4, dim5, dim6] boolValues )
+{
+
+}
+
+export void funcDefTwentysecond( int valueOne, float valueTwo, bool valueThree, int[dim1] intValues, float[dim2, dim3] floatValues, bool[dim4, dim5, dim6] boolValues )
+{
+
+}

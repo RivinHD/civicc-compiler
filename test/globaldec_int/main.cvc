@@ -1,0 +1,4 @@
+extern int test;
+extern int[dim] test1;
+extern int[dim1, dim2] test2;
+extern int[dim1, dim2, dim3] test3;

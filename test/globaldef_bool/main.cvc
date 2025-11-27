@@ -1,0 +1,5 @@
+bool test_123 = true;
+bool test = false;
+bool [12]array = true;
+bool [5]array5 = [true, false, false, true, true];
+bool [5, 2]array52 = [[true, true, false, true, false], [true, false, true, false, true]];
