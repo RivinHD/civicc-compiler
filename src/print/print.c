@@ -10,6 +10,27 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+void printDataType(enum DataType type)
+{
+    switch (type)
+    {
+    case DT_void:
+        printf("void");
+        break;
+    case DT_int:
+        printf("int");
+        break;
+    case DT_float:
+        printf("float");
+        break;
+    case DT_bool:
+        printf("bool");
+        break;
+    case DT_NULL:
+        DBUG_ASSERT(false, "unknown data type detected!");
+    }
+}
+
 node_st *PRTprogram(node_st *node)
 {
     TRAVdecls(node);
@@ -30,10 +51,7 @@ node_st *PRTdeclarations(node_st *node)
 
 node_st *PRTfundec(node_st *node)
 {
-    if (FUNDEC_EXTERN_ATT(node))
-    {
-        printf("extern ");
-    }
+    printf("extern ");
     TRAVfunHeader(node);
     return node;
 }
@@ -53,11 +71,8 @@ node_st *PRTfundef(node_st *node)
 
 node_st *PRTglobaldec(node_st *node)
 {
-    if (GLOBALDEC_EXTERN_ATT(node))
-    {
-        printf("extern ");
-    }
-    TRAVtype(node);
+    printf("extern ");
+    printDataType(GLOBALDEC_TYPE(node));
     printf(" ");
     TRAVvar(node);
     printf(";");
@@ -77,7 +92,7 @@ node_st *PRTglobaldef(node_st *node)
 
 node_st *PRTfunheader(node_st *node)
 {
-    TRAVret(node);
+    printDataType(FUNHEADER_TYPE(node));
     printf(" ");
     TRAVvar(node);
     printf("(");
@@ -102,7 +117,7 @@ node_st *PRTparams(node_st *node)
 
 node_st *PRTparam(node_st *node)
 {
-    TRAVtype(node);
+    printDataType(PARAM_TYPE(node));
     printf(" ");
     TRAVvar(node);
     return node;
@@ -267,7 +282,7 @@ node_st *PRTmonop(node_st *node)
 
 node_st *PRTvardec(node_st *node)
 {
-    TRAVtype(node);
+    printDataType(VARDEC_TYPE(node));
     printf(" ");
     TRAVvar(node);
     bool is_array = NODE_TYPE(VARDEC_VAR(node)) == NT_ARRAYEXPR;
@@ -387,7 +402,7 @@ node_st *PRTretstatement(node_st *node)
 node_st *PRTcast(node_st *node)
 {
     printf("(");
-    TRAVtype(node);
+    printDataType(CAST_TYPE(node));
     printf(")");
     TRAVexpr(node);
     return node;
@@ -434,17 +449,6 @@ node_st *PRTarrayexpr(node_st *node)
     return node;
 }
 
-node_st *PRTdimensionexprs(node_st *node)
-{
-    TRAVdim(node);
-    if (DIMENSIONEXPRS_NEXT(node) != NULL)
-    {
-        printf(", ");
-        TRAVnext(node);
-    }
-    return node;
-}
-
 node_st *PRTarrayinit(node_st *node)
 {
     TRAVexpr(node);
@@ -464,9 +468,9 @@ node_st *PRTarrayassign(node_st *node)
     return node;
 }
 
-node_st *PRTnum(node_st *node)
+node_st *PRTint(node_st *node)
 {
-    printf("%d", NUM_VAL(node));
+    printf("%d", INT_VAL(node));
     return node;
 }
 

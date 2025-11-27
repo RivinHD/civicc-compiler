@@ -42,18 +42,25 @@ enum BinOpType {
     }
 };
 
+enum DataType {
+    prefix = DT,
+    values {
+        void, bool, int, float
+    }
+};
+
 /**********************/
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr} | BasicType;
-nodeset BasicType = {Num, Float, Bool};
-nodeset RetType = BasicType | {Void};
+nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr} | Constant;
+nodeset Constant = {Int, Float, Bool};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
 nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
 nodeset Block = {Statements} | Statement;
 nodeset VarOptArrayVar = {Var, ArrayVar};
 nodeset VarOptArrayExpr = {Var, ArrayExpr};
+nodeset ExprOptArrayInit = Expr | {ArrayInit};
 
 // Nodes you want to be able to link to from your symbol table.
 nodeset Link = Expr | Statement;
@@ -79,10 +86,6 @@ node FunDec {
     children {
         FunHeader funHeader { constructor, mandatory }
     },
-
-    attributes {
-        bool extern_att { constructor }            // has to be 'extern'
-    }
 };
 
 node FunDef {
@@ -98,12 +101,11 @@ node FunDef {
 
 node GlobalDec {
     children {
-        BasicType type { constructor, mandatory },
         VarOptArrayVar var { constructor, mandatory } 
     },
 
     attributes {
-        bool extern_att { constructor }            // has to be 'extern'
+        DataType type { constructor }  // mandatory
     }
 };
 
@@ -119,9 +121,12 @@ node GlobalDef {
 
 node FunHeader {
     children {
-        RetType ret { constructor, mandatory },
         Var var { constructor, mandatory },
         Params params { constructor }
+    },
+
+    attributes {
+        DataType type { constructor } // mandatory
     }
 };
 
@@ -134,8 +139,11 @@ node Params {
 
 node Param {
     children {
-        BasicType type { constructor, mandatory },
         VarOptArrayVar var { constructor, mandatory }
+    },
+
+    attributes {
+       DataType type { constructor } // mandatory 
     }
 };
 
@@ -206,9 +214,12 @@ node Monop {
 
 node VarDec {
     children {
-        BasicType type { constructor, mandatory },
         VarOptArrayExpr var { constructor, mandatory },
         ArrayInit expr { constructor }
+    },
+
+    attributes {
+        DataType type { constructor } // mandatory
     }
 };
 
@@ -269,17 +280,14 @@ node RetStatement {
     }
 };
 
-// ( BasicType ) Expr
+// ( DataType ) Expr
 node Cast {
     children {
-        BasicType type { constructor, mandatory },
         Expr expr { constructor, mandatory }
-    }
-};
+    },
 
-node Void {
     attributes {
-        string nothing // not used, but needed because an empty node is not possible
+        DataType type { constructor } // mandatory
     }
 };
 
@@ -300,27 +308,20 @@ node ArrayVar {
 node DimensionVars {
     children {
         Var dim { constructor, mandatory },
-        DimensionExprs next { constructor }
+        Exprs next { constructor }
     }
 };
 
 node ArrayExpr {
     children {
-        DimensionExprs dims { constructor, mandatory },
+        Exprs dims { constructor, mandatory },
         Var var { constructor, mandatory }
-    }
-};
-
-node DimensionExprs {
-    children {
-        Expr dim { constructor, mandatory },
-        DimensionExprs next { constructor }
     }
 };
 
 node ArrayInit {
     children {
-        Expr expr { constructor, mandatory },
+        ExprOptArrayInit expr { constructor, mandatory },
         ArrayInit next { constructor }
     }
 };
@@ -332,7 +333,7 @@ node ArrayAssign {
     }
 };
 
-node Num {
+node Int {
     attributes {
         int val { constructor }
     }

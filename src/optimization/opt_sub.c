@@ -26,12 +26,12 @@ node_st *OSbinop(node_st *node)
             (NODE_TYPE(BINOP_RIGHT(node)) == NT_VAR) &&
             STReq(VAR_NAME(BINOP_LEFT(node)), VAR_NAME(BINOP_RIGHT(node)))) {
             node = CCNfree(node);
-            node = ASTnum(0);
-        } else if ((NODE_TYPE(BINOP_LEFT(node)) == NT_NUM) &&
-                   (NODE_TYPE(BINOP_RIGHT(node)) == NT_NUM) &&
-                   (NUM_VAL(BINOP_LEFT(node)) == NUM_VAL(BINOP_RIGHT(node)))) {
+            node = ASTint(0);
+        } else if ((NODE_TYPE(BINOP_LEFT(node)) == NT_INT) &&
+                   (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT) &&
+                   (INT_VAL(BINOP_LEFT(node)) == INT_VAL(BINOP_RIGHT(node)))) {
             node = CCNfree(node);
-            node = ASTnum(0);
+            node = ASTint(0);
         }
     }
 
