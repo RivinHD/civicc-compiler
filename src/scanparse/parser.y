@@ -67,15 +67,18 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 program: declarations 
          {
            parseresult = ASTprogram($1);
+           AddLocToNode($$, &@1, &@1);
          };
 
 declarations: declaration declarations 
             {
                 $$ = ASTdeclarations($1, $2);
+                AddLocToNode($$, &@1, &@2);
             }
             | declaration 
             {
                 $$ = ASTdeclarations($1, NULL);
+                AddLocToNode($$, &@1, &@1);
             };
 
 declaration: globalDef 
@@ -98,65 +101,79 @@ declaration: globalDef
 funDec: EXTERN funHeader SEMICOLON 
       {
         $$ = ASTfundec($2);
+        AddLocToNode($$, &@1, &@3);
       };
 
 funDef: EXPORT funHeader CURLY_L funBody CURLY_R 
       {
         $$ = ASTfundef($2, $4, true);
+        AddLocToNode($$, &@1, &@5);
       }
       | funHeader CURLY_L funBody CURLY_R
       {
         $$ = ASTfundef($1, $3, false);
+        AddLocToNode($$, &@1, &@4);
       };
 
 funHeader: VOID var BRACKET_L optParams BRACKET_R 
          {
            $$ = ASTfunheader($2, $4, DT_void);
+           AddLocToNode($$, &@1, &@5);
          }
          | basicType var BRACKET_L optParams BRACKET_R 
          {
            $$ = ASTfunheader($2, $4, $1);
+           AddLocToNode($$, &@1, &@5);
          };
 
 funBody: funBody_varDecs_localFunDefs statements
        {
             FUNBODY_STMTS($1) = $2;
             $$ = $1;
+            AddLocToNode($$, &@1, &@2);
        }
        | varDecs statements
        {
             $$ = ASTfunbody($1, NULL, $2);
+            AddLocToNode($$, &@1, &@2);
        }
        | localFunDefs statements
        {
             $$ = ASTfunbody(NULL, $1, $2);
+            AddLocToNode($$, &@1, &@2);
        }
        | statements
        {
             $$ = ASTfunbody(NULL, NULL, $1);
+            AddLocToNode($$, &@1, &@1);
        }
        | varDecs 
        {
             $$ = ASTfunbody($1, NULL, NULL);
+            AddLocToNode($$, &@1, &@1);
        }
        | localFunDefs
        {
             $$ = ASTfunbody(NULL, $1, NULL);
+            AddLocToNode($$, &@1, &@1);
        };
 
 
 localFunDefs: localFunDef localFunDefs
             {
                 $$ = ASTlocalfundefs($1, $2);
+                AddLocToNode($$, &@1, &@2);
             }
             | localFunDef
             {
                 $$ = ASTlocalfundefs($1, NULL);
+                AddLocToNode($$, &@1, &@1);
             };
 
 localFunDef: funHeader CURLY_L funBody CURLY_R
            {
             $$ = ASTlocalfundef($1, $3);
+            AddLocToNode($$, &@1, &@4);
            };
 
 basicType: BOOL 
@@ -175,37 +192,45 @@ basicType: BOOL
 globalDec: EXTERN basicType arrayVar SEMICOLON
          {
             $$ = ASTglobaldec($3, $2);
+            AddLocToNode($$, &@1, &@4);
          }
          | EXTERN basicType var SEMICOLON
          {
             $$ = ASTglobaldec($3, $2);
+            AddLocToNode($$, &@1, &@4);
          };
 
 globalDef: EXPORT varDec
          {
             $$ = ASTglobaldef($2, true);
+            AddLocToNode($$, &@1, &@2);
          }
          | varDec
          {
             $$ = ASTglobaldef($1, false);
+            AddLocToNode($$, &@1, &@1);
          };
 
 params: param COMMA params
       {
         $$ = ASTparams($1, $3);
+        AddLocToNode($$, &@1, &@3);
       }
       | param
       {
         $$ = ASTparams($1, NULL);
+        AddLocToNode($$, &@1, &@1);
       };
 
 param: basicType arrayVar
      {
         $$ = ASTparam($2, $1);
+        AddLocToNode($$, &@1, &@2);
      }
      | basicType var
      {
         $$ = ASTparam($2, $1);
+        AddLocToNode($$, &@1, &@2);
      };
 
 optParams: params
@@ -221,30 +246,47 @@ optParams: params
 varDecs: varDec varDecs
     {
       $$ = ASTvardecs($1, $2);
+      AddLocToNode($$, &@1, &@2);
     }
     | varDec
     {
       $$ = ASTvardecs($1, NULL);
+      AddLocToNode($$, &@1, &@1);
     };
 
 // Funbody that only contains VarDecs and localFunDefs
 funBody_varDecs_localFunDefs: varDec funBody_varDecs_localFunDefs
                     {
-                        FUNBODY_VARDECS($2) = ASTvardecs($1, FUNBODY_VARDECS($2));
+                        node_st* vardec = ASTvardecs($1, FUNBODY_VARDECS($2));
+                        AddLocToNode(vardec, &@1, &@1);
+                        NODE_ELINE(vardec) = NODE_ELINE(FUNBODY_VARDECS($2));
+                        NODE_ECOL(vardec) = NODE_ECOL(FUNBODY_VARDECS($2));
+
+                        FUNBODY_VARDECS($2) = vardec;
                         $$ = $2;
+                        AddLocToNode($$, &@1, &@2);
                     }
                     | varDec localFunDefs
                     {
-                        $$ = ASTfunbody(ASTvardecs($1, NULL), $2, NULL);
+                        node_st* vardec = ASTvardecs($1, NULL); 
+                        AddLocToNode(vardec, &@1, &@1);
+
+                        $$ = ASTfunbody(vardec, $2, NULL);
+                        AddLocToNode($$, &@1, &@2);
                     };
 
 varDec: basicType SQUARE_L Exprs SQUARE_R var optArrayInit SEMICOLON
       {
-        $$ = ASTvardec(ASTarrayexpr($3, $5), $6, $1);
+          node_st* array = ASTarrayexpr($3, $5);
+          AddLocToNode(array, &@2, &@5);
+
+          $$ = ASTvardec(array, $6, $1);
+          AddLocToNode($$, &@1, &@7);
       }
       | basicType var optVarInit SEMICOLON
       {
           $$ = ASTvardec($2, $3, $1);
+          AddLocToNode($$, &@1, &@4);
       };
 
 optVarInit: LET expr
@@ -259,11 +301,13 @@ optVarInit: LET expr
 
 statements: statement statements
           {
-          $$ = ASTstatements($1, $2);
+              $$ = ASTstatements($1, $2);
+              AddLocToNode($$, &@1, &@2);
           }
           | statement
           {
-          $$ = ASTstatements($1, NULL);
+              $$ = ASTstatements($1, NULL);
+              AddLocToNode($$, &@1, &@1);
           };
 
 statement: statement_no_else
@@ -273,39 +317,54 @@ statement: statement_no_else
          | IF BRACKET_L expr BRACKET_R block_if ELSE block
          {
             $$ = ASTifstatement($3, $5, $7);
+            AddLocToNode($$, &@1, &@7);
          };
 
 statement_no_else: var LET expr SEMICOLON
                  {
                     $$ = ASTassign($1, $3);
+                    AddLocToNode($$, &@1, &@4);
                  }
                  | var BRACKET_L optArrayExpr BRACKET_R SEMICOLON
                  {
                     $$ = ASTproccall($1, $3);
+                    AddLocToNode($$, &@1, &@5);
                  }
                  | IF BRACKET_L expr BRACKET_R block_if
                  {
                     $$ = ASTifstatement($3, $5, NULL);
+                    AddLocToNode($$, &@1, &@5);
                  }
                  | WHILE BRACKET_L expr BRACKET_R block_if
                  {
                     $$ = ASTwhileloop($3, $5);
+                    AddLocToNode($$, &@1, &@5);
                  }
                  | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
                  {
                     $$ = ASTdowhileloop($2, $5);
+                    AddLocToNode($$, &@1, &@7);
                  }
                  | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R block_if
                  {
-                    $$ = ASTforloop(ASTassign($4, $6), $8, $9, $11);
+                    node_st* assign = ASTassign($4, $6); 
+                    AddLocToNode(assign, $4, $6);
+                    
+                    $$ = ASTforloop(assign, $8, $9, $11);
+                    AddLocToNode($$, &@1, &@11);
                  }
                  | RETURN optExpr SEMICOLON
                  {
                     $$ = ASTretstatement($2);
+                    AddLocToNode($$, &@1, &@3);
                  }
                  | var SQUARE_L Exprs SQUARE_R LET expr SEMICOLON
                  {
-                    $$ = ASTarrayassign(ASTarrayexpr($3, $1), $6);
+                    node_st* arrayexpr = ASTarrayexpr($3, $1);
+                    AddLocToNode(arrayexpr, &@1, &@4);
+
+                    $$ = ASTarrayassign(arrayexpr, $6);
+                    AddLocToNode($$, &@1, &@7);
                  };
 
 optForStep: COMMA expr
@@ -338,15 +397,18 @@ optExpr: expr
 arrayVar: SQUARE_L dimensionVars SQUARE_R var
         {
             $$ = ASTarrayvar($2, $4);
+            AddLocToNode($$, &@1, &@4);
         };
 
 arrayInits: arrayInit COMMA arrayInits
           {
             $$ = ASTarrayinit($1, $3);
+            AddLocToNode($$, &@1, &@3);
           }
           | arrayInit
           {
             $$ = ASTarrayinit($1, NULL);
+            AddLocToNode($$, &@1, &@1);
           };
 
 arrayInit: SQUARE_L arrayInits SQUARE_R
@@ -389,10 +451,12 @@ block_if: CURLY_L statements CURLY_R
 Exprs: expr COMMA Exprs
      {
         $$ = ASTexprs($1, $3);
+        AddLocToNode($$, &@1, &@1);
      }
      | expr
      {
         $$ = ASTexprs($1, NULL);
+        AddLocToNode($$, &@1, &@1);
      };
 
 expr: expr_monopcast
@@ -414,6 +478,7 @@ expr_binop: expr_binop_OR
           | expr_binop OR expr_binop_OR
           {
             $$ = ASTbinop($1, $3, BO_or);
+            AddLocToNode($$, &@1, &@3);
           };
 
 expr_binop_OR: expr_binop_AND
@@ -423,108 +488,123 @@ expr_binop_OR: expr_binop_AND
              | expr_binop_OR AND expr_binop_AND
              {
                 $$ = ASTbinop($1, $3, BO_and);
+                AddLocToNode($$, &@1, &@3);
              };
 
 expr_binop_AND: expr_binop_EQNE
               {
-                $$ = $1;
+                  $$ = $1;
               }
               | expr_binop_AND binop_EQNE expr_binop_EQNE
               {
-                $$ = ASTbinop($1, $3, $2);
+                  $$ = ASTbinop($1, $3, $2);
+                  AddLocToNode($$, &@1, &@3);
               };
 
 expr_binop_EQNE: expr_binop_LTLEGTGE
                {
-                  $$ = $1;
+                    $$ = $1;
                }
                | expr_binop_EQNE binop_LTLEGTGE expr_binop_LTLEGTGE
                {
-                  $$ = ASTbinop($1, $3, $2);
+                    $$ = ASTbinop($1, $3, $2);
+                    AddLocToNode($$, &@1, &@3);
                };
 
 expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
                    {
-                    $$ = $1;
+                      $$ = $1;
                    }
                    | expr_binop_LTLEGTGE binop_PLUSMINUS expr_binop_PLUSMINUS
                    {
-                    $$ = ASTbinop($1, $3, $2);
+                      $$ = ASTbinop($1, $3, $2);
+                      AddLocToNode($$, &@1, &@3);
                    };
 
 // expr_monopcast = all Expression except binop.
 expr_binop_PLUSMINUS: expr_monopcast binop_STARSLASHPERCENT expr_monopcast
                     {
                         $$ = ASTbinop($1, $3, $2);
+                        AddLocToNode($$, &@1, &@3);
                     }
                     | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_monopcast
                     {
                         $$ = ASTbinop($1, $3, $2);
+                        AddLocToNode($$, &@1, &@3);
                     };
 
 expr_monopcast: BRACKET_L expr BRACKET_R
           {
-            $$ = $2;
+              $$ = $2;
           }
           | monop expr_monopcast
           {
-            $$ = ASTmonop($2, $1);
+              $$ = ASTmonop($2, $1);
+              AddLocToNode($$, &@1, &@2);
           }
           | BRACKET_L basicType BRACKET_R expr_monopcast
           {
-            $$ = ASTcast($4, $2);
+              $$ = ASTcast($4, $2);
+              AddLocToNode($$, &@1, &@4);
           }
           | var BRACKET_L Exprs BRACKET_R
           {
-            $$ = ASTproccall($1, $3);
+              $$ = ASTproccall($1, $3);
+              AddLocToNode($$, &@1, &@4);
           }
           | var BRACKET_L BRACKET_R
           {
-            $$ = ASTproccall($1, NULL);
+              $$ = ASTproccall($1, NULL);
+              AddLocToNode($$, &@1, &@3);
           }
           | var
           {
-            $$ = $1;
+              $$ = $1;
           }
           | constant
           {
-            $$ = $1;
+              $$ = $1;
           }
           | var SQUARE_L Exprs SQUARE_R
           {
-            $$ = ASTarrayexpr($3, $1);
+              $$ = ASTarrayexpr($3, $1);
+              AddLocToNode($$, &@1, &@4);
           };
 
 constant: floatval
         {
-        $$ = $1;
+            $$ = $1;
         }
         | intval
         {
-        $$ = $1;
+            $$ = $1;
         }
         | boolval
         {
-        $$ = $1;
+            $$ = $1;
         };
 
 floatval: FLOATCONST
         {
-        $$ = ASTfloat($1);
+            $$ = ASTfloat($1);
+            AddLocToNode($$, &@1, &@1);
         };
 
 intval: NUMCONST
       {
-      $$ = ASTint($1);
+          $$ = ASTint($1);
+          AddLocToNode($$, &@1, &@1);
       };
 
 boolval: TRUEVAL 
        {
-       $$ = ASTbool(true);
+          $$ = ASTbool(true);
+          AddLocToNode($$, &@1, &@1);
        }
        | FALSEVAL
        {
-       $$ = ASTbool(false);
+          $$ = ASTbool(false);
+          AddLocToNode($$, &@1, &@1);
        };
 
 binop_EQNE: EQ        { $$ = BO_eq; }
@@ -544,25 +624,28 @@ binop_STARSLASHPERCENT:  STAR     { $$ = BO_mul; }
 
 monop: MINUS 
      {
-     $$ = MO_neg;
+        $$ = MO_neg;
      }
      | EXCLAMATION_MARK
      {
-     $$ = MO_not;
+        $$ = MO_not;
      };
 
 dimensionVars: var COMMA dimensionVars
    {
       $$ = ASTdimensionvars($1, $3);
+      AddLocToNode($$, &@1, &@3);
    }
    | var
    {
       $$ = ASTdimensionvars($1, NULL);
+      AddLocToNode($$, &@1, &@1);
    };
 
 var: VAR
    {
     $$ = ASTvar($1);
+    AddLocToNode($$, &@1, &@1);
    };
 
 %%
