@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "palm/memory.h"
 #include "palm/ctinfo.h"
 #include "palm/dbug.h"
@@ -11,13 +12,16 @@
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "global/globals.h"
+#include "release_assert.h"
+#include "utils.h"
 
 static node_st *parseresult = NULL;
 extern int yylex();
 int yyerror(char *errname);
 extern FILE *yyin;
 void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
-
+void assertType(node_st *node, enum ccn_nodetype type);
+void assertSetType(node_st *node, enum nodesettype setType);
 
 %}
 
@@ -66,94 +70,118 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
 program: declarations 
          {
+           assertType($1, NT_DECLARATIONS);
            parseresult = ASTprogram($1);
            AddLocToNode($$, &@1, &@1);
          };
 
 declarations: declaration declarations 
             {
+                assertSetType($1, NS_DECLARATION);
+                assertType($2, NT_DECLARATIONS);
                 $$ = ASTdeclarations($1, $2);
                 AddLocToNode($$, &@1, &@2);
             }
             | declaration 
             {
+                assertSetType($1, NS_DECLARATION);
                 $$ = ASTdeclarations($1, NULL);
                 AddLocToNode($$, &@1, &@1);
             };
 
 declaration: globalDef 
            {
+              assertType($1, NT_GLOBALDEF);
               $$ = $1;
            } 
            | globalDec 
            {
+              assertType($1, NT_GLOBALDEC);
               $$ = $1;  
            } 
            | funDef 
            {
+              assertType($1, NT_FUNDEF);
               $$ = $1;
            } 
            | funDec
            {
+              assertType($1, NT_FUNDEC);
               $$ = $1;
            };
 
 funDec: EXTERN funHeader SEMICOLON 
       {
+        assertType($2, NT_FUNHEADER);
         $$ = ASTfundec($2);
         AddLocToNode($$, &@1, &@3);
       };
 
 funDef: EXPORT funHeader CURLY_L funBody CURLY_R 
       {
+        assertType($2, NT_FUNHEADER);
+        assertType($4, NT_FUNBODY);
         $$ = ASTfundef($2, $4, true);
         AddLocToNode($$, &@1, &@5);
       }
       | funHeader CURLY_L funBody CURLY_R
       {
+        assertType($1, NT_FUNHEADER);
+        assertType($3, NT_FUNBODY);
         $$ = ASTfundef($1, $3, false);
         AddLocToNode($$, &@1, &@4);
       };
 
 funHeader: VOID var BRACKET_L optParams BRACKET_R 
          {
+           assertType($2, NT_VAR);
            $$ = ASTfunheader($2, $4, DT_void);
            AddLocToNode($$, &@1, &@5);
          }
          | basicType var BRACKET_L optParams BRACKET_R 
          {
+           assertType($2, NT_VAR);
            $$ = ASTfunheader($2, $4, $1);
            AddLocToNode($$, &@1, &@5);
          };
 
 funBody: funBody_varDecs_localFunDefs statements
        {
+            assertType($1, NT_FUNBODY);
+            assertType($2, NT_STATEMENTS);
             FUNBODY_STMTS($1) = $2;
             $$ = $1;
             AddLocToNode($$, &@1, &@2);
        }
        | varDecs statements
        {
+            assertType($1, NT_VARDECS);
+            assertType($2, NT_STATEMENTS);
             $$ = ASTfunbody($1, NULL, $2);
             AddLocToNode($$, &@1, &@2);
        }
        | localFunDefs statements
        {
+            assertType($1, NT_LOCALFUNDEFS);
+            assertType($2, NT_STATEMENTS);
             $$ = ASTfunbody(NULL, $1, $2);
             AddLocToNode($$, &@1, &@2);
        }
        | statements
        {
+            assertType($1, NT_STATEMENTS);
             $$ = ASTfunbody(NULL, NULL, $1);
             AddLocToNode($$, &@1, &@1);
        }
        | varDecs 
        {
+            assertType($1, NT_VARDECS);
             $$ = ASTfunbody($1, NULL, NULL);
             AddLocToNode($$, &@1, &@1);
        }
        | localFunDefs
        {
+            assertType($1, NT_LOCALFUNDEFS);
             $$ = ASTfunbody(NULL, $1, NULL);
             AddLocToNode($$, &@1, &@1);
        };
@@ -161,17 +189,22 @@ funBody: funBody_varDecs_localFunDefs statements
 
 localFunDefs: localFunDef localFunDefs
             {
+                assertType($1, NT_LOCALFUNDEF);
+                assertType($2, NT_LOCALFUNDEFS);
                 $$ = ASTlocalfundefs($1, $2);
                 AddLocToNode($$, &@1, &@2);
             }
             | localFunDef
             {
+                assertType($1, NT_LOCALFUNDEF);
                 $$ = ASTlocalfundefs($1, NULL);
                 AddLocToNode($$, &@1, &@1);
             };
 
 localFunDef: funHeader CURLY_L funBody CURLY_R
            {
+            assertType($1, NT_FUNHEADER);
+            assertType($3, NT_FUNBODY);
             $$ = ASTlocalfundef($1, $3);
             AddLocToNode($$, &@1, &@4);
            };
@@ -191,50 +224,60 @@ basicType: BOOL
 
 globalDec: EXTERN basicType arrayVar SEMICOLON
          {
+            assertType($3, NT_ARRAYVAR);
             $$ = ASTglobaldec($3, $2);
             AddLocToNode($$, &@1, &@4);
          }
          | EXTERN basicType var SEMICOLON
          {
+            assertType($3, NT_VAR);
             $$ = ASTglobaldec($3, $2);
             AddLocToNode($$, &@1, &@4);
          };
 
 globalDef: EXPORT varDec
          {
+            assertType($2, NT_VARDEC);
             $$ = ASTglobaldef($2, true);
             AddLocToNode($$, &@1, &@2);
          }
          | varDec
          {
+            assertType($1, NT_VARDEC);
             $$ = ASTglobaldef($1, false);
             AddLocToNode($$, &@1, &@1);
          };
 
 params: param COMMA params
       {
+        assertType($1, NT_PARAM);
+        assertType($3, NT_PARAMS);
         $$ = ASTparams($1, $3);
         AddLocToNode($$, &@1, &@3);
       }
       | param
       {
+        assertType($1, NT_PARAM);
         $$ = ASTparams($1, NULL);
         AddLocToNode($$, &@1, &@1);
       };
 
 param: basicType arrayVar
      {
+        assertType($2, NT_ARRAYVAR);
         $$ = ASTparam($2, $1);
         AddLocToNode($$, &@1, &@2);
      }
      | basicType var
      {
+        assertType($2, NT_VAR);
         $$ = ASTparam($2, $1);
         AddLocToNode($$, &@1, &@2);
      };
 
 optParams: params
          {
+            assertType($1, NT_PARAMS);
             $$ = $1;
          }
          |
@@ -245,11 +288,14 @@ optParams: params
 
 varDecs: varDec varDecs
     {
+      assertType($1, NT_VARDEC);
+      assertType($2, NT_VARDECS);
       $$ = ASTvardecs($1, $2);
       AddLocToNode($$, &@1, &@2);
     }
     | varDec
     {
+      assertType($1, NT_VARDEC);
       $$ = ASTvardecs($1, NULL);
       AddLocToNode($$, &@1, &@1);
     };
@@ -257,6 +303,8 @@ varDecs: varDec varDecs
 // Funbody that only contains VarDecs and localFunDefs
 funBody_varDecs_localFunDefs: varDec funBody_varDecs_localFunDefs
                     {
+                        assertType($1, NT_VARDEC);
+                        assertType($2, NT_FUNBODY);
                         node_st* vardec = ASTvardecs($1, FUNBODY_VARDECS($2));
                         AddLocToNode(vardec, &@1, &@1);
                         NODE_ELINE(vardec) = NODE_ELINE(FUNBODY_VARDECS($2));
@@ -268,6 +316,8 @@ funBody_varDecs_localFunDefs: varDec funBody_varDecs_localFunDefs
                     }
                     | varDec localFunDefs
                     {
+                        assertType($1, NT_VARDEC);
+                        assertType($2, NT_LOCALFUNDEFS);
                         node_st* vardec = ASTvardecs($1, NULL); 
                         AddLocToNode(vardec, &@1, &@1);
 
@@ -277,6 +327,8 @@ funBody_varDecs_localFunDefs: varDec funBody_varDecs_localFunDefs
 
 varDec: basicType SQUARE_L Exprs SQUARE_R var optArrayInit SEMICOLON
       {
+          assertType($3, NT_EXPRS);
+          assertType($5, NT_VAR);
           node_st* array = ASTarrayexpr($3, $5);
           AddLocToNode(array, &@2, &@5);
 
@@ -285,12 +337,14 @@ varDec: basicType SQUARE_L Exprs SQUARE_R var optArrayInit SEMICOLON
       }
       | basicType var optVarInit SEMICOLON
       {
+          assertType($2, NT_VAR);
           $$ = ASTvardec($2, $3, $1);
           AddLocToNode($$, &@1, &@4);
       };
 
 optVarInit: LET expr
           {
+            assertSetType($2, NS_EXPR);
             $$ = $2;
           }
           |
@@ -301,52 +355,73 @@ optVarInit: LET expr
 
 statements: statement statements
           {
+              assertSetType($1, NS_STATEMENT);
+              assertType($2, NT_STATEMENTS);
               $$ = ASTstatements($1, $2);
               AddLocToNode($$, &@1, &@2);
           }
           | statement
           {
+              assertSetType($1, NS_STATEMENT);
               $$ = ASTstatements($1, NULL);
               AddLocToNode($$, &@1, &@1);
           };
 
 statement: statement_no_else
          {
+            assertSetType($1, NS_STATEMENT);
             $$ = $1;
          }
          | IF BRACKET_L expr BRACKET_R block_if ELSE block
          {
+            assertSetType($3, NS_EXPR);
+            assertSetType($5, NS_BLOCK);
+            assertSetType($7, NS_BLOCK);
             $$ = ASTifstatement($3, $5, $7);
             AddLocToNode($$, &@1, &@7);
          };
 
 statement_no_else: var LET expr SEMICOLON
                  {
+                    assertType($1, NT_VAR);
+                    assertSetType($3, NS_EXPR);
                     $$ = ASTassign($1, $3);
                     AddLocToNode($$, &@1, &@4);
                  }
                  | var BRACKET_L optArrayExpr BRACKET_R SEMICOLON
                  {
+                    assertType($1, NT_VAR);
                     $$ = ASTproccall($1, $3);
                     AddLocToNode($$, &@1, &@5);
                  }
                  | IF BRACKET_L expr BRACKET_R block_if
                  {
+                    assertSetType($3, NS_EXPR);
+                    assertSetType($5, NS_BLOCK);
                     $$ = ASTifstatement($3, $5, NULL);
                     AddLocToNode($$, &@1, &@5);
                  }
                  | WHILE BRACKET_L expr BRACKET_R block_if
                  {
+                    assertSetType($3, NS_EXPR);
+                    assertSetType($5, NS_BLOCK);
                     $$ = ASTwhileloop($3, $5);
                     AddLocToNode($$, &@1, &@5);
                  }
                  | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
                  {
+                    assertSetType($2, NS_BLOCK);
+                    assertSetType($5, NS_EXPR);
                     $$ = ASTdowhileloop($2, $5);
                     AddLocToNode($$, &@1, &@7);
                  }
                  | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R block_if
                  {
+                    assertType($4, NT_VAR);
+                    assertSetType($6, NS_EXPR);
+                    assertSetType($8, NS_EXPR);
+                    assertSetType($9, NS_EXPR);
+                    assertSetType($11, NS_BLOCK);
                     node_st* assign = ASTassign($4, $6); 
                     AddLocToNode(assign, $4, $6);
                     
@@ -360,6 +435,9 @@ statement_no_else: var LET expr SEMICOLON
                  }
                  | var SQUARE_L Exprs SQUARE_R LET expr SEMICOLON
                  {
+                    assertType($1, NT_VAR);
+                    assertType($3, NT_EXPRS);
+                    assertSetType($6, NS_EXPR);
                     node_st* arrayexpr = ASTarrayexpr($3, $1);
                     AddLocToNode(arrayexpr, &@1, &@4);
 
@@ -369,6 +447,7 @@ statement_no_else: var LET expr SEMICOLON
 
 optForStep: COMMA expr
           {
+            assertSetType($2, NS_EXPR);
             $$ = $2;
           }
           |
@@ -378,6 +457,7 @@ optForStep: COMMA expr
 
 optArrayExpr: Exprs
         {
+            assertType($1, NT_EXPRS);
             $$ = $1;
         }
         |
@@ -387,6 +467,7 @@ optArrayExpr: Exprs
 
 optExpr: expr
        {
+          assertSetType($1, NS_EXPR);
           $$ = $1;
        }
        |
@@ -396,32 +477,40 @@ optExpr: expr
 
 arrayVar: SQUARE_L dimensionVars SQUARE_R var
         {
+            assertType($2, NT_DIMENSIONVARS);
+            assertType($4, NT_VAR);
             $$ = ASTarrayvar($2, $4);
             AddLocToNode($$, &@1, &@4);
         };
 
 arrayInits: arrayInit COMMA arrayInits
           {
+            assertType($1, NT_ARRAYINIT);
+            assertType($3, NT_ARRAYINIT);
             $$ = ASTarrayinit($1, $3);
             AddLocToNode($$, &@1, &@3);
           }
           | arrayInit
           {
+            assertType($1, NT_ARRAYINIT);
             $$ = ASTarrayinit($1, NULL);
             AddLocToNode($$, &@1, &@1);
           };
 
 arrayInit: SQUARE_L arrayInits SQUARE_R
          {
+            assertType($2, NT_ARRAYINIT);
             $$ = $2;
          }
          | expr
          {
+            assertSetType($1, NS_EXPR);
             $$ = $1;
          }
 
 optArrayInit: LET arrayInit
             {
+                assertType($2, NT_ARRAYINIT);
                 $$ = $2;
             }
             |
@@ -432,39 +521,48 @@ optArrayInit: LET arrayInit
 
 block: CURLY_L statements CURLY_R
      {
+        assertType($2, NT_STATEMENTS);
         $$ = $2;
      }
      | statement
      {
+        assertSetType($1, NS_STATEMENT);
         $$ = $1;
      };
 
 block_if: CURLY_L statements CURLY_R
         {
+            assertType($2, NT_STATEMENTS);
             $$ = $2;
         }
         | statement_no_else
         {
+            assertSetType($1, NS_STATEMENT);
             $$ = $1;
         };
 
 Exprs: expr COMMA Exprs
      {
+        assertSetType($1, NS_EXPR);
+        assertType($3, NT_EXPRS);
         $$ = ASTexprs($1, $3);
         AddLocToNode($$, &@1, &@1);
      }
      | expr
      {
+        assertSetType($1, NS_EXPR);
         $$ = ASTexprs($1, NULL);
         AddLocToNode($$, &@1, &@1);
      };
 
 expr: expr_monopcast
     {
+        assertSetType($1, NS_EXPR);
         $$ = $1;
     }
     | expr_binop
     {
+        assertSetType($1, NS_EXPR);
         $$ = $1;
     };
 
@@ -472,51 +570,66 @@ expr: expr_monopcast
 // Naming follows the logic: We come from the binop_<OP> and process one precedence lower
 expr_binop: expr_binop_OR 
           {
+            assertSetType($1, NS_EXPR);
             $$ = $1;
           }
           // with this the left associativity is ensured
           | expr_binop OR expr_binop_OR
           {
+            assertSetType($1, NS_EXPR);
+            assertSetType($3, NS_EXPR);
             $$ = ASTbinop($1, $3, BO_or);
             AddLocToNode($$, &@1, &@3);
           };
 
 expr_binop_OR: expr_binop_AND
              {
+                assertSetType($1, NS_EXPR);
                 $$ = $1;
              }
              | expr_binop_OR AND expr_binop_AND
              {
+                assertSetType($1, NS_EXPR);
+                assertSetType($3, NS_EXPR);
                 $$ = ASTbinop($1, $3, BO_and);
                 AddLocToNode($$, &@1, &@3);
              };
 
 expr_binop_AND: expr_binop_EQNE
               {
+                  assertSetType($1, NS_EXPR);
                   $$ = $1;
               }
               | expr_binop_AND binop_EQNE expr_binop_EQNE
               {
+                  assertSetType($1, NS_EXPR);
+                  assertSetType($3, NS_EXPR);
                   $$ = ASTbinop($1, $3, $2);
                   AddLocToNode($$, &@1, &@3);
               };
 
 expr_binop_EQNE: expr_binop_LTLEGTGE
                {
+                    assertSetType($1, NS_EXPR);
                     $$ = $1;
                }
                | expr_binop_EQNE binop_LTLEGTGE expr_binop_LTLEGTGE
                {
+                    assertSetType($1, NS_EXPR);
+                    assertSetType($3, NS_EXPR);
                     $$ = ASTbinop($1, $3, $2);
                     AddLocToNode($$, &@1, &@3);
                };
 
 expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
                    {
+                      assertSetType($1, NS_EXPR);
                       $$ = $1;
                    }
                    | expr_binop_LTLEGTGE binop_PLUSMINUS expr_binop_PLUSMINUS
                    {
+                      assertSetType($1, NS_EXPR);
+                      assertSetType($3, NS_EXPR);
                       $$ = ASTbinop($1, $3, $2);
                       AddLocToNode($$, &@1, &@3);
                    };
@@ -524,63 +637,80 @@ expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
 // expr_monopcast = all Expression except binop.
 expr_binop_PLUSMINUS: expr_monopcast binop_STARSLASHPERCENT expr_monopcast
                     {
+                        assertSetType($1, NS_EXPR);
+                        assertSetType($3, NS_EXPR);
                         $$ = ASTbinop($1, $3, $2);
                         AddLocToNode($$, &@1, &@3);
                     }
                     | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_monopcast
                     {
+                        assertSetType($1, NS_EXPR);
+                        assertSetType($3, NS_EXPR);
                         $$ = ASTbinop($1, $3, $2);
                         AddLocToNode($$, &@1, &@3);
                     };
 
 expr_monopcast: BRACKET_L expr BRACKET_R
           {
+              assertSetType($2, NS_EXPR);
               $$ = $2;
           }
           | monop expr_monopcast
           {
+              assertSetType($2, NS_EXPR);
               $$ = ASTmonop($2, $1);
               AddLocToNode($$, &@1, &@2);
           }
           | BRACKET_L basicType BRACKET_R expr_monopcast
           {
+              assertSetType($4, NS_EXPR);
               $$ = ASTcast($4, $2);
               AddLocToNode($$, &@1, &@4);
           }
           | var BRACKET_L Exprs BRACKET_R
           {
+              assertType($1, NT_VAR);
+              assertType($3, NT_EXPRS);
               $$ = ASTproccall($1, $3);
               AddLocToNode($$, &@1, &@4);
           }
           | var BRACKET_L BRACKET_R
           {
+              assertType($1, NT_VAR);
               $$ = ASTproccall($1, NULL);
               AddLocToNode($$, &@1, &@3);
           }
           | var
           {
+              assertType($1, NT_VAR);
               $$ = $1;
           }
           | constant
           {
+              assertSetType($1, NS_CONSTANT);
               $$ = $1;
           }
           | var SQUARE_L Exprs SQUARE_R
           {
+              assertType($1, NT_VAR);
+              assertType($3, NT_EXPRS);
               $$ = ASTarrayexpr($3, $1);
               AddLocToNode($$, &@1, &@4);
           };
 
 constant: floatval
         {
+            assertType($1, NT_FLOAT);
             $$ = $1;
         }
         | intval
         {
+            assertType($1, NT_INT);
             $$ = $1;
         }
         | boolval
         {
+            assertType($1, NT_BOOL);
             $$ = $1;
         };
 
@@ -633,11 +763,14 @@ monop: MINUS
 
 dimensionVars: var COMMA dimensionVars
    {
+      assertType($1, NT_VAR);
+      assertType($1, NT_DIMENSIONVARS);
       $$ = ASTdimensionvars($1, $3);
       AddLocToNode($$, &@1, &@3);
    }
    | var
    {
+      assertType($1, NT_VAR);
       $$ = ASTdimensionvars($1, NULL);
       AddLocToNode($$, &@1, &@1);
    };
@@ -659,6 +792,16 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     NODE_BCOL(node) = loc_b->first_column;
     NODE_ELINE(node) = loc_e->last_line;
     NODE_ECOL(node) = loc_e->last_column;
+}
+
+void assertSetType(node_st *node, enum nodesettype setType)
+{
+    release_assert(((1ull << NODE_TYPE(node)) & setType) != 0);
+}
+
+void assertType(node_st *node, enum ccn_nodetype type)
+{
+    release_assert(NODE_TYPE(node) == type);
 }
 
 int yyerror(char *error)
