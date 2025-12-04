@@ -14,15 +14,8 @@ if ! [[ -z $(git status --porcelain) ]]; then
 fi
 
 echo "----- Creating archive of your source ----"
-cd coconut/
-echo "Archiving CoCoNut..."
-git archive --prefix="civicc/coconut/" -o coconut.tar HEAD . || exit 1
-cd ../
 echo "Archiving civicc..."
 git archive --prefix="civicc/" -o civicc.tar HEAD . || exit 1
-echo "Combining..."
-$TAR --concatenate --file=civicc.tar coconut/coconut.tar || exit 1
-rm coconut/coconut.tar
 echo "Compressing..."
 gzip -9 civicc.tar
 echo "----- Finished ------"

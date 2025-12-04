@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(civicc VERSION 1.0 LANGUAGES C CXX) 
+project(civicc VERSION 1.0 LANGUAGES C CXX)
 
 set(SOURCE_FILES
     src/global/globals.c
@@ -34,7 +34,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(DISABLE_ASAN "Disable address sanitizer")
 
-Include(FetchContent)
+include(FetchContent)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest
@@ -55,7 +55,7 @@ find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
 bison_target(CivicParser src/scanparse/parser.y "${CMAKE_CURRENT_BINARY_DIR}/parser.c"
-    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h" 
+    DEFINES_FILE "${CMAKE_CURRENT_BINARY_DIR}/parser.h"
     VERBOSE
     COMPILE_FLAGS "-Wcounterexamples")
 
@@ -66,7 +66,7 @@ ADD_FLEX_BISON_DEPENDENCY(CivicLexer CivicParser)
 include(cmake/coconut.cmake)
 
 # Whenever you add a file, add it here too.
-add_executable(civicc 
+add_executable(civicc
     ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES}
     src/main.c
 )
