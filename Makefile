@@ -40,4 +40,5 @@ dist:
 	bash scripts/dist.sh
 
 clean:
+	rm civicc.tar.gz
 	rm -rf build/

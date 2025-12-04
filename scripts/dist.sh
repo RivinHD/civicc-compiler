@@ -18,5 +18,6 @@ echo "Archiving civicc..."
 git archive --prefix="civicc/" -o civicc.tar HEAD . || exit 1
 echo "Compressing..."
 gzip -9 civicc.tar
+echo "Created archive: 'civicc.tar.gz'"
 echo "----- Finished ------"
 echo "Always double check the created archive!"
