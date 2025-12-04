@@ -74,38 +74,25 @@ add_library(civicc_lib ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} $
 add_executable(tests ${TEST_FILES})
 target_link_libraries(tests PRIVATE gtest_main civicc_lib)
 
-target_compile_options(civicc PRIVATE
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function> -Wno-strict-prototypes
-)
-target_compile_options(civicc_lib PRIVATE
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function> -Wno-strict-prototypes
-)
-target_compile_options(tests PRIVATE
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -pedantic -Wno-unused-function>
-)
-
 # === Google Test integration ===
-include(CTest)
 include(GoogleTest)
 gtest_discover_tests(tests)
+
+add_compile_definitions(PROJECT_DIRECTORY="${PROJECT_SOURCE_DIR}")
+message(STATUS "Set Definition 'PROJECT_DIRECTORY=${PROJECT_SOURCE_DIR}'")
+
+add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
+add_compile_options($<$<COMPILE_LANGUAGE:C>: -Wno-strict-prototypes>)
+
 
 
 # Enable address sanitizer
 if(NOT DISABLE_ASAN)
-    target_compile_options(civicc PRIVATE
-        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:$<$<CONFIG:Debug>:-fsanitize=address>>
+    add_compile_options(
+        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
     )
-
-    target_link_options(civicc PRIVATE
-        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:$<$<CONFIG:Debug>:-fsanitize=address>>
-    )
-
-    target_compile_options(tests PRIVATE
-        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:$<$<CONFIG:Debug>:-fsanitize=address>>
-    )
-
-    target_link_options(tests PRIVATE
-        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:$<$<CONFIG:Debug>:-fsanitize=address>>
+    add_link_options(
+        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
     )
 endif()
 
@@ -119,8 +106,7 @@ target_include_directories(civicc_lib
 )
 coconut_add_includes(tests)
 target_include_directories(tests
-    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
-    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/test"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
 add_custom_target(dot

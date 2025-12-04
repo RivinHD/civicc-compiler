@@ -25,7 +25,10 @@ class ScannerTest : public testing::Test
 
     void SetUp(std::string filename)
     {
-        filepath = std::filesystem::absolute("test/data/" + filename);
+        filepath =
+            std::filesystem::absolute(std::string(PROJECT_DIRECTORY) + "/test/data/" + filename);
+        ASSERT_TRUE(std::filesystem::exists(filepath))
+            << "File does not exist at path '" << filepath << "'";
         root = run_scanner(filepath.c_str());
         ASSERT_NE(nullptr, root) << "Could not parse ast in file: '" << filepath << "'";
     }

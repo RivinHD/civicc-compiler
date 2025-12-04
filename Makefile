@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := debug
-.PHONY: help debug release dist clean jobs
+.PHONY: help debug release dist clean jobs test
 
 help:
 	@echo "Targets:"
@@ -35,10 +35,13 @@ debug: jobs
 release: jobs
 	@cmake -DCMAKE_BUILD_TYPE=Release -S ./ -B build/ && cmake --build build -j $(JOBS)
 
+# We exclude the specified tests from the cocount framework
+test:
+	@ctest --test-dir build --output-on-failure -E "^(GoodDSLfiles|BadDSLfiles)" -j $(JOBS)
 
 dist:
 	bash scripts/dist.sh
 
 clean:
-	rm civicc.tar.gz
+	rm -f civicc.tar.gz
 	rm -rf build/
