@@ -484,14 +484,12 @@ arrayVar: SQUARE_L dimensionVars SQUARE_R var
 
 arrayInits: arrayInit COMMA arrayInits
           {
-            assertType($1, NT_ARRAYINIT);
             assertType($3, NT_ARRAYINIT);
             $$ = ASTarrayinit($1, $3);
             AddLocToNode($$, &@1, &@3);
           }
           | arrayInit
           {
-            assertType($1, NT_ARRAYINIT);
             $$ = ASTarrayinit($1, NULL);
             AddLocToNode($$, &@1, &@1);
           };
@@ -509,7 +507,6 @@ arrayInit: SQUARE_L arrayInits SQUARE_R
 
 optArrayInit: LET arrayInit
             {
-                assertType($2, NT_ARRAYINIT);
                 $$ = $2;
             }
             |
@@ -764,7 +761,7 @@ monop: MINUS
 dimensionVars: var COMMA dimensionVars
    {
       assertType($1, NT_VAR);
-      assertType($1, NT_DIMENSIONVARS);
+      assertType($3, NT_DIMENSIONVARS);
       $$ = ASTdimensionvars($1, $3);
       AddLocToNode($$, &@1, &@3);
    }
@@ -796,13 +793,14 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
 
 void assertSetType(node_st *node, enum nodesettype setType)
 {
+    fprintf(stderr, "Set: %d %d\n", NODE_TYPE(node), setType);
     uint64_t combinedType = nodessettype_to_nodetypes(setType);
     release_assert(((1ull << NODE_TYPE(node)) & combinedType) != 0);
 }
 
 void assertType(node_st *node, enum ccn_nodetype type)
 {
-    fprintf(stderr, "%d %d\n", NODE_TYPE(node), type);
+    fprintf(stderr, "Type: %d %d\n", NODE_TYPE(node), type);
     release_assert(NODE_TYPE(node) == type);
 }
 

@@ -10,11 +10,13 @@
 #include "palm/str.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
+#include <stdio.h>
 
 // Use for error messages, see parser.y
 extern int yyerror(char *errname);
 
 #define FILTER(token) \
+  fprintf(stderr, "%d: %s \n", token, yytext); \
   global.col += yyleng;  \
   return( token);
 
@@ -100,10 +102,22 @@ SEPC ({SEP}|\{)
                              FILTER( RETURN); }
 
 
-"void"{SEP}                { FILTER( VOID); }
-"bool"({SEP}|\[)                { FILTER( BOOL); }
-"int"({SEP}|\[)                 { FILTER( INT); }
-"float"({SEP}|\[)               { FILTER( FLOAT);}
+"void"{SEP}                { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( VOID); }
+"bool"({SEP}|\[)                { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( BOOL); }
+"int"({SEP}|\[)                 { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( INT); }
+"float"({SEP}|\[)               { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( FLOAT);}
 
 
 "if"{SEPB}                 { 
@@ -136,7 +150,7 @@ SEPC ({SEP}|\{)
                              FILTER( VAR);
                            }
 
-[0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9])? {
+[0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9]+)? {
     yylval.cflt = atof(yytext);
     FILTER( FLOATCONST);
     }

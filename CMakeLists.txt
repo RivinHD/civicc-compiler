@@ -10,7 +10,7 @@ set(SOURCE_FILES
 
 set(TEST_FILES
     test/test_interface.c
-    test/test.cpp
+    test/scanner_tests.cpp
 )
 
 get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
