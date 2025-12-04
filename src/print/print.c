@@ -106,20 +106,14 @@ node_st *PRTfunheader(node_st *node)
 
 node_st *PRTparams(node_st *node)
 {
-    TRAVparam(node);
+    printDataType(PARAMS_TYPE(node));
+    printf(" ");
+    TRAVvar(node);
     if (PARAMS_NEXT(node) != NULL)
     {
         printf(", ");
         TRAVnext(node);
     }
-    return node;
-}
-
-node_st *PRTparam(node_st *node)
-{
-    printDataType(PARAM_TYPE(node));
-    printf(" ");
-    TRAVvar(node);
     return node;
 }
 

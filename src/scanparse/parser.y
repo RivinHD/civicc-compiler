@@ -189,14 +189,14 @@ funBody: funBody_varDecs_localFunDefs statements
 
 localFunDefs: localFunDef localFunDefs
             {
-                assertType($1, NT_LOCALFUNDEF);
+                assertType($1, NT_FUNDEF);
                 assertType($2, NT_LOCALFUNDEFS);
                 $$ = ASTlocalfundefs($1, $2);
                 AddLocToNode($$, &@1, &@2);
             }
             | localFunDef
             {
-                assertType($1, NT_LOCALFUNDEF);
+                assertType($1, NT_FUNDEF);
                 $$ = ASTlocalfundefs($1, NULL);
                 AddLocToNode($$, &@1, &@1);
             };
@@ -205,7 +205,7 @@ localFunDef: funHeader CURLY_L funBody CURLY_R
            {
             assertType($1, NT_FUNHEADER);
             assertType($3, NT_FUNBODY);
-            $$ = ASTlocalfundef($1, $3);
+            $$ = ASTfundef($1, $3, false);
             AddLocToNode($$, &@1, &@4);
            };
 
@@ -250,28 +250,27 @@ globalDef: EXPORT varDec
 
 params: param COMMA params
       {
-        assertType($1, NT_PARAM);
+        assertType($1, NT_PARAMS);
         assertType($3, NT_PARAMS);
-        $$ = ASTparams($1, $3);
+        PARAMS_NEXT($1) = $3;
         AddLocToNode($$, &@1, &@3);
       }
       | param
       {
-        assertType($1, NT_PARAM);
-        $$ = ASTparams($1, NULL);
-        AddLocToNode($$, &@1, &@1);
+        assertType($1, NT_PARAMS);
+        $$ = $1;
       };
 
 param: basicType arrayVar
      {
         assertType($2, NT_ARRAYVAR);
-        $$ = ASTparam($2, $1);
+        $$ = ASTparams($2, NULL, $1);
         AddLocToNode($$, &@1, &@2);
      }
      | basicType var
      {
         assertType($2, NT_VAR);
-        $$ = ASTparam($2, $1);
+        $$ = ASTparams($2, NULL, $1);
         AddLocToNode($$, &@1, &@2);
      };
 
@@ -375,8 +374,8 @@ statement: statement_no_else
          | IF BRACKET_L expr BRACKET_R block_if ELSE block
          {
             assertSetType($3, NS_EXPR);
-            assertSetType($5, NS_BLOCK);
-            assertSetType($7, NS_BLOCK);
+            assertType($5, NT_STATEMENTS);
+            assertType($7, NT_STATEMENTS);
             $$ = ASTifstatement($3, $5, $7);
             AddLocToNode($$, &@1, &@7);
          };
@@ -397,20 +396,20 @@ statement_no_else: var LET expr SEMICOLON
                  | IF BRACKET_L expr BRACKET_R block_if
                  {
                     assertSetType($3, NS_EXPR);
-                    assertSetType($5, NS_BLOCK);
+                    assertType($5, NT_STATEMENTS);
                     $$ = ASTifstatement($3, $5, NULL);
                     AddLocToNode($$, &@1, &@5);
                  }
                  | WHILE BRACKET_L expr BRACKET_R block_if
                  {
                     assertSetType($3, NS_EXPR);
-                    assertSetType($5, NS_BLOCK);
+                    assertType($5, NT_STATEMENTS);
                     $$ = ASTwhileloop($3, $5);
                     AddLocToNode($$, &@1, &@5);
                  }
                  | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
                  {
-                    assertSetType($2, NS_BLOCK);
+                    assertType($2, NT_STATEMENTS);
                     assertSetType($5, NS_EXPR);
                     $$ = ASTdowhileloop($2, $5);
                     AddLocToNode($$, &@1, &@7);
@@ -421,7 +420,7 @@ statement_no_else: var LET expr SEMICOLON
                     assertSetType($6, NS_EXPR);
                     assertSetType($8, NS_EXPR);
                     assertSetType($9, NS_EXPR);
-                    assertSetType($11, NS_BLOCK);
+                    assertType($11, NT_STATEMENTS);
                     node_st* assign = ASTassign($4, $6); 
                     AddLocToNode(assign, $4, $6);
                     
@@ -527,7 +526,8 @@ block: CURLY_L statements CURLY_R
      | statement
      {
         assertSetType($1, NS_STATEMENT);
-        $$ = $1;
+        $$ = ASTstatements($1, NULL);
+        AddLocToNode($$, &@1, &@1);
      };
 
 block_if: CURLY_L statements CURLY_R
@@ -538,7 +538,8 @@ block_if: CURLY_L statements CURLY_R
         | statement_no_else
         {
             assertSetType($1, NS_STATEMENT);
-            $$ = $1;
+            $$ = ASTstatements($1, NULL);
+            AddLocToNode($$, &@1, &@1);
         };
 
 Exprs: expr COMMA Exprs
@@ -687,7 +688,6 @@ expr_monopcast: BRACKET_L expr BRACKET_R
           }
           | constant
           {
-              assertSetType($1, NS_CONSTANT);
               $$ = $1;
           }
           | var SQUARE_L Exprs SQUARE_R
@@ -796,11 +796,13 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
 
 void assertSetType(node_st *node, enum nodesettype setType)
 {
-    release_assert(((1ull << NODE_TYPE(node)) & setType) != 0);
+    uint64_t combinedType = nodessettype_to_nodetypes(setType);
+    release_assert(((1ull << NODE_TYPE(node)) & combinedType) != 0);
 }
 
 void assertType(node_st *node, enum ccn_nodetype type)
 {
+    fprintf(stderr, "%d %d\n", NODE_TYPE(node), type);
     release_assert(NODE_TYPE(node) == type);
 }
 

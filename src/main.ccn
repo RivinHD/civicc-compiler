@@ -53,11 +53,9 @@ enum DataType {
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr} | Constant;
-nodeset Constant = {Int, Float, Bool};
+nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
 nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
-nodeset Block = {Statements} | Statement;
 nodeset VarOptArrayVar = {Var, ArrayVar};
 nodeset VarOptArrayExpr = {Var, ArrayExpr};
 nodeset ExprOptArrayInit = Expr | {ArrayInit};
@@ -82,7 +80,7 @@ node Declarations {
     }
 };
 
-node FunDec {
+node FunDec {  // implicitly conditions the 'extern' attribute
     children {
         FunHeader funHeader { constructor, mandatory }
     },
@@ -99,7 +97,7 @@ node FunDef {
     }
 };
 
-node GlobalDec {
+node GlobalDec {  // implicitly conditions the 'extern' attribute
     children {
         VarOptArrayVar var { constructor, mandatory } 
     },
@@ -109,7 +107,7 @@ node GlobalDec {
     }
 };
 
-node GlobalDef {
+node GlobalDef { 
     children {
         VarDec varDec { constructor, mandatory }
     },
@@ -132,14 +130,8 @@ node FunHeader {
 
 node Params {
     children {
-        Param param { constructor, mandatory },
+        VarOptArrayVar var { constructor, mandatory },
         Params next { constructor }
-    }
-};
-
-node Param {
-    children {
-        VarOptArrayVar var { constructor, mandatory }
     },
 
     attributes {
@@ -162,18 +154,11 @@ node VarDecs {
     }
 };
 
+// Extension 1
 node LocalFunDefs {
     children {
-        LocalFunDef localFunDef { constructor, mandatory },
+        FunDef localFunDef { constructor, mandatory },
         LocalFunDefs next { constructor }
-    }
-};
-
-// Extension 1
-node LocalFunDef {
-    children {
-        FunHeader funHeader { constructor, mandatory },
-        FunBody funBody { constructor, mandatory }
     }
 };
 
@@ -240,27 +225,22 @@ node Exprs {
 node IfStatement {
     children {
         Expr expr { constructor, mandatory },
-        Block block { constructor, mandatory },
-        ElseStatement else_block { constructor }
+        Statements block { constructor, mandatory },
+        Statements else_block { constructor }
     }
 };
 
-node ElseStatement {
-    children {
-        Block block { constructor, mandatory }
-    }
-};
 
 node WhileLoop {
     children {
         Expr expr { constructor, mandatory },
-        Block block { constructor, mandatory }
+        Statements block { constructor, mandatory }
     }
 };
 
 node DoWhileLoop {
     children {
-        Block block { constructor, mandatory },
+        Statements block { constructor, mandatory },
         Expr expr { constructor, mandatory }
     }
 };
@@ -270,7 +250,7 @@ node ForLoop {
         Assign assign { constructor, mandatory },
         Expr cond { constructor, mandatory },
         Expr iter { constructor },
-        Block block { constructor, mandatory }
+        Statements block { constructor, mandatory }
     }
 };
 
