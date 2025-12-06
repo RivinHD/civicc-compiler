@@ -26,13 +26,14 @@ endif()
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
+option(DISABLE_ASAN "Disable address sanitizer")
+
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(DISABLE_ASAN "Disable address sanitizer")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -65,26 +66,12 @@ ADD_FLEX_BISON_DEPENDENCY(CivicLexer CivicParser)
 
 include(cmake/coconut.cmake)
 
-# Whenever you add a file, add it here too.
-add_executable(civicc
-    ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES}
-    src/main.c
-)
-add_library(civicc_lib ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
-add_executable(tests ${TEST_FILES})
-target_link_libraries(tests PRIVATE gtest_main civicc_lib)
-
-# === Google Test integration ===
-include(GoogleTest)
-gtest_discover_tests(tests)
-
+# Add compile options before all targets but after the includes to only apply them to the targets
 add_compile_definitions(PROJECT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 message(STATUS "Set Definition 'PROJECT_DIRECTORY=${PROJECT_SOURCE_DIR}'")
 
 add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
-add_compile_options($<$<COMPILE_LANGUAGE:C>: -Wno-strict-prototypes>)
-
-
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 
 # Enable address sanitizer
 if(NOT DISABLE_ASAN)
@@ -95,6 +82,19 @@ if(NOT DISABLE_ASAN)
         $<$<CONFIG:Debug>:-fsanitize=address,undefined>
     )
 endif()
+
+# Whenever you add a file, add it here too.
+add_executable(civicc
+    ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES}
+    src/main.c
+)
+add_library(civicc_lib STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
+add_executable(tests ${TEST_FILES})
+target_link_libraries(tests PRIVATE gtest_main civicc_lib)
+
+# === Google Test integration ===
+include(GoogleTest)
+gtest_discover_tests(tests)
 
 coconut_target_generate(civicc "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
 target_include_directories(civicc
