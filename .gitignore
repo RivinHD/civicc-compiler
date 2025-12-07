@@ -48,3 +48,5 @@ build*/
 !.vscode/c_cpp_properties.json
 .cache/
 civicc.tar.gz
+afl/
+.harper-dictionary.txt

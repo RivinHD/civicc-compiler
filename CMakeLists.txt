@@ -13,6 +13,10 @@ set(TEST_FILES
     test/scanner_tests.cpp
 )
 
+set(FUZZ_FILES
+    test/test_interface.c
+)
+
 get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTI_CONFIG)
     message(NOTICE "Using multi-config generator. Compile with: cmake --build build --config [Debug|Release] --target <target>")
@@ -34,6 +38,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Check for AFL
+include(cmake/afl.cmake)
+
+if(AFL_ENABLED)
+    # We set the scanner exit code to 1 as it can be used for positive space fuzzing
+    add_compile_definitions(YY_EXIT_FAILURE=1)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(
@@ -74,7 +85,7 @@ add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 
 # Enable address sanitizer
-if(NOT DISABLE_ASAN)
+if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
     add_compile_options(
         $<$<CONFIG:Debug>:-fsanitize=address,undefined>
     )
@@ -84,30 +95,41 @@ if(NOT DISABLE_ASAN)
 endif()
 
 # Whenever you add a file, add it here too.
-add_executable(civicc
+add_executable("civicc${AFL_EXT}"
     ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES}
     src/main.c
 )
-add_library(civicc_lib STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
-add_executable(tests ${TEST_FILES})
-target_link_libraries(tests PRIVATE gtest_main civicc_lib)
-
-# === Google Test integration ===
-include(GoogleTest)
-gtest_discover_tests(tests)
-
-coconut_target_generate(civicc "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
-target_include_directories(civicc
+coconut_target_generate("civicc${AFL_EXT}" "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
+target_include_directories("civicc${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
-coconut_target_generate(civicc_lib "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
-target_include_directories(civicc_lib
+
+add_library("civicc_lib${AFL_EXT}" STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
+coconut_target_generate("civicc_lib${AFL_EXT}" "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
+target_include_directories("civicc_lib${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
-coconut_add_includes(tests)
-target_include_directories(tests
+
+add_executable("civicc_scanner${AFL_EXT}" ${FUZZ_FILES} test/fuzz_scanner_slice.cpp)
+target_link_libraries("civicc_scanner${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_scanner${AFL_EXT}")
+target_include_directories("civicc_scanner${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
+
+if(NOT AFL_ENABLED)
+    add_executable(tests ${TEST_FILES}) # No need to apply afl to tests
+    target_link_libraries(tests PRIVATE gtest_main civicc_lib)
+    coconut_add_includes(tests)
+    target_include_directories(tests
+        PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+    )
+
+    # === Google Test integration ===
+    include(GoogleTest)
+    gtest_discover_tests(tests)
+
+endif()
 
 add_custom_target(dot
     dot -Tpng ccngen/ast.dot > ast.png

@@ -84,7 +84,7 @@ static int ProcessArgs(int argc, char *argv[])
         Usage(argv[0]);
         exit(EXIT_FAILURE);
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 // What to do when a breakpoint is reached.
