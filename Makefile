@@ -82,23 +82,23 @@ afl_tooling: check_tmpfs afl_build build_seeds
 fuzz_civicc: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so afl-fuzz -s ${SEED} -i afl/seeds -o afl/civicc/out -w ./build/civicc_asan -w ./build/civicc_ubsan -w ./build/civicc_msan -- ./build/civicc @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so afl-fuzz -s ${SEED} -i ./afl/seeds -o ./afl/civicc/out -w ./build/civicc_asan -w ./build/civicc_ubsan -w ./build/civicc_msan -- ./build/civicc @@
 
 fuzz_civicc_positive: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 128 -s ${SEED} -i afl/seeds -o afl/civicc/out -w ./build/civicc_asan -w ./build/civicc_ubsan -w ./build/civicc_msan -- ./build/civicc @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -s ${SEED} -i ./afl/seeds -o ./afl/civicc/out -w ./build/civicc_asan -w ./build/civicc_ubsan -w ./build/civicc_msan -- ./build/civicc @@
 
 # Fuzz the scanner only
 fuzz_scanner: afl_tooling
 	@mkdir -p afl/civicc_scanner/out/default
 	@cp -r -u afl/trees afl/civicc_scanner/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so afl-fuzz -s ${SEED} -i afl/seeds -o afl/civicc_scanner/out -w ./build/civicc_scanner_asan -w ./build/civicc_scanner_ubsan -w ./build/civicc_scanner_msan -- ./build/civicc_scanner @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so afl-fuzz -s ${SEED} -i ./afl/seeds -o ./afl/civicc_scanner/out -w ./build/civicc_scanner_asan -w ./build/civicc_scanner_ubsan -w ./build/civicc_scanner_msan -- ./build/civicc_scanner @@
 
 fuzz_scanner_positive: afl_tooling
 	@mkdir -p afl/civicc_scanner/out/default
 	@cp -r -u afl/trees afl/civicc_scanner/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 128 -s ${SEED} -i afl/seeds -o afl/civicc_scanner/out -w ./build/civicc_scanner_asan -w ./build/civicc_scanner_ubsan -w ./build/civicc_scanner_msan -- ./build/civicc_scanner @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -s ${SEED} -i ./afl/seeds -o ./afl/civicc_scanner/out -w ./build/civicc_scanner_asan -w ./build/civicc_scanner_ubsan -w ./build/civicc_scanner_msan -- ./build/civicc_scanner @@
 
 dist:
 	bash scripts/dist.sh
