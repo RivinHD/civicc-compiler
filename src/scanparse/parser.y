@@ -57,7 +57,7 @@ void assertSetType(node_st *node, enum nodesettype setType);
 %type <node> statements statement statement_no_else
 %type <node> arrayInits arrayInit arrayVar
 %type <node> block block_if
-%type <node> Exprs expr expr_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
+%type <node> exprs expr expr_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
 %type <node> expr_binop_LTLEGTGE expr_binop_PLUSMINUS expr_monopcast
 %type <node> constant floatval intval boolval dimensionVars var
 %type <cbinop> binop_EQNE binop_LTLEGTGE binop_PLUSMINUS binop_STARSLASHPERCENT
@@ -75,11 +75,11 @@ program: declarations
            AddLocToNode($$, &@1, &@1);
          };
 
-declarations: declaration declarations 
+declarations: declarations declaration
             {
-                assertSetType($1, NS_DECLARATION);
-                assertType($2, NT_DECLARATIONS);
-                $$ = ASTdeclarations($1, $2);
+                assertSetType($2, NS_DECLARATION);
+                assertType($1, NT_DECLARATIONS);
+                $$ = ASTdeclarations($2, $1);
                 AddLocToNode($$, &@1, &@2);
             }
             | declaration 
@@ -184,14 +184,19 @@ funBody: funBody_varDecs_localFunDefs statements
             assertType($1, NT_LOCALFUNDEFS);
             $$ = ASTfunbody(NULL, $1, NULL);
             AddLocToNode($$, &@1, &@1);
+       }
+       |
+       {
+           // The funbody is allowed to be empty
+           $$ = ASTfunbody(NULL, NULL, NULL);
        };
 
 
-localFunDefs: localFunDef localFunDefs
+localFunDefs: localFunDefs localFunDef
             {
-                assertType($1, NT_FUNDEF);
-                assertType($2, NT_LOCALFUNDEFS);
-                $$ = ASTlocalfundefs($1, $2);
+                assertType($2, NT_FUNDEF);
+                assertType($1, NT_LOCALFUNDEFS);
+                $$ = ASTlocalfundefs($2, $1);
                 AddLocToNode($$, &@1, &@2);
             }
             | localFunDef
@@ -248,6 +253,7 @@ globalDef: EXPORT varDec
             AddLocToNode($$, &@1, &@1);
          };
 
+// We are not able to do left recursion otherwise we have memory leaks
 params: param COMMA params
       {
         assertType($1, NT_PARAMS);
@@ -285,6 +291,7 @@ optParams: params
          };
 
 
+// We are not able to do left recursion otherwise we have shift-reduce confictls
 varDecs: varDec varDecs
     {
       assertType($1, NT_VARDEC);
@@ -324,7 +331,7 @@ funBody_varDecs_localFunDefs: varDec funBody_varDecs_localFunDefs
                         AddLocToNode($$, &@1, &@2);
                     };
 
-varDec: basicType SQUARE_L Exprs SQUARE_R var optArrayInit SEMICOLON
+varDec: basicType SQUARE_L exprs SQUARE_R var optArrayInit SEMICOLON
       {
           assertType($3, NT_EXPRS);
           assertType($5, NT_VAR);
@@ -352,11 +359,11 @@ optVarInit: LET expr
           };
 
 
-statements: statement statements
+statements: statements statement
           {
-              assertSetType($1, NS_STATEMENT);
-              assertType($2, NT_STATEMENTS);
-              $$ = ASTstatements($1, $2);
+              assertSetType($2, NS_STATEMENT);
+              assertType($1, NT_STATEMENTS);
+              $$ = ASTstatements($2, $1);
               AddLocToNode($$, &@1, &@2);
           }
           | statement
@@ -432,7 +439,7 @@ statement_no_else: var LET expr SEMICOLON
                     $$ = ASTretstatement($2);
                     AddLocToNode($$, &@1, &@3);
                  }
-                 | var SQUARE_L Exprs SQUARE_R LET expr SEMICOLON
+                 | var SQUARE_L exprs SQUARE_R LET expr SEMICOLON
                  {
                     assertType($1, NT_VAR);
                     assertType($3, NT_EXPRS);
@@ -454,7 +461,7 @@ optForStep: COMMA expr
             $$ = NULL;
           };
 
-optArrayExpr: Exprs
+optArrayExpr: exprs
         {
             assertType($1, NT_EXPRS);
             $$ = $1;
@@ -482,10 +489,10 @@ arrayVar: SQUARE_L dimensionVars SQUARE_R var
             AddLocToNode($$, &@1, &@4);
         };
 
-arrayInits: arrayInit COMMA arrayInits
+arrayInits: arrayInits COMMA arrayInit
           {
-            assertType($3, NT_ARRAYINIT);
-            $$ = ASTarrayinit($1, $3);
+            assertType($1, NT_ARRAYINIT);
+            $$ = ASTarrayinit($3, $1);
             AddLocToNode($$, &@1, &@3);
           }
           | arrayInit
@@ -539,12 +546,12 @@ block_if: CURLY_L statements CURLY_R
             AddLocToNode($$, &@1, &@1);
         };
 
-Exprs: expr COMMA Exprs
+exprs: exprs COMMA expr
      {
-        assertSetType($1, NS_EXPR);
-        assertType($3, NT_EXPRS);
-        $$ = ASTexprs($1, $3);
-        AddLocToNode($$, &@1, &@1);
+        assertSetType($3, NS_EXPR);
+        assertType($1, NT_EXPRS);
+        $$ = ASTexprs($3, $1);
+        AddLocToNode($$, &@1, &@3);
      }
      | expr
      {
@@ -665,7 +672,7 @@ expr_monopcast: BRACKET_L expr BRACKET_R
               $$ = ASTcast($4, $2);
               AddLocToNode($$, &@1, &@4);
           }
-          | var BRACKET_L Exprs BRACKET_R
+          | var BRACKET_L exprs BRACKET_R
           {
               assertType($1, NT_VAR);
               assertType($3, NT_EXPRS);
@@ -687,7 +694,7 @@ expr_monopcast: BRACKET_L expr BRACKET_R
           {
               $$ = $1;
           }
-          | var SQUARE_L Exprs SQUARE_R
+          | var SQUARE_L exprs SQUARE_R
           {
               assertType($1, NT_VAR);
               assertType($3, NT_EXPRS);
@@ -758,11 +765,11 @@ monop: MINUS
         $$ = MO_not;
      };
 
-dimensionVars: var COMMA dimensionVars
+dimensionVars: dimensionVars COMMA var 
    {
-      assertType($1, NT_VAR);
-      assertType($3, NT_DIMENSIONVARS);
-      $$ = ASTdimensionvars($1, $3);
+      assertType($3, NT_VAR);
+      assertType($1, NT_DIMENSIONVARS);
+      $$ = ASTdimensionvars($3, $1);
       AddLocToNode($$, &@1, &@3);
    }
    | var

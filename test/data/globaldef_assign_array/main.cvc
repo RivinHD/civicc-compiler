@@ -1,0 +1,2 @@
+float definition = Assignment[0];
+float definition_2 = Assignment_2[func()];

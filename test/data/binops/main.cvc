@@ -1,0 +1,42 @@
+int test1 = 1 + 1;
+int test2 = 2 - 1;
+int test3 = 3  * 1;
+int test4 = 4 / 1;
+int test5 = 5 & 1;
+int test6 = 1 == 4;
+int test7 = 2 != 5;
+int test8 = 2 < 4;
+int test10 = 23 <= 234;
+int test11 = 12 > 123;
+int test12 = 12 >= 1;
+int test13 = true && true;
+int test14 = true || 123;
+
+int test1 = test1 + test1;
+int test2 = test2 - test2;
+int test3 = test3  * test3;
+int test4 = test4 / test4;
+int test5 = test5 & test5;
+int test6 = test6 == test6;
+int test7 = test7 != test7;
+int test8 = test8 < test8;
+int test10 = test9 <= test9;
+int test11 = test10 > test10;
+int test12 = test11 >= test11;
+int test13 = test12 && test12;
+int test14 = test13 || test13;
+
+int test1 = func(1 + 1);
+int test2 = func(2 - 1);
+int test3 = func(3  * 1);
+int test4 = func(4 / 1);
+int test5 = func(5 & 1);
+int test6 = func(1 == 4);
+int test7 = func(2 != 5);
+int test8 = func(2 < 4);
+int test10 = func(23 <= 234);
+int test11 = func(12 > 123);
+int test12 = func(12 >= 1);
+int test13 = func(true && true);
+int test14 = func(true || 123);
+

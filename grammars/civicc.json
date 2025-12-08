@@ -11,6 +11,12 @@
         [
             "<declaration>",
             "<program>"
+        ],
+        [
+            "<declaration>",
+            "<declaration>",
+            "<declaration>",
+            "<program>"
         ]
     ],
     "<declaration>": [
@@ -25,6 +31,9 @@
         ],
         [
             "<globaldef>"
+        ],
+        [
+            "<comment>"
         ]
     ],
     "<fundec>": [
@@ -210,7 +219,7 @@
     "<funbody>": [
         [
             "<vardecs>",
-            "<localfundef>",
+            "<localfundefs>",
             "<statementsMany>"
         ],
         [
@@ -218,17 +227,26 @@
             "<statementsMany>"
         ],
         [
-            "<localfundef>",
+            "<localfundefs>",
             "<statementsMany>"
         ],
         [
             "<vardecs>"
         ],
         [
-            "<localfundef>"
+            "<localfundefs>"
         ],
         [
             "<statementsMany>"
+        ]
+    ],
+    "<localfundefs>": [
+        [
+            "<localfundef>"
+        ],
+        [
+            "<localfundef>",
+            "<localfundefs>"
         ]
     ],
     "<localfundef>": [
@@ -338,7 +356,7 @@
             "<expr>",
             ")\n",
             "<block>",
-            "else\n",
+            " else\n",
             "<block>"
         ],
         [
@@ -621,11 +639,10 @@
     ],
     "<number>": [
         [
-            "<digit>",
-            "<digits>"
+            "0"
         ],
         [
-            "<digit>"
+            "<numberpositive>"
         ]
     ],
     "<numberpositive>": [
@@ -684,9 +701,6 @@
         ]
     ],
     "<id>": [
-        [
-            "<charMany>"
-        ],
         [
             "<char>",
             "<charAnyMany>"
@@ -908,6 +922,39 @@
         ],
         [
             "Z"
+        ]
+    ],
+    "<comment>": [
+        [
+            "//",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            "\n"
+        ],
+        [
+            "/*",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            "\n",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            " ",
+            "<charAnyMany>",
+            "\n",
+            "<charAnyMany>",
+            " ",
+            "<comment>",
+            " ",
+            "<charAnyMany>",
+            "\n",
+            "*/"
         ]
     ]
 }

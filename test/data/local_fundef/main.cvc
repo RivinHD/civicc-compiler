@@ -1,0 +1,5 @@
+float test(bool car, int next, int new) {
+    int inner() {
+        float[8] etsfadf = 1;
+    }
+}

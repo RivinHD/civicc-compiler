@@ -52,6 +52,7 @@ function(setup_grammar GRAMMAR_FILE)
     message(STATUS "Parallel Build: ${CPU_COUNT} cores")
     execute_process(COMMAND ${CMAKE_COMMAND} -E env CC=clang LD=clang++ AR=ar RANLIB=ranlib AS=as CXX=clang++ CCFLAGS="-std=c++17 -fPIC -Wno-tautological-compare -Wno-overloaded-virtual" CXXFLAGS="-std=c++17 -fPIC -Wno-tautological-compare -Wno-overloaded-virtual" LDFLAGS="-shared" -- make ANTLR_JAR_LOCATION=${ANTLR_JAR_LOCATION} GRAMMAR_FILE=${GRAMMAR_FILE} -j ${CPU_COUNT}
         WORKING_DIRECTORY "${GRAMMAR_MUTATOR_SOURCE_DIR}"
+        OUTPUT_QUIET
     )
 
     # GRAMMAR_FILENAME comes from grammar_mutator cmake

@@ -1,8 +1,6 @@
 #include <filesystem>
 #include <gtest/gtest.h>
-#include <iostream>
-#include <ostream>
-#include <stdio.h>
+#include <memory_resource>
 #include <string>
 
 extern "C"
@@ -43,71 +41,113 @@ class ScannerTest : public testing::Test
 TEST_F(ScannerTest, Scan_GlobalDecBool)
 {
     SetUp("globaldec_bool/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_GlobalDecInt)
 {
     SetUp("globaldec_int/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_GlobalDecFloat)
 {
     SetUp("globaldec_float/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_GlobalDefBool)
 {
     SetUp("globaldef_bool/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_GlobalDefInt)
 {
     SetUp("globaldef_int/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_GlobalDefFloat)
 {
     SetUp("globaldef_float/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDecBool)
 {
     SetUp("fundec_bool/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDecInt)
 {
     SetUp("fundec_int/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDecFloat)
 {
     SetUp("fundec_float/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDefBool)
 {
     SetUp("fundef_bool/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDefInt)
 {
     SetUp("fundef_int/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
 }
 
 TEST_F(ScannerTest, Scan_FunDefFloat)
 {
     SetUp("fundef_float/main.cvc");
-    EXPECT_NE(nullptr, root);
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_LocalFundef)
+{
+    SetUp("local_fundef/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_LocalFundefs)
+{
+    SetUp("local_fundefs/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_LocalFundefsRecursive)
+{
+    SetUp("local_fundefs_recursive/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_GlobalDefAssignArray)
+{
+    SetUp("globaldef_assign_array/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_GlobalDefCast)
+{
+    SetUp("globaldef_cast/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_ProcCall)
+{
+    SetUp("proc_call/main.cvc");
+    ASSERT_NE(nullptr, root);
+}
+
+TEST_F(ScannerTest, Scan_Binops)
+{
+    SetUp("binops/main.cvc");
+    ASSERT_NE(nullptr, root);
 }

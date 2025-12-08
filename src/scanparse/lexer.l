@@ -96,7 +96,7 @@ SEPC ({SEP}|\{)
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( EXPORT); }
-"return"{SEPB}             { 
+"return"({SEPB}|;)             { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng); 
                              FILTER( RETURN); }
@@ -106,15 +106,15 @@ SEPC ({SEP}|\{)
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( VOID); }
-"bool"({SEP}|\[)                { 
+"bool"({SEP}|\[|\))                { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( BOOL); }
-"int"({SEP}|\[)                 { 
+"int"({SEP}|\[|\))                 { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( INT); }
-"float"({SEP}|\[)               { 
+"float"({SEP}|\[|\))               { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( FLOAT);}
