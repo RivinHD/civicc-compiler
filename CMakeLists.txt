@@ -30,7 +30,12 @@ endif()
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
-option(DISABLE_ASAN "Disable address sanitizer")
+option(DISABLE_ASAN "Disable address sanitizer" OFF)
+option(BUILD_GRAMMAR_GENERATOR
+    "Builds a civicc generator from the Grammar Mutator library of Afl.\
+Note: Afl is not requiered to build the generator."
+    OFF
+)
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")
@@ -134,3 +139,9 @@ add_custom_target(dot
     COMMENT "Generate a png of your ast based on the generated dot diagram."
 )
 
+if(BUILD_GRAMMAR_GENERATOR)
+    add_custom_target(grammar_generator
+        COMMENT "Dummy target for the grammer generation, the grammar is build when the option 'BUILD_GRAMMAR_GENERATOR' is set."
+    )
+    setup_grammar("grammars/civicc.json")
+endif()

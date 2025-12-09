@@ -1,7 +1,7 @@
-# CiviC Compiler
+# CivicC Compiler
 This repository was created as part of the **Compiler Construction** lecture at Friedrich Schiller 
 University Jena during the winter term 2025.
-With this compiler we support the CiviC language, which is reduced C-like toy language the understand
+With this compiler we support the CivicC language, which is reduced C-like toy language the understand
 and develop the basic functionality of a Compiler. For the development we leverage the 
 [Coconut Framework](https://github.com/CoCoNut-UvA/coconut), which generates based on an own 
 [DSL](https://coconut-uva.github.io/coconut/dsl_syntax.html) a specific AST. Different passes can then
@@ -84,6 +84,30 @@ This gets everything in your git repo and combines it with the used coconut vers
 This should contain everything needed to hand in your assignments.
 **NOTE:** Always check the resulting archive if it contains everything and builds correctly.
 
+## Grammar Generator
+The project includes a [grammar generator and mutator](https://github.com/AFLplusplus/Grammar-Mutator/tree/stable)
+that is used for the fuzzing with [AFL++](https://github.com/AFLplusplus/AFLplusplus/tree/stable),
+but can also be used independently
+to generate CivicC source files.
+
+The grammar is defined in JSON format and is located at `grammars/civicc.json`.
+
+To build the generator use the CMake option `-DBUILD_GRAMMAR_GENERATOR=1` or run: 
+```
+make grammar_generator.
+```
+
+To build CivicC files with the generator you run (the seed is optional):
+```
+./build/grammar_generator-civicc <max_num> <max_size> <output_dir> <tree_output_dir> [<random_seed>]
+```
+e.g. for 100 CivicC files with a max size of 1000 i.e. grammar resolution will be put into the 
+`output` directory. The trees are only need for fuzzing and thus are discard.
+```
+./build/grammar_generator-civicc 100 1000 ./output /dev/null
+```
+
+
 ## Fuzzing
 The project support fuzz testing with [AFL++](https://github.com/AFLplusplus/AFLplusplus/tree/stable)
 (Commit Hash: `68b492b2c7725816068718ef9437b72b40e67519`).
@@ -131,10 +155,10 @@ Now we are ready to download and build AFL.
     sudo make install
     ```
 
-We also use Grammer Fuzzing with [AFL Grammer Mutator](https://github.com/AFLplusplus/Grammar-Mutator).
+We also use Grammar Fuzzing with [AFL Grammar Mutator](https://github.com/AFLplusplus/Grammar-Mutator).
 Therefore also need the dependencies list their.
 
-The `atnlr-4.8-complete.jar` will be automatically download in placed in the Grammer Mutator library
+The `atnlr-4.8-complete.jar` will be automatically download in placed in the Grammar Mutator library
 by our `CMakeLists.txt`.
 
 ### Further recommended setup steps (optional)
@@ -178,7 +202,7 @@ The following targets are available:
 - `civicc`: Fuzz the complete compiler
 - `civicc_grammer`: Fuzz the complete compiler
 - `scanparse`: Fuzz the scanner and parser only
-- `scanparse_grammer`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CiviC code.
+- `scanparse_grammer`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CivicC code.
 
 *Note:* Keeping the fuzz target/slice smaller is more efficient.
 
