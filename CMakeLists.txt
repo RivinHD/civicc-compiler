@@ -10,7 +10,7 @@ set(SOURCE_FILES
 
 set(TEST_FILES
     test/test_interface.c
-    test/scanner_tests.cpp
+    test/scanparse_tests.cpp
 )
 
 set(FUZZ_FILES
@@ -42,7 +42,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(cmake/afl.cmake)
 
 if(AFL_ENABLED)
-    # We set the scanner exit code to 1 as it can be used for positive space fuzzing
+    # We set the scanparse exit code to 1 as it can be used for positive space fuzzing
     add_compile_definitions(YY_EXIT_FAILURE=1)
 endif()
 
@@ -110,10 +110,10 @@ target_include_directories("civicc_lib${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
 
-add_executable("civicc_scanner${AFL_EXT}" ${FUZZ_FILES} test/fuzz_scanner_slice.cpp)
-target_link_libraries("civicc_scanner${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
-coconut_add_includes("civicc_scanner${AFL_EXT}")
-target_include_directories("civicc_scanner${AFL_EXT}"
+add_executable("civicc_scanparse${AFL_EXT}" ${FUZZ_FILES} test/fuzz_scanparse_slice.cpp)
+target_link_libraries("civicc_scanparse${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_scanparse${AFL_EXT}")
+target_include_directories("civicc_scanparse${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 

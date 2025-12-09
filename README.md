@@ -175,9 +175,10 @@ make fuzz_<target>
 ```
 
 The following targets are available:
-- `civicc`: Fuzz the complete compiler (not recommended)
-- `scanner`: Fuzz the scanner only
-- `scanner_positive`: Fuzz only the positive space of the scanner i.e. grammer valid civicc code.
+- `civicc`: Fuzz the complete compiler
+- `civicc_grammer`: Fuzz the complete compiler
+- `scanparse`: Fuzz the scanner and parser only
+- `scanparse_grammer`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CiviC code.
 
 *Note:* Keeping the fuzz target/slice smaller is more efficient.
 

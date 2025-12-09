@@ -12,9 +12,9 @@ help:
 	@echo "  generate_seeds:  Generates seeds for the afl run, these will generate valid civicc programs."
 	@echo "  afl_tooling:  Build the targets: check_tmpfs, afl_build, generate_seeds."
 	@echo "  fuzz_civicc:  Fuzz the complete civcc compiler with afl, with correct and incorrect civicc programs."
-	@echo "  fuzz_civicc_positive:  Fuzz the complete civcc compiler with afl, with only correct civicc programs."
-	@echo "  fuzz_scanner:  Fuzz the scanner of the civcc compiler with afl, with correct and incorrect civicc programs."
-	@echo "  fuzz_scanner_positive:  Fuzz the scanner of the civcc compiler with afl, with only correct civicc programs."
+	@echo "  fuzz_civicc_grammer:  Fuzz the complete civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_scanparse:  Fuzz the scanner and parser of the civcc compiler with afl, with correct and incorrect civicc programs."
+	@echo "  fuzz_scanparse_grammer:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
 
 
 # Fallback to number of CPUs
@@ -96,31 +96,31 @@ afl_tooling: check_tmpfs afl_build generate_seeds
 	@echo "Finished Building Tooling & Setup"
 
 # Fuzz the complete compiler
-# We use the exit code 1 for the positive space fuzzer which leverages the grammar
+# We use the exit code 1 for the grammer space fuzzer which leverages the grammar
 .PHONY: fuzz_civicc
 fuzz_civicc: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
 	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
 
-.PHONY: fuzz_civicc_positive
-fuzz_civicc_positive: afl_tooling
+.PHONY: fuzz_civicc_grammer
+fuzz_civicc_grammer: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
 	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
 
-# Fuzz the scanner only
-.PHONY: fuzz_scanner
-fuzz_scanner: afl_tooling
-	@mkdir -p afl/civicc_scanner/out/default
-	@cp -r -u afl/trees afl/civicc_scanner/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanner/out -w ./build-afl/civicc_scanner_asan -w ./build-afl/civicc_scanner_ubsan -w ./build-afl/civicc_scanner_msan -- ./build-afl/civicc_scanner @@
+# Fuzz the scanner and parser only
+.PHONY: fuzz_scanparse
+fuzz_scanparse: afl_tooling
+	@mkdir -p afl/civicc_scanparse/out/default
+	@cp -r -u afl/trees afl/civicc_scanparse/out/default
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
 
-.PHONY: fuzz_scanner_positive
-fuzz_scanner_positive: afl_tooling
-	@mkdir -p afl/civicc_scanner/out/default
-	@cp -r -u afl/trees afl/civicc_scanner/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanner/out -w ./build-afl/civicc_scanner_asan -w ./build-afl/civicc_scanner_ubsan -w ./build-afl/civicc_scanner_msan -- ./build-afl/civicc_scanner @@
+.PHONY: fuzz_scanparse_grammer
+fuzz_scanparse_grammer: afl_tooling
+	@mkdir -p afl/civicc_scanparse/out/default
+	@cp -r -u afl/trees afl/civicc_scanparse/out/default
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: dist
 dist:
