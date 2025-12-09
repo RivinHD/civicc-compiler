@@ -20,7 +20,7 @@ void BreakpointHandler(node_st *root)
     return;
 }
 
-node_st *run_scanner(char *filepath)
+node_st *run_scan_parse(char *filepath)
 {
     GLBinitializeGlobals();
     global.input_file = filepath;
@@ -30,7 +30,7 @@ node_st *run_scanner(char *filepath)
     return node;
 }
 
-void cleanup_scanner(node_st *root)
+void cleanup_scan_parse(node_st *root)
 {
     TRAVstart(root, TRAV_free);
 }

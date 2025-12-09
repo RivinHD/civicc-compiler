@@ -1,0 +1,31 @@
+void test() {
+    if(test2 == test1)
+    {
+
+    }
+
+    if(test2 == test1)
+    {
+
+    }
+    else
+    {
+    }
+
+    if(test2 == test1)
+    {
+        if(true) return;
+    }
+    else
+    {
+        if(false) return; 
+        else test = 5;
+    }
+
+    if (q3(A__wi[2], 2))
+    {
+    U0();
+    }
+     else
+    H_v();
+}

@@ -24,15 +24,14 @@
             "<fundec>"
         ],
         [
-            "<fundef>"
+            "<fundef>",
+            "<comment>"
         ],
         [
             "<globaldec>"
         ],
         [
-            "<globaldef>"
-        ],
-        [
+            "<globaldef>",
             "<comment>"
         ]
     ],
@@ -569,7 +568,7 @@
     ],
     "<intconst>": [
         [
-            "<prefix>",
+            "-",
             "<numberpositive>"
         ],
         [
@@ -578,26 +577,13 @@
     ],
     "<floatconst>": [
         [
-            "<prefix>",
+            "-",
             "<number>",
             ".",
             "<number>"
         ],
         [
-            "<prefix>",
-            "<number>",
-            ".",
-            "<number>",
-            "<floate>",
-            "<prefix>",
-            "<number>"
-        ],
-        [
-            "<number>",
-            ".",
-            "<number>"
-        ],
-        [
+            "-",
             "<number>",
             ".",
             "<number>",
@@ -606,7 +592,20 @@
             "<number>"
         ],
         [
+            "<number>",
+            ".",
+            "<number>"
+        ],
+        [
+            "<number>",
+            ".",
+            "<number>",
+            "<floate>",
             "<prefix>",
+            "<number>"
+        ],
+        [
+            "-",
             "<number>",
             ".",
             "<number>",
@@ -623,10 +622,10 @@
     ],
     "<prefix>": [
         [
-            "+"
+            "-"
         ],
         [
-            "-"
+            "+"
         ]
     ],
     "<floate>": [
@@ -950,10 +949,11 @@
             "\n",
             "<charAnyMany>",
             " ",
-            "<comment>",
+            "<charAnyMany>",
             " ",
             "<charAnyMany>",
             "\n",
+            "<charAnyMany>",
             "*/"
         ]
     ]

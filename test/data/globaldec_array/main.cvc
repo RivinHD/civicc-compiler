@@ -1,0 +1,2 @@
+export int[1] q;
+export int[+0.6] q_;

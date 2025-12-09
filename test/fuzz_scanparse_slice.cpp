@@ -6,8 +6,8 @@
 extern "C"
 {
     struct node_st;
-    node_st *run_scanner(const char *filepath);
-    void cleanup_scanner(node_st *root);
+    node_st *run_scan_parse(const char *filepath);
+    void cleanup_scan_parse(node_st *root);
 }
 
 int main(int argc, char *argv[])
@@ -34,8 +34,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    node_st *root = run_scanner(filepath.c_str());
-    cleanup_scanner(root);
+    node_st *root = run_scan_parse(filepath.c_str());
+    cleanup_scan_parse(root);
 
     return 0;
 }
