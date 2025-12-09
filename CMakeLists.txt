@@ -94,19 +94,17 @@ if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
     )
 endif()
 
-# Whenever you add a file, add it here too.
-add_executable("civicc${AFL_EXT}"
-    ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES}
-    src/main.c
-)
-coconut_target_generate("civicc${AFL_EXT}" "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
-target_include_directories("civicc${AFL_EXT}"
+add_library("civicc_lib${AFL_EXT}" STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
+set_target_properties("civicc_lib${AFL_EXT}" PROPERTIES OUTPUT_NAME "civicc${AFL_EXT}")
+coconut_target_generate("civicc_lib${AFL_EXT}" "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
+target_include_directories("civicc_lib${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
 
-add_library("civicc_lib${AFL_EXT}" STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
-coconut_target_generate("civicc_lib${AFL_EXT}" "${CMAKE_CURRENT_LIST_DIR}/src/main.ccn" dynamic)
-target_include_directories("civicc_lib${AFL_EXT}"
+add_executable("civicc${AFL_EXT}" src/main.c)
+target_link_libraries("civicc${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc${AFL_EXT}")
+target_include_directories("civicc${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
 
