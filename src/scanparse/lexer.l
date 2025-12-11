@@ -38,7 +38,7 @@ int yycolumn = 1;
 %option nounput
 %option yylineno
 
-SEP [ /t/r/n]
+SEP [ \t\r\n]
 SEPB ({SEP}|\()
 SEPC ({SEP}|\{)
 

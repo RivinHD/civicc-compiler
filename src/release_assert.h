@@ -1,6 +1,6 @@
 #pragma once
 
-#include <features.h>
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 
@@ -11,5 +11,5 @@ extern void __assert_fail(const char *__assertion, const char *__file, unsigned 
 
 __END_DECLS
 
-#define release_assert(expr)                                                                                           \
+#define release_assert(expr)                                                                       \
     ((expr) ? (void)0 : __assert_fail(#expr, __FILE__, __LINE__, __extension__ __PRETTY_FUNCTION__))
