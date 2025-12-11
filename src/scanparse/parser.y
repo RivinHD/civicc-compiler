@@ -532,6 +532,10 @@ block: CURLY_L statements CURLY_R
         assertSetType($1, NS_STATEMENT);
         $$ = ASTstatements($1, NULL);
         AddLocToNode($$, &@1, &@1);
+     }
+     | CURLY_L CURLY_R
+     {
+         $$ = NULL;
      };
 
 block_if: CURLY_L statements CURLY_R
@@ -544,6 +548,10 @@ block_if: CURLY_L statements CURLY_R
             assertSetType($1, NS_STATEMENT);
             $$ = ASTstatements($1, NULL);
             AddLocToNode($$, &@1, &@1);
+        }
+        | CURLY_L CURLY_R
+        {
+            $$ = NULL;
         };
 
 exprs: exprs COMMA expr
@@ -586,6 +594,20 @@ expr_binop: expr_binop_OR
             $$ = ASTbinop($1, $3, BO_or);
             AddLocToNode($$, &@1, &@3);
           }
+          | expr_binop OR expr_monopcast 
+          {
+            assertSetType($1, NS_EXPR);
+            assertSetType($3, NS_EXPR);
+            $$ = ASTbinop($1, $3, BO_or);
+            AddLocToNode($$, &@1, &@3);
+          }
+          | expr_monopcast OR expr_binop_OR
+          {
+            assertSetType($1, NS_EXPR);
+            assertSetType($3, NS_EXPR);
+            $$ = ASTbinop($1, $3, BO_or);
+            AddLocToNode($$, &@1, &@3);
+          }
           | expr_monopcast OR expr_monopcast
           {
             assertSetType($1, NS_EXPR);
@@ -600,6 +622,20 @@ expr_binop_OR: expr_binop_AND
                 $$ = $1;
              }
              | expr_binop_OR AND expr_binop_AND
+             {
+                assertSetType($1, NS_EXPR);
+                assertSetType($3, NS_EXPR);
+                $$ = ASTbinop($1, $3, BO_and);
+                AddLocToNode($$, &@1, &@3);
+             }
+             | expr_binop_OR AND expr_monopcast 
+             {
+                assertSetType($1, NS_EXPR);
+                assertSetType($3, NS_EXPR);
+                $$ = ASTbinop($1, $3, BO_and);
+                AddLocToNode($$, &@1, &@3);
+             }
+             | expr_monopcast AND expr_binop_AND
              {
                 assertSetType($1, NS_EXPR);
                 assertSetType($3, NS_EXPR);
@@ -626,6 +662,20 @@ expr_binop_AND: expr_binop_EQNE
                   $$ = ASTbinop($1, $3, $2);
                   AddLocToNode($$, &@1, &@3);
               }
+              | expr_binop_AND binop_EQNE expr_monopcast 
+              {
+                  assertSetType($1, NS_EXPR);
+                  assertSetType($3, NS_EXPR);
+                  $$ = ASTbinop($1, $3, $2);
+                  AddLocToNode($$, &@1, &@3);
+              }
+              | expr_monopcast binop_EQNE expr_binop_EQNE
+              {
+                  assertSetType($1, NS_EXPR);
+                  assertSetType($3, NS_EXPR);
+                  $$ = ASTbinop($1, $3, $2);
+                  AddLocToNode($$, &@1, &@3);
+              }
               | expr_monopcast binop_EQNE expr_monopcast
               {
                   assertSetType($1, NS_EXPR);
@@ -646,6 +696,20 @@ expr_binop_EQNE: expr_binop_LTLEGTGE
                     $$ = ASTbinop($1, $3, $2);
                     AddLocToNode($$, &@1, &@3);
                }
+               | expr_binop_EQNE binop_LTLEGTGE expr_monopcast 
+               {
+                    assertSetType($1, NS_EXPR);
+                    assertSetType($3, NS_EXPR);
+                    $$ = ASTbinop($1, $3, $2);
+                    AddLocToNode($$, &@1, &@3);
+               }
+               | expr_monopcast binop_LTLEGTGE expr_binop_LTLEGTGE
+               {
+                    assertSetType($1, NS_EXPR);
+                    assertSetType($3, NS_EXPR);
+                    $$ = ASTbinop($1, $3, $2);
+                    AddLocToNode($$, &@1, &@3);
+               }
                | expr_monopcast binop_LTLEGTGE expr_monopcast
                {
                     assertSetType($1, NS_EXPR);
@@ -660,6 +724,20 @@ expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
                       $$ = $1;
                    }
                    | expr_binop_LTLEGTGE binop_PLUSMINUS expr_binop_PLUSMINUS
+                   {
+                      assertSetType($1, NS_EXPR);
+                      assertSetType($3, NS_EXPR);
+                      $$ = ASTbinop($1, $3, $2);
+                      AddLocToNode($$, &@1, &@3);
+                   }
+                   | expr_binop_LTLEGTGE binop_PLUSMINUS expr_monopcast 
+                   {
+                      assertSetType($1, NS_EXPR);
+                      assertSetType($3, NS_EXPR);
+                      $$ = ASTbinop($1, $3, $2);
+                      AddLocToNode($$, &@1, &@3);
+                   }
+                   | expr_monopcast binop_PLUSMINUS expr_binop_PLUSMINUS
                    {
                       assertSetType($1, NS_EXPR);
                       assertSetType($3, NS_EXPR);
@@ -816,6 +894,7 @@ dimensionVars: dimensionVars COMMA var
 
 var: VAR
    {
+   fprintf(stderr, "Variable: %s\n", $1);
     $$ = ASTvar($1);
     AddLocToNode($$, &@1, &@1);
    };
@@ -835,6 +914,8 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
 
 void assertSetType(node_st *node, enum nodesettype setType)
 {
+    if (node == NULL) return;
+
     fprintf(stderr, "Set: %d %d\n", NODE_TYPE(node), setType);
     uint64_t combinedType = nodessettype_to_nodetypes(setType);
     release_assert(((1ull << NODE_TYPE(node)) & combinedType) != 0);
@@ -842,6 +923,8 @@ void assertSetType(node_st *node, enum nodesettype setType)
 
 void assertType(node_st *node, enum ccn_nodetype type)
 {
+    if (node == NULL) return;
+
     fprintf(stderr, "Type: %d %d\n", NODE_TYPE(node), type);
     release_assert(NODE_TYPE(node) == type);
 }

@@ -181,3 +181,9 @@ TEST_F(ScanParseTest, ScanParse_Comment)
     SetUp("comments/main.cvc");
     ASSERT_NE(nullptr, root);
 }
+
+TEST_F(ScanParseTest, ScanParse_BinopsPrecedence)
+{
+    SetUp("binops_precedence/main.cvc");
+    ASSERT_NE(nullptr, root);
+}

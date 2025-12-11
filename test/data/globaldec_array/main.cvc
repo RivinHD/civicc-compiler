@@ -1,2 +1,5 @@
 export int[1] q;
-export int[+0.6] q_;
+export int[-0.6] q_;
+export bool[(40) >= func] test;
+export bool[func % asdf] test;
+export bool[(40) >= func % asdf] test;
