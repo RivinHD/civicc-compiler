@@ -60,10 +60,10 @@ grammar_generator:
 .PHONY: afl_build
 afl_build:
 	@cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS)
-	@(export AFL_USE_ASAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
-	@(export AFL_USE_LSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
-	@(export AFL_USE_UBSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && export AFL_UBSAN_VERBOSE=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
-	@(export AFL_USE_MSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
+	# @(export AFL_USE_ASAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
+	# @(export AFL_USE_LSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
+	# @(export AFL_USE_UBSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && export AFL_UBSAN_VERBOSE=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
+	# @(export AFL_USE_MSAN=1 && export AFL_LLVM_ONLY_FSRV=1 && cmake -DCMAKE_BUILD_TYPE=Debug -S ./ -B build-afl -DCMAKE_C_COMPILER=afl-cc -DCMAKE_CXX_COMPILER=afl-c++ && cmake --build build-afl -j $(JOBS))
 	@echo "Finished Building all requiered AFL targets"
 
 # Directory to use for tmpfs for Fuzzing; override on the make command line:
@@ -106,26 +106,30 @@ afl_tooling: check_tmpfs afl_build generate_seeds
 fuzz_civicc: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
+	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
 
 .PHONY: fuzz_civicc_grammer
 fuzz_civicc_grammer: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
+	#AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse
 fuzz_scanparse: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
+	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: fuzz_scanparse_grammer
 fuzz_scanparse_grammer: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
+	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
+	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: dist
 dist:

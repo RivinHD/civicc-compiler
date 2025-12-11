@@ -16,7 +16,7 @@
 extern int yyerror(char *errname);
 
 #define FILTER(token) \
-  fprintf(stderr, "%d: %s \n", token, yytext); \
+  fprintf(stdout, "%d: %s \n", token, yytext); \
   global.col += yyleng;  \
   return( token);
 
@@ -79,11 +79,11 @@ SEPC ({SEP}|\{)
 
 "="                        { FILTER( LET);    }
 
-"true"[^A-Za-z]            { 
+"true"[^A-Za-z0-9_]            { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( TRUEVAL); }
-"false"[^A-Za-z]           { 
+"false"[^A-Za-z0-9_]           { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
                             FILTER( FALSEVAL); }

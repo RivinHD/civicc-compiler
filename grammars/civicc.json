@@ -701,8 +701,32 @@
     ],
     "<id>": [
         [
-            "<char>",
+            "<charGoodStart>",
             "<charAnyMany>"
+        ],
+        [
+            "<id_b>"
+        ],
+        [
+            "<id_d>"
+        ],
+        [
+            "<id_e>"
+        ],
+        [
+            "<id_f>"
+        ],
+        [
+            "<id_i>"
+        ],
+        [
+            "<id_t>"
+        ],
+        [
+            "<id_v>"
+        ],
+        [
+            "<id_w>"
         ]
     ],
     "<ids>": [
@@ -724,12 +748,13 @@
             "<charAny>",
             "<charAny>",
             "<charAny>"
+        ],
+        [
+            "<charAnyMany>",
+            "<charAnyMany>"
         ]
     ],
     "<charAny>": [
-        [
-            "<charMany>"
-        ],
         [
             "<digit>"
         ],
@@ -737,16 +762,7 @@
             "_"
         ],
         [
-            "<charMany>",
-            "<charAny>"
-        ],
-        [
-            "<digit>",
-            "<charAny>"
-        ],
-        [
-            "_",
-            "<charAny>"
+            "<char>"
         ]
     ],
     "<charMany>": [
@@ -765,15 +781,435 @@
             "<charMany>"
         ]
     ],
-    "<char>": [
-        [
-            "a"
-        ],
+    "<id_b>": [
         [
             "b"
         ],
         [
-            "c"
+            "b",
+            "<charAny>"
+        ],
+        [
+            "b",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "boo",
+            "<charNo_l>"
+        ],
+        [
+            "boo",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_d>": [
+        [
+            "d"
+        ],
+        [
+            "d",
+            "<charNo_o>"
+        ],
+        [
+            "d",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_e>": [
+        [
+            "e"
+        ],
+        [
+            "e",
+            "<charAny>"
+        ],
+        [
+            "e",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "els",
+            "<charNo_e>"
+        ],
+        [
+            "e",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "exter",
+            "<charNo_n>"
+        ],
+        [
+            "expor",
+            "<charNo_t>"
+        ],
+        [
+            "e",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_f>": [
+        [
+            "f"
+        ],
+        [
+            "f",
+            "<charAny>"
+        ],
+        [
+            "fo",
+            "<charNo_r>"
+        ],
+        [
+            "f",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "fals",
+            "<charNo_e>"
+        ],
+        [
+            "floa",
+            "<charNo_t>"
+        ],
+        [
+            "f",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_i>": [
+        [
+            "i"
+        ],
+        [
+            "i",
+            "<charNo_f>"
+        ],
+        [
+            "in",
+            "<charNo_t>"
+        ],
+        [
+            "i",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_t>": [
+        [
+            "t"
+        ],
+        [
+            "t",
+            "<charAny>"
+        ],
+        [
+            "t",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "tru",
+            "<charNo_e>"
+        ],
+        [
+            "t",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_v>": [
+        [
+            "v"
+        ],
+        [
+            "v",
+            "<charAny>"
+        ],
+        [
+            "v",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "voi",
+            "<charNo_d>"
+        ],
+        [
+            "v",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<id_w>": [
+        [
+            "w"
+        ],
+        [
+            "w",
+            "<charAny>"
+        ],
+        [
+            "w",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "w",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>"
+        ],
+        [
+            "whil",
+            "<charNo_e>"
+        ],
+        [
+            "w",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAny>",
+            "<charAnyMany>"
+        ]
+    ],
+    "<charNo_e>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_n>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_t>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_f>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_l>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_r>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "o"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_o>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "d"
+        ]
+    ],
+    "<charNo_d>": [
+        [
+            "<charGoodEnd>"
+        ],
+        [
+            "e"
+        ],
+        [
+            "n"
+        ],
+        [
+            "t"
+        ],
+        [
+            "f"
+        ],
+        [
+            "l"
+        ],
+        [
+            "r"
+        ],
+        [
+            "o"
+        ]
+    ],
+    "<char>": [
+        [
+            "<charGoodStart>"
+        ],
+        [
+            "b"
         ],
         [
             "d"
@@ -785,6 +1221,29 @@
             "f"
         ],
         [
+            "i"
+        ],
+        [
+            "t"
+        ],
+        [
+            "v"
+        ],
+        [
+            "w"
+        ]
+    ],
+    "<charGoodEnd>": [
+        [
+            "a"
+        ],
+        [
+            "b"
+        ],
+        [
+            "c"
+        ],
+        [
             "g"
         ],
         [
@@ -792,6 +1251,56 @@
         ],
         [
             "i"
+        ],
+        [
+            "j"
+        ],
+        [
+            "k"
+        ],
+        [
+            "m"
+        ],
+        [
+            "p"
+        ],
+        [
+            "q"
+        ],
+        [
+            "s"
+        ],
+        [
+            "u"
+        ],
+        [
+            "v"
+        ],
+        [
+            "w"
+        ],
+        [
+            "x"
+        ],
+        [
+            "y"
+        ],
+        [
+            "z"
+        ]
+    ],
+    "<charGoodStart>": [
+        [
+            "a"
+        ],
+        [
+            "c"
+        ],
+        [
+            "g"
+        ],
+        [
+            "h"
         ],
         [
             "j"
@@ -818,22 +1327,10 @@
             "q"
         ],
         [
-            "r"
-        ],
-        [
             "s"
         ],
         [
-            "t"
-        ],
-        [
             "u"
-        ],
-        [
-            "v"
-        ],
-        [
-            "w"
         ],
         [
             "x"
@@ -844,6 +1341,11 @@
         [
             "z"
         ],
+        [
+            "<charCapital>"
+        ]
+    ],
+    "<charCapital>": [
         [
             "A"
         ],

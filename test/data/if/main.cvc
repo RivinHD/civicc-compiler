@@ -27,5 +27,14 @@ void test() {
     U0();
     }
      else
-    H_v();
+   H_v();
+
+    while(i == 1)
+        if (i == 0)
+            if (i==2)
+                return 0;
+            else 
+                return 1;
+
+    return 3;
 }

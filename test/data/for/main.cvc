@@ -28,4 +28,12 @@ export int T95() {
         }
     }
     H();
+
+    for (int wb0 = (float)i[4], (int)(float)false)
+        if ((-1 != e()))
+        {
+            return;
+        }
+        else
+            whilp(!(i(-(int)3506)));
 }
