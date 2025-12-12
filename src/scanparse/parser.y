@@ -55,9 +55,9 @@ void assertSetType(node_st *node, enum nodesettype setType);
 %type <node> optParams optArrayInit optVarInit optArrayExpr optExpr optForStep 
 %type <node> params param varDecs varDec funBody_varDecs_localFunDefs
 %type <node> statements
-%type <node> statement statement_no_block statement_loop statement_matched statement_unmatched statement_other
+%type <node> statement statementNoBlock statementLoop statementUnmatched statementMatched statementLoopMatched
 %type <node> arrayInits arrayInit arrayVar
-%type <node> block 
+%type <node> block blockOrMatched
 %type <node> exprs expr expr_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
 %type <node> expr_binop_LTLEGTGE expr_binop_PLUSMINUS expr_monopcast
 %type <node> constant floatval intval boolval dimensionVars var
@@ -374,90 +374,24 @@ statements: statements statement
               AddLocToNode($$, &@1, &@1);
           };
 
-statement: statement_unmatched
+statement: statementLoop
          {
             assertSetType($1, NS_STATEMENT);
             $$ = $1;
          }
-         | statement_matched
-         {
-            assertSetType($1, NS_STATEMENT);
-            $$ = $1;
-         };
-
-statement_other: statement_no_block
+         | statementUnmatched
          {
             assertSetType($1, NS_STATEMENT);
             $$ = $1;
          }
-         | statement_loop
+         | statementMatched
          {
             assertSetType($1, NS_STATEMENT);
             $$ = $1;
          };
 
-statement_unmatched: IF BRACKET_L expr BRACKET_R statement_matched ELSE statement_unmatched
-         {
-            assertSetType($3, NS_EXPR);
-            assertSetType($5, NS_STATEMENT);
-            assertSetType($7, NS_STATEMENT);
 
-            node_st* statements = ASTstatements($5, NULL);
-            AddLocToNode(statements, &@5, &@5);
-
-            node_st* statements_else = ASTstatements($7, NULL);
-            AddLocToNode(statements, &@7, &@7);
-
-            $$ = ASTifstatement($3, statements, statements_else);
-            AddLocToNode($$, &@1, &@7);
-         }
-         | IF BRACKET_L expr BRACKET_R statement
-         {
-            assertSetType($3, NS_EXPR);
-            assertSetType($5, NS_STATEMENT);
-
-            node_st* statements = ASTstatements($5, NULL);
-            AddLocToNode(statements, &@5, &@5);
-
-            $$ = ASTifstatement($3, statements, NULL);
-            AddLocToNode($$, &@1, &@5);
-         }
-         | IF BRACKET_L expr BRACKET_R block
-         {
-            assertSetType($3, NS_EXPR);
-            assertType($5, NT_STATEMENTS);
-            $$ = ASTifstatement($3, $5, NULL);
-            AddLocToNode($$, &@1, &@5);
-         };
-
-statement_matched: IF BRACKET_L expr BRACKET_R statement_matched ELSE statement_matched
-         {
-            assertSetType($3, NS_EXPR);
-            assertSetType($5, NS_STATEMENT);
-            assertSetType($7, NS_STATEMENT);
-
-            node_st* statements = ASTstatements($5, NULL);
-            AddLocToNode(statements, &@5, &@5);
-
-            node_st* statements_else = ASTstatements($7, NULL);
-            AddLocToNode(statements, &@7, &@7);
-
-            $$ = ASTifstatement($3, statements, statements_else);
-            AddLocToNode($$, &@1, &@7);
-         }
-         | IF BRACKET_L expr BRACKET_R statement_matched ELSE block
-         {
-            assertSetType($3, NS_EXPR);
-            assertSetType($5, NS_STATEMENT);
-            assertType($7, NT_STATEMENTS);
-
-            node_st* statements = ASTstatements($5, NULL);
-            AddLocToNode(statements, &@5, &@5);
-
-            $$ = ASTifstatement($3, statements, $7);
-            AddLocToNode($$, &@1, &@7);
-         }
-         | IF BRACKET_L expr BRACKET_R block ELSE statement_matched
+statementUnmatched: IF BRACKET_L expr BRACKET_R block ELSE statementUnmatched
          {
             assertSetType($3, NS_EXPR);
             assertType($5, NT_STATEMENTS);
@@ -469,37 +403,154 @@ statement_matched: IF BRACKET_L expr BRACKET_R statement_matched ELSE statement_
             $$ = ASTifstatement($3, $5, statements_else);
             AddLocToNode($$, &@1, &@7);
          }
-         | IF BRACKET_L expr BRACKET_R block ELSE block
+         | IF BRACKET_L expr BRACKET_R statementMatched ELSE statementUnmatched
+         {
+            assertSetType($3, NS_EXPR);
+            assertSetType($5, NS_STATEMENT);
+            assertSetType($7, NS_STATEMENT);
+
+            node_st* statement = ASTstatements($5, NULL);
+            AddLocToNode(statement, &@5, &@5);
+
+            node_st* statement_else = ASTstatements($7, NULL);
+            AddLocToNode(statement_else, &@7, &@7);
+
+            $$ = ASTifstatement($3, statement, statement_else);
+            AddLocToNode($$, &@1, &@7);
+         }
+         | IF BRACKET_L expr BRACKET_R block
          {
             assertSetType($3, NS_EXPR);
             assertType($5, NT_STATEMENTS);
-            assertType($7, NT_STATEMENTS);
-            $$ = ASTifstatement($3, $5, $7);
+            $$ = ASTifstatement($3, $5, NULL);
+            AddLocToNode($$, &@1, &@5);
+         }
+         | IF BRACKET_L expr BRACKET_R statement
+         {
+            assertSetType($3, NS_EXPR);
+            assertSetType($5, NS_STATEMENT);
+
+            node_st* statement = ASTstatements($5, NULL);
+            AddLocToNode(statement, &@5, &@5);
+
+            $$ = ASTifstatement($3, statement, NULL);
+            AddLocToNode($$, &@1, &@5);
+         };
+         
+
+statementMatched: IF BRACKET_L expr BRACKET_R block ELSE block
+                {
+                    assertSetType($3, NS_EXPR);
+                    assertType($5, NT_STATEMENTS);
+                    assertType($7, NT_STATEMENTS);
+
+                    $$ = ASTifstatement($3, $5, $7);
+                    AddLocToNode($$, &@1, &@7);
+                }
+                | IF BRACKET_L expr BRACKET_R statementMatched ELSE block
+                {
+                    assertSetType($3, NS_EXPR);
+                    assertSetType($5, NS_STATEMENT);
+                    assertType($7, NT_STATEMENTS);
+
+                    node_st* statement = ASTstatements($5, NULL);
+                    AddLocToNode(statement, &@5, &@5);
+
+                    $$ = ASTifstatement($3, statement, $7);
+                    AddLocToNode($$, &@1, &@7);
+                }
+                | IF BRACKET_L expr BRACKET_R block ELSE statementMatched
+                {
+                    assertSetType($3, NS_EXPR);
+                    assertType($5, NT_STATEMENTS);
+                    assertSetType($7, NS_STATEMENT);
+
+                    node_st* statement_else = ASTstatements($7, NULL);
+                    AddLocToNode(statement_else, &@7, &@7);
+
+                    $$ = ASTifstatement($3, $5, statement_else);
+                    AddLocToNode($$, &@1, &@7);
+                }
+                | IF BRACKET_L expr BRACKET_R statementMatched ELSE statementMatched
+                {
+                    assertSetType($3, NS_EXPR);
+                    assertSetType($5, NS_STATEMENT);
+                    assertSetType($7, NS_STATEMENT);
+
+                    node_st* statement = ASTstatements($5, NULL);
+                    AddLocToNode(statement, &@5, &@5);
+
+                    node_st* statement_else = ASTstatements($7, NULL);
+                    AddLocToNode(statement, &@7, &@7);
+
+                    $$ = ASTifstatement($3, statement, statement_else);
+                    AddLocToNode($$, &@1, &@7);
+                }
+                | statementNoBlock
+                {
+                    assertSetType($1, NS_STATEMENT);
+                    $$ = $1;
+                }
+                | statementLoopMatched
+                {
+                    assertSetType($1, NS_STATEMENT);
+                    $$ = $1;
+                };
+
+statementLoop: WHILE BRACKET_L expr BRACKET_R statementUnmatched
+         {
+            assertSetType($3, NS_EXPR);
+            assertSetType($5, NS_STATEMENT);
+
+            node_st* statement = ASTstatements($5, NULL);
+            AddLocToNode(statement, &@5, &@5);
+
+            $$ = ASTwhileloop($3, statement);
+            AddLocToNode($$, &@1, &@5);
+         }
+         | DO statementUnmatched WHILE BRACKET_L expr BRACKET_R SEMICOLON
+         {
+            assertType($2, NT_STATEMENTS);
+            assertSetType($5, NS_EXPR);
+
+            node_st* statement = ASTstatements($2, NULL);
+            AddLocToNode(statement, &@2, &@2);
+
+            $$ = ASTdowhileloop(statement, $5);
             AddLocToNode($$, &@1, &@7);
          }
-         | statement_other
+         | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R statementUnmatched
          {
-            assertSetType($1, NS_STATEMENT);
-            $$ = $1;
+            assertType($4, NT_VAR);
+            assertSetType($6, NS_EXPR);
+            assertSetType($8, NS_EXPR);
+            assertSetType($9, NS_EXPR);
+            assertSetType($11, NS_STATEMENT);
+            node_st* assign = ASTassign($4, $6); 
+            AddLocToNode(assign, $4, $6);
+
+            node_st* statement = ASTstatements($11, NULL);
+            AddLocToNode(statement, &@11, &@11);
+            
+            $$ = ASTforloop(assign, $8, $9, statement);
+            AddLocToNode($$, &@1, &@11);
          };
 
-
-
-statement_loop: WHILE BRACKET_L expr BRACKET_R block
+statementLoopMatched: WHILE BRACKET_L expr BRACKET_R blockOrMatched
          {
             assertSetType($3, NS_EXPR);
             assertType($5, NT_STATEMENTS);
             $$ = ASTwhileloop($3, $5);
             AddLocToNode($$, &@1, &@5);
          }
-         | DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
+         | DO blockOrMatched WHILE BRACKET_L expr BRACKET_R SEMICOLON
          {
             assertType($2, NT_STATEMENTS);
             assertSetType($5, NS_EXPR);
             $$ = ASTdowhileloop($2, $5);
             AddLocToNode($$, &@1, &@7);
          }
-         | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R block
+         | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R blockOrMatched
          {
             assertType($4, NT_VAR);
             assertSetType($6, NS_EXPR);
@@ -513,7 +564,7 @@ statement_loop: WHILE BRACKET_L expr BRACKET_R block
             AddLocToNode($$, &@1, &@11);
          };
 
-statement_no_block: var LET expr SEMICOLON
+statementNoBlock: var LET expr SEMICOLON
                  {
                     assertType($1, NT_VAR);
                     assertSetType($3, NS_EXPR);
@@ -613,6 +664,16 @@ optArrayInit: LET arrayInit
                 $$ = NULL;
             };
 
+blockOrMatched: block
+              {
+                $$ = $1;
+              }
+              | statementMatched
+              {
+                assertSetType($1, NS_STATEMENT);
+                $$ = ASTstatements($1, NULL);
+                AddLocToNode($$, &@1, &@1);
+              };
 
 block: CURLY_L statements CURLY_R
      {
