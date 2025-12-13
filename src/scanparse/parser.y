@@ -389,12 +389,7 @@ statements: statements statement
               AddLocToNode($$, &@1, &@1);
           };
 
-statement: statementLoop
-         {
-            assertSetType($1, NS_STATEMENT);
-            $$ = $1;
-         }
-         | statementUnmatched
+statement: statementUnmatched
          {
             assertSetType($1, NS_STATEMENT);
             $$ = $1;
@@ -450,6 +445,11 @@ statementUnmatched: IF BRACKET_L expr BRACKET_R block ELSE statementUnmatched
 
             $$ = ASTifstatement($3, statement, NULL);
             AddLocToNode($$, &@1, &@5);
+         }
+         | statementLoop
+         {
+            assertSetType($1, NS_STATEMENT);
+            $$ = $1;
          };
          
 
