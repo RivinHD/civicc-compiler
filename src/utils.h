@@ -8,17 +8,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-static inline void scanparse_fprintf(FILE *stream, const char *format, ...)
-{
 #ifdef DEBUG_SCANPARSE
-    va_list args;
-    va_start(args, format);
-    fprintf(stream, format, args);
+#define scanparse_fprintf(stream, ...)                             \
+    do {                                                           \
+        fprintf((stream), __VA_ARGS__);                            \
+    } while (0)
 #else
-    (void)stream;
-    (void)format;
+#define scanparse_fprintf(...) ((void)0)
 #endif
-}
 
 static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
 {
