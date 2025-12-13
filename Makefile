@@ -106,14 +106,16 @@ afl_tooling: check_tmpfs afl_build generate_seeds
 fuzz_civicc: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
+	@mkdir "${TMPFS_DIR}/fuzz_civicc"
+	AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
 	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
 
-.PHONY: fuzz_civicc_grammer
-fuzz_civicc_grammer: afl_tooling
+.PHONY: fuzz_civicc_grammar
+fuzz_civicc_grammar: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
+	@mkdir "${TMPFS_DIR}/fuzz_civicc_grammar"
+	AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -- ./build-afl/civicc @@
 	#AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc @@
 
 # Fuzz the scanner and parser only
@@ -121,14 +123,16 @@ fuzz_civicc_grammer: afl_tooling
 fuzz_scanparse: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
+	@mkdir "${TMPFS_DIR}/fuzz_scanparse"
+	AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
 	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
 
-.PHONY: fuzz_scanparse_grammer
-fuzz_scanparse_grammer: afl_tooling
+.PHONY: fuzz_scanparse_grammar
+fuzz_scanparse_grammar: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
-	AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
+	@mkdir "${TMPFS_DIR}/fuzz_scanparse_grammar"
+	AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -- ./build-afl/civicc_scanparse @@
 	# AFL_TMPDIR="${TMPFS_DIR}" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m 256 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -w ./build-afl/civicc_lsan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: dist
