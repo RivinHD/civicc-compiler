@@ -55,4 +55,8 @@ int square(int num) {
         while (num == 2);
     else
         num = 3;
+
+    if((bool)(v[9]  -9 / yw))
+    {
+    }
 }
