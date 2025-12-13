@@ -568,10 +568,6 @@
     ],
     "<intconst>": [
         [
-            "-",
-            "<numberpositive>"
-        ],
-        [
             "<numberpositive>"
         ]
     ],
