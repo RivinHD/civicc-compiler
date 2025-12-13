@@ -43,7 +43,16 @@ void test() {
         for (int v = 45, w(), t[2.0E7])
             if (w[!!-b]){
             }
-    v = 7;
 
     return 3;
+}
+
+int square(int num) {
+    if(num == 0)
+        do 
+            if(num == 1)
+                square(0);
+        while (num == 2);
+    else
+        num = 3;
 }

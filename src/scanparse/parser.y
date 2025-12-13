@@ -1,6 +1,5 @@
 %{
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -25,7 +24,7 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 do { \
    node_st *_ast_node = (node); \
    if (_ast_node == NULL) break; \
-   fprintf(stdout, "Set: %d %d\n", NODE_TYPE(_ast_node), (int)(setType)); \
+   scanparse_fprintf(stdout, "Set: %d %d\n", NODE_TYPE(_ast_node), (int)(setType)); \
    uint64_t _ast_combined = nodessettype_to_nodetypes((setType)); \
    release_assert(((1ull << NODE_TYPE(_ast_node)) & _ast_combined) != 0); \
 } while (0)
@@ -34,7 +33,7 @@ do { \
 do { \
    node_st *_at_node = (node); \
    if (_at_node == NULL) break; \
-   fprintf(stdout, "Type: %d %d\n", NODE_TYPE(_at_node), (int)(type)); \
+   scanparse_fprintf(stdout, "Type: %d %d\n", NODE_TYPE(_at_node), (int)(type)); \
    release_assert(NODE_TYPE(_at_node) == (type)); \
 } while (0)
 
@@ -70,7 +69,8 @@ do { \
 %type <node> optParams optArrayInit optVarInit optArrayExpr optExpr optForStep 
 %type <node> params param varDecs varDec funBody_varDecs_localFunDefs
 %type <node> statements
-%type <node> statement statementNoBlock statementLoop statementUnmatched statementMatched statementLoopMatched
+%type <node> statement statementNoBlock statementLoop statementUnmatched statementMatched 
+%type <node> statementLoopMatched statementDoWhile
 %type <node> arrayInits arrayInit arrayVar
 %type <node> block blockOrMatched
 %type <node> exprs expr expr_binop expr_binop_OR expr_binop_AND expr_binop_EQNE
@@ -510,6 +510,11 @@ statementMatched: IF BRACKET_L expr BRACKET_R block ELSE block
                 {
                     assertSetType($1, NS_STATEMENT);
                     $$ = $1;
+                }
+                | statementDoWhile
+                {
+                    assertSetType($1, NS_STATEMENT);
+                    $$ = $1;
                 };
 
 statementLoop: WHILE BRACKET_L expr BRACKET_R statementUnmatched
@@ -522,17 +527,6 @@ statementLoop: WHILE BRACKET_L expr BRACKET_R statementUnmatched
 
             $$ = ASTwhileloop($3, statement);
             AddLocToNode($$, &@1, &@5);
-         }
-         | DO statementUnmatched WHILE BRACKET_L expr BRACKET_R SEMICOLON
-         {
-            assertSetType($2, NS_STATEMENT);
-            assertSetType($5, NS_EXPR);
-
-            node_st* statement = ASTstatements($2, NULL);
-            AddLocToNode(statement, &@2, &@2);
-
-            $$ = ASTdowhileloop(statement, $5);
-            AddLocToNode($$, &@1, &@7);
          }
          | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R statementUnmatched
          {
@@ -558,13 +552,6 @@ statementLoopMatched: WHILE BRACKET_L expr BRACKET_R blockOrMatched
             $$ = ASTwhileloop($3, $5);
             AddLocToNode($$, &@1, &@5);
          }
-         | DO blockOrMatched WHILE BRACKET_L expr BRACKET_R SEMICOLON
-         {
-            assertType($2, NT_STATEMENTS);
-            assertSetType($5, NS_EXPR);
-            $$ = ASTdowhileloop($2, $5);
-            AddLocToNode($$, &@1, &@7);
-         }
          | FOR BRACKET_L INT var LET expr COMMA expr optForStep BRACKET_R blockOrMatched
          {
             assertType($4, NT_VAR);
@@ -577,6 +564,26 @@ statementLoopMatched: WHILE BRACKET_L expr BRACKET_R blockOrMatched
             
             $$ = ASTforloop(assign, $8, $9, $11);
             AddLocToNode($$, &@1, &@11);
+         };
+
+// Do while act as a natural block with and without the curly braces thus we handel it seperatly
+statementDoWhile: DO block WHILE BRACKET_L expr BRACKET_R SEMICOLON
+         {
+            assertType($2, NT_STATEMENTS);
+            assertSetType($5, NS_EXPR);
+            $$ = ASTdowhileloop($2, $5);
+            AddLocToNode($$, &@1, &@7);
+         }
+         | DO statement WHILE BRACKET_L expr BRACKET_R SEMICOLON
+         {
+            assertSetType($2, NS_STATEMENT);
+            assertSetType($5, NS_EXPR);
+
+            node_st* statement = ASTstatements($2, NULL);
+            AddLocToNode(statement, &@2, &@2);
+
+            $$ = ASTdowhileloop(statement, $5);
+            AddLocToNode($$, &@1, &@7);
          };
 
 statementNoBlock: var LET expr SEMICOLON
@@ -1041,7 +1048,7 @@ dimensionVars: dimensionVars COMMA var
 
 var: VAR
    {
-    fprintf(stdout, "Variable: %s\n", $1);
+    scanparse_fprintf(stdout, "Variable: %s\n", $1);
     $$ = ASTvar($1);
     AddLocToNode($$, &@1, &@1);
    };

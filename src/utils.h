@@ -5,7 +5,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-uint64_t nodessettype_to_nodetypes(enum nodesettype type)
+#include <stdarg.h>
+#include <stdio.h>
+
+static inline void scanparse_fprintf(FILE *stream, const char *format, ...)
+{
+#ifdef DEBUG_SCANPARSE
+    va_list args;
+    va_start(args, format);
+    fprintf(stream, format, args);
+#else
+    (void)stream;
+    (void)format;
+#endif
+}
+
+static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
 {
     uint64_t one = 1;
     switch (type)

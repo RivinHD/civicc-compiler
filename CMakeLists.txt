@@ -83,6 +83,9 @@ ADD_FLEX_BISON_DEPENDENCY(CivicLexer CivicParser)
 include(cmake/coconut.cmake)
 
 # Add compile options before all targets but after the includes to only apply them to the targets
+if(NOT AFL_ENABLED)
+    add_compile_definitions(DEBUG_SCANPARSE=1)
+endif()
 add_compile_definitions(PROJECT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 message(STATUS "Set Definition 'PROJECT_DIRECTORY=${PROJECT_SOURCE_DIR}'")
 

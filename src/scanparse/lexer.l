@@ -11,12 +11,13 @@
 #include "global/globals.h"
 #include "palm/ctinfo.h"
 #include <stdio.h>
+#include "utils.h"
 
 // Use for error messages, see parser.y
 extern int yyerror(char *errname);
 
 #define FILTER(token) \
-  fprintf(stdout, "%d: %s \n", token, yytext); \
+  scanparse_fprintf(stdout, "%d: %s \n", token, yytext); \
   global.col += yyleng;  \
   return( token);
 
