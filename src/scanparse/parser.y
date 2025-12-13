@@ -20,8 +20,23 @@ extern int yylex();
 int yyerror(char *errname);
 extern FILE *yyin;
 void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
-void assertType(node_st *node, enum ccn_nodetype type);
-void assertSetType(node_st *node, enum nodesettype setType);
+
+#define assertSetType(node, setType) \
+do { \
+   node_st *_ast_node = (node); \
+   if (_ast_node == NULL) break; \
+   fprintf(stdout, "Set: %d %d\n", NODE_TYPE(_ast_node), (int)(setType)); \
+   uint64_t _ast_combined = nodessettype_to_nodetypes((setType)); \
+   release_assert(((1ull << NODE_TYPE(_ast_node)) & _ast_combined) != 0); \
+} while (0)
+
+#define assertType(node, type) \
+do { \
+   node_st *_at_node = (node); \
+   if (_at_node == NULL) break; \
+   fprintf(stdout, "Type: %d %d\n", NODE_TYPE(_at_node), (int)(type)); \
+   release_assert(NODE_TYPE(_at_node) == (type)); \
+} while (0)
 
 %}
 
@@ -510,7 +525,7 @@ statementLoop: WHILE BRACKET_L expr BRACKET_R statementUnmatched
          }
          | DO statementUnmatched WHILE BRACKET_L expr BRACKET_R SEMICOLON
          {
-            assertType($2, NT_STATEMENTS);
+            assertSetType($2, NS_STATEMENT);
             assertSetType($5, NS_EXPR);
 
             node_st* statement = ASTstatements($2, NULL);
@@ -1042,23 +1057,6 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     NODE_BCOL(node) = loc_b->first_column;
     NODE_ELINE(node) = loc_e->last_line;
     NODE_ECOL(node) = loc_e->last_column;
-}
-
-void assertSetType(node_st *node, enum nodesettype setType)
-{
-    if (node == NULL) return;
-
-    fprintf(stdout, "Set: %d %d\n", NODE_TYPE(node), setType);
-    uint64_t combinedType = nodessettype_to_nodetypes(setType);
-    release_assert(((1ull << NODE_TYPE(node)) & combinedType) != 0);
-}
-
-void assertType(node_st *node, enum ccn_nodetype type)
-{
-    if (node == NULL) return;
-
-    fprintf(stdout, "Type: %d %d\n", NODE_TYPE(node), type);
-    release_assert(NODE_TYPE(node) == type);
 }
 
 int yyerror(char *error)
