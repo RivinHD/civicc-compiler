@@ -9,9 +9,10 @@
 #include <stdio.h>
 
 #ifdef DEBUG_SCANPARSE
-#define scanparse_fprintf(stream, ...)                             \
-    do {                                                           \
-        fprintf((stream), __VA_ARGS__);                            \
+#define scanparse_fprintf(stream, ...)                                                             \
+    do                                                                                             \
+    {                                                                                              \
+        fprintf((stream), __VA_ARGS__);                                                            \
     } while (0)
 #else
 #define scanparse_fprintf(...) ((void)0)

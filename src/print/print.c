@@ -58,7 +58,7 @@ node_st *PRTfundec(node_st *node)
 
 node_st *PRTfundef(node_st *node)
 {
-    if (FUNDEF_EXPORT(node))
+    if (FUNDEF_HAS_EXPORT(node))
     {
         printf("export ");
     }
@@ -81,7 +81,7 @@ node_st *PRTglobaldec(node_st *node)
 
 node_st *PRTglobaldef(node_st *node)
 {
-    if (GLOBALDEF_EXPORT(node))
+    if (GLOBALDEF_HAS_EXPORT(node))
     {
         printf("export ");
     }

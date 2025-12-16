@@ -1,11 +1,13 @@
+#include "ccngen/enum.h"
 #include <filesystem>
 #include <gtest/gtest.h>
-#include <memory_resource>
 #include <string>
 
 extern "C"
 {
-    struct node_st;
+#include "ccngen/ast.h"
+#include "ccngen/trav.h"
+
     node_st *run_scan_parse(const char *filepath);
     void cleanup_scan_parse(node_st *root);
 }
@@ -42,6 +44,45 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
 {
     SetUp("globaldec_bool/main.cvc");
     ASSERT_NE(nullptr, root);
+
+    ASSERT_EQ(root->nodetype, NT_PROGRAM);
+
+    node_st *decls = PROGRAM_DECLS(root);
+    ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
+    node_st *dec1 = DECLARATIONS_DECL(decls);
+    ASSERT_EQ(NT_GLOBALDEC, dec1->nodetype);
+    ASSERT_EQ(DT_bool, GLOBALDEC_TYPE(dec1));
+    node_st *var1 = GLOBALDEC_VAR(dec1);
+    ASSERT_EQ(NT_VAR, var1->nodetype);
+    ASSERT_EQ("test", VAR_NAME(var1));
+
+    decls = DECLARATIONS_NEXT(decls);
+    ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
+    node_st *dec2 = DECLARATIONS_DECL(decls);
+    ASSERT_EQ(NT_GLOBALDEC, dec2->nodetype);
+    ASSERT_EQ(DT_bool, GLOBALDEC_TYPE(dec2));
+    node_st *array_var2 = GLOBALDEC_VAR(dec2);
+    ASSERT_EQ(NT_ARRAYVAR, array_var2->nodetype);
+    node_st *var2 = ARRAYVAR_VAR(array_var2);
+    ASSERT_EQ(NT_VAR, var2->nodetype);
+    ASSERT_EQ("test1", VAR_NAME(var2));
+    node_st *dims2 = ARRAYVAR_DIMS(array_var2);
+    ASSERT_EQ(NT_DIMENSIONVARS, dims2->nodetype);
+    node_st *var0_dim2 = DIMENSIONVARS_DIM(dims2);
+    ASSERT_EQ(NT_VAR, var0_dim2->nodetype);
+    ASSERT_EQ("test1", VAR_NAME(var0_dim2));
+    dims2 = DIMENSIONVARS_NEXT(dims2);
+    ASSERT_EQ(nullptr, dims2);
+
+    decls = DECLARATIONS_NEXT(decls);
+    ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
+    node_st *dec3 = DECLARATIONS_DECL(decls);
+    ASSERT_EQ(NT_GLOBALDEC, dec3->nodetype);
+
+    decls = DECLARATIONS_NEXT(decls);
+    ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
+    node_st *dec4 = DECLARATIONS_DECL(decls);
+    ASSERT_EQ(NT_GLOBALDEC, dec4->nodetype);
 }
 
 TEST_F(ScanParseTest, ScanParse_GlobalDecInt)

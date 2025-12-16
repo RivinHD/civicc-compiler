@@ -93,7 +93,7 @@ node FunDef {
     },
 
     attributes {
-        bool export { constructor }                       // if exists, has to be 'export'
+        bool has_export { constructor }                       // if exists, has to be 'export'
     }
 };
 
@@ -113,7 +113,7 @@ node GlobalDef {
     },
 
     attributes {
-        bool export { constructor }                       // if exists, has to be 'export'
+        bool has_export { constructor }                       // if exists, has to be 'export'
     }
 };
 
