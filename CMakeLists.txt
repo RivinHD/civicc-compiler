@@ -6,6 +6,7 @@ set(SOURCE_FILES
     src/print/print.c
     src/scanparse/scanParse.c
     src/optimization/opt_sub.c
+    src/to_string.c
 )
 
 set(TEST_FILES

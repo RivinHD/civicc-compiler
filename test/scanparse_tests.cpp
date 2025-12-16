@@ -1,13 +1,14 @@
-#include "ccngen/enum.h"
 #include <filesystem>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <string>
 
 extern "C"
 {
 #include "ccngen/ast.h"
+#include "ccngen/enum.h"
 #include "ccngen/trav.h"
-
+#include "to_string.h"
     node_st *run_scan_parse(const char *filepath);
     void cleanup_scan_parse(node_st *root);
 }
@@ -35,6 +36,18 @@ class ScanParseTest : public testing::Test
 
     void TearDown() override
     {
+        if (HasFailure())
+        {
+            char *root_string = node_to_string(root);
+            std::cerr
+                << "========================================================================\n"
+                << "                        Node Representation\n"
+                << "========================================================================\n"
+                << root_string << std::endl;
+
+            free(root_string);
+        }
+
         cleanup_scan_parse(root);
         root = nullptr;
     }
@@ -83,6 +96,8 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
     ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
     node_st *dec4 = DECLARATIONS_DECL(decls);
     ASSERT_EQ(NT_GLOBALDEC, dec4->nodetype);
+
+    FAIL();
 }
 
 TEST_F(ScanParseTest, ScanParse_GlobalDecInt)
