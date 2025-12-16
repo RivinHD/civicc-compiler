@@ -54,7 +54,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
     ASSERT_EQ(DT_bool, GLOBALDEC_TYPE(dec1));
     node_st *var1 = GLOBALDEC_VAR(dec1);
     ASSERT_EQ(NT_VAR, var1->nodetype);
-    ASSERT_EQ("test", VAR_NAME(var1));
+    ASSERT_STREQ("test", VAR_NAME(var1));
 
     decls = DECLARATIONS_NEXT(decls);
     ASSERT_EQ(NT_DECLARATIONS, decls->nodetype);
@@ -65,12 +65,12 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
     ASSERT_EQ(NT_ARRAYVAR, array_var2->nodetype);
     node_st *var2 = ARRAYVAR_VAR(array_var2);
     ASSERT_EQ(NT_VAR, var2->nodetype);
-    ASSERT_EQ("test1", VAR_NAME(var2));
+    ASSERT_STREQ("test1", VAR_NAME(var2));
     node_st *dims2 = ARRAYVAR_DIMS(array_var2);
     ASSERT_EQ(NT_DIMENSIONVARS, dims2->nodetype);
     node_st *var0_dim2 = DIMENSIONVARS_DIM(dims2);
     ASSERT_EQ(NT_VAR, var0_dim2->nodetype);
-    ASSERT_EQ("test1", VAR_NAME(var0_dim2));
+    ASSERT_STREQ("dim", VAR_NAME(var0_dim2));
     dims2 = DIMENSIONVARS_NEXT(dims2);
     ASSERT_EQ(nullptr, dims2);
 

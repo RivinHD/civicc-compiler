@@ -84,6 +84,8 @@ do { \
 
 %%
 
+// We do not use left recursion, because otherwise some parts of the tree would be structed upside down
+
 program: declarations 
          {
            assertType($1, NT_DECLARATIONS);
@@ -91,11 +93,11 @@ program: declarations
            AddLocToNode($$, &@1, &@1);
          };
 
-declarations: declarations declaration
+declarations: declaration declarations
             {
-                assertSetType($2, NS_DECLARATION);
-                assertType($1, NT_DECLARATIONS);
-                $$ = ASTdeclarations($2, $1);
+                assertSetType($1, NS_DECLARATION);
+                assertType($2, NT_DECLARATIONS);
+                $$ = ASTdeclarations($1, $2);
                 AddLocToNode($$, &@1, &@2);
             }
             | declaration 
@@ -208,11 +210,11 @@ funBody: funBody_varDecs_localFunDefs statements
        };
 
 
-localFunDefs: localFunDefs localFunDef
+localFunDefs: localFunDef localFunDefs
             {
-                assertType($2, NT_FUNDEF);
-                assertType($1, NT_LOCALFUNDEFS);
-                $$ = ASTlocalfundefs($2, $1);
+                assertType($1, NT_FUNDEF);
+                assertType($2, NT_LOCALFUNDEFS);
+                $$ = ASTlocalfundefs($1, $2);
                 AddLocToNode($$, &@1, &@2);
             }
             | localFunDef
@@ -375,11 +377,11 @@ optVarInit: LET expr
           };
 
 
-statements: statements statement
+statements: statement statements
           {
-              assertSetType($2, NS_STATEMENT);
-              assertType($1, NT_STATEMENTS);
-              $$ = ASTstatements($2, $1);
+              assertSetType($1, NS_STATEMENT);
+              assertType($2, NT_STATEMENTS);
+              $$ = ASTstatements($1, $2);
               AddLocToNode($$, &@1, &@2);
           }
           | statement
@@ -654,10 +656,10 @@ arrayVar: SQUARE_L dimensionVars SQUARE_R var
             AddLocToNode($$, &@1, &@4);
         };
 
-arrayInits: arrayInits COMMA arrayInit
+arrayInits: arrayInit COMMA arrayInits
           {
-            assertType($1, NT_ARRAYINIT);
-            $$ = ASTarrayinit($3, $1);
+            assertType($3, NT_ARRAYINIT);
+            $$ = ASTarrayinit($1, $3);
             AddLocToNode($$, &@1, &@3);
           }
           | arrayInit
@@ -708,11 +710,11 @@ block: CURLY_L statements CURLY_R
      };
 
 
-exprs: exprs COMMA expr
+exprs: expr COMMA exprs
      {
-        assertSetType($3, NS_EXPR);
-        assertType($1, NT_EXPRS);
-        $$ = ASTexprs($3, $1);
+        assertSetType($1, NS_EXPR);
+        assertType($3, NT_EXPRS);
+        $$ = ASTexprs($1, $3);
         AddLocToNode($$, &@1, &@3);
      }
      | expr
@@ -1032,11 +1034,11 @@ monop: MINUS
         $$ = MO_not;
      };
 
-dimensionVars: dimensionVars COMMA var 
+dimensionVars: var COMMA dimensionVars 
    {
-      assertType($3, NT_VAR);
-      assertType($1, NT_DIMENSIONVARS);
-      $$ = ASTdimensionvars($3, $1);
+      assertType($1, NT_VAR);
+      assertType($3, NT_DIMENSIONVARS);
+      $$ = ASTdimensionvars($1, $3);
       AddLocToNode($$, &@1, &@3);
    }
    | var
