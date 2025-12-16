@@ -49,6 +49,10 @@ include(cmake/afl.cmake)
 if(AFL_ENABLED)
     # We set the scanparse exit code to 1 as it can be used for positive space fuzzing
     add_compile_definitions(YY_EXIT_FAILURE=1)
+
+    # We remove the NDEBUG flags for the AFL builds as assertions are key part of crashes.
+    string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
 include(FetchContent)
