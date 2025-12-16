@@ -97,7 +97,42 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
     node_st *dec4 = DECLARATIONS_DECL(decls);
     ASSERT_EQ(NT_GLOBALDEC, dec4->nodetype);
 
-    FAIL();
+    const char *expected = "Program\n"
+                           "└─ Declarations\n"
+                           "ﾠ  ├─ GlobalDec -- type:'bool'\n"
+                           "ﾠ  │  └─ Var -- name:'test'\n"
+                           "ﾠ  └─ Declarations\n"
+                           "ﾠ  ﾠ  ├─ GlobalDec -- type:'bool'\n"
+                           "ﾠ  ﾠ  │  └─ ArrayVar\n"
+                           "ﾠ  ﾠ  │  ﾠ  ├─ DimensionVars\n"
+                           "ﾠ  ﾠ  │  ﾠ  │  ├─ Var -- name:'dim'\n"
+                           "ﾠ  ﾠ  │  ﾠ  │  └─ NULL\n"
+                           "ﾠ  ﾠ  │  ﾠ  └─ Var -- name:'test1'\n"
+                           "ﾠ  ﾠ  └─ Declarations\n"
+                           "ﾠ  ﾠ  ﾠ  ├─ GlobalDec -- type:'bool'\n"
+                           "ﾠ  ﾠ  ﾠ  │  └─ ArrayVar\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  ├─ DimensionVars\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  │  ├─ Var -- name:'dim1'\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  │  └─ DimensionVars\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  ├─ Var -- name:'dim2'\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  └─ NULL\n"
+                           "ﾠ  ﾠ  ﾠ  │  ﾠ  └─ Var -- name:'test2'\n"
+                           "ﾠ  ﾠ  ﾠ  └─ Declarations\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  ├─ GlobalDec -- type:'bool'\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  └─ ArrayVar\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  ├─ DimensionVars\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  ├─ Var -- name:'dim1'\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  └─ DimensionVars\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  ├─ Var -- name:'dim2'\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  └─ DimensionVars\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  ﾠ  ├─ Var -- name:'dim3'\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  │  ﾠ  ﾠ  └─ NULL\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  └─ Var -- name:'test3'\n"
+                           "ﾠ  ﾠ  ﾠ  ﾠ  └─ NULL\n";
+
+    char *value = node_to_string(root);
+    ASSERT_STREQ(expected, value);
+    free(value);
 }
 
 TEST_F(ScanParseTest, ScanParse_GlobalDecInt)
