@@ -2,6 +2,8 @@
 #include "ccngen/enum.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 /// Creates a string representation of a datatype. The returned char pointer needs to freed by the
@@ -11,13 +13,13 @@ char *datatype_to_string(enum DataType type)
     switch (type)
     {
     case DT_void:
-        return STRfmt("void");
+        return STRcpy("void");
     case DT_int:
-        return STRfmt("int");
+        return STRcpy("int");
     case DT_float:
-        return STRfmt("float");
+        return STRcpy("float");
     case DT_bool:
-        return STRfmt("bool");
+        return STRcpy("bool");
     case DT_NULL:
     default:
         // unknown datatype detected
@@ -33,9 +35,9 @@ char *monoptype_to_string(enum MonOpType type)
     switch (type)
     {
     case MO_not:
-        return STRfmt("!");
+        return STRcpy("!");
     case MO_neg:
-        return STRfmt("-");
+        return STRcpy("-");
     case MO_NULL:
     default:
         // unknown datatype detected
@@ -51,31 +53,31 @@ char *binoptype_to_string(enum BinOpType type)
     switch (type)
     {
     case BO_add:
-        return STRfmt("+");
+        return STRcpy("+");
     case BO_sub:
-        return STRfmt("-");
+        return STRcpy("-");
     case BO_mul:
-        return STRfmt("*");
+        return STRcpy("*");
     case BO_div:
-        return STRfmt("/");
+        return STRcpy("/");
     case BO_mod:
-        return STRfmt("%");
+        return STRcpy("%");
     case BO_lt:
-        return STRfmt("<");
+        return STRcpy("<");
     case BO_le:
-        return STRfmt("<=");
+        return STRcpy("<=");
     case BO_gt:
-        return STRfmt(">");
+        return STRcpy(">");
     case BO_ge:
-        return STRfmt(">=");
+        return STRcpy(">=");
     case BO_eq:
-        return STRfmt("==");
+        return STRcpy("==");
     case BO_ne:
-        return STRfmt("!=");
+        return STRcpy("!=");
     case BO_and:
-        return STRfmt("&&");
+        return STRcpy("&&");
     case BO_or:
-        return STRfmt("||");
+        return STRcpy("||");
     case BO_NULL:
     default:
         // unknown datatype detected
@@ -84,12 +86,64 @@ char *binoptype_to_string(enum BinOpType type)
     }
 }
 
+bool has_next_child(node_st *node)
+{
+    switch (node->nodetype)
+    {
+    // nodes with next
+    case NT_ARRAYINIT:
+    case NT_DIMENSIONVARS:
+    case NT_EXPRS:
+    case NT_STATEMENTS:
+    case NT_LOCALFUNDEFS:
+    case NT_VARDECS:
+    case NT_PARAMS:
+    case NT_DECLARATIONS:
+        return true;
+
+    // nodes without next
+    case NT_BOOL:
+    case NT_FLOAT:
+    case NT_INT:
+    case NT_ARRAYASSIGN:
+    case NT_ARRAYEXPR:
+    case NT_ARRAYVAR:
+    case NT_VAR:
+    case NT_CAST:
+    case NT_RETSTATEMENT:
+    case NT_FORLOOP:
+    case NT_DOWHILELOOP:
+    case NT_WHILELOOP:
+    case NT_IFSTATEMENT:
+    case NT_PROCCALL:
+    case NT_VARDEC:
+    case NT_MONOP:
+    case NT_BINOP:
+    case NT_ASSIGN:
+    case NT_FUNBODY:
+    case NT_FUNHEADER:
+    case NT_GLOBALDEF:
+    case NT_GLOBALDEC:
+    case NT_FUNDEF:
+    case NT_FUNDEC:
+    case NT_PROGRAM:
+        return false;
+
+    default:
+    case _NT_SIZE:
+    case NT_NULL:
+        // unknown datatype detected
+        release_assert(false);
+        return false;
+    }
+}
+
 char *_node_to_string(node_st *node, unsigned int depth, const char *connection, char *depth_string)
 {
     char *node_string = NULL;
     if (node == NULL)
     {
-        node_string = STRfmt("NULL");
+        node_string = STRcpy("NULL");
     }
     else
     {
@@ -104,22 +158,22 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             node_string = STRfmt("Float -- val:'%f'", FLOAT_VAL(node));
             break;
         case NT_INT:
-            node_string = STRfmt("Int -- val:'%d'", FLOAT_VAL(node));
+            node_string = STRfmt("Int -- val:'%d'", INT_VAL(node));
             break;
         case NT_ARRAYASSIGN:
-            node_string = STRfmt("ArrayAssign");
+            node_string = STRcpy("ArrayAssign");
             break;
         case NT_ARRAYINIT:
-            node_string = STRfmt("ArrayInit");
+            node_string = STRcpy("ArrayInit");
             break;
         case NT_ARRAYEXPR:
-            node_string = STRfmt("ArrayExpr");
+            node_string = STRcpy("ArrayExpr");
             break;
         case NT_DIMENSIONVARS:
-            node_string = STRfmt("DimensionVars");
+            node_string = STRcpy("DimensionVars");
             break;
         case NT_ARRAYVAR:
-            node_string = STRfmt("ArrayVar");
+            node_string = STRcpy("ArrayVar");
             break;
         case NT_VAR:
             node_string = STRfmt("Var -- name:'%s'", VAR_NAME(node));
@@ -129,25 +183,25 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             node_string = STRfmt("Cast -- type:'%s'", extra_string);
             break;
         case NT_RETSTATEMENT:
-            node_string = STRfmt("RetStatement");
+            node_string = STRcpy("RetStatement");
             break;
         case NT_FORLOOP:
-            node_string = STRfmt("ForLoop");
+            node_string = STRcpy("ForLoop");
             break;
         case NT_DOWHILELOOP:
-            node_string = STRfmt("DoWhileLoop");
+            node_string = STRcpy("DoWhileLoop");
             break;
         case NT_WHILELOOP:
-            node_string = STRfmt("WhileLoop");
+            node_string = STRcpy("WhileLoop");
             break;
         case NT_IFSTATEMENT:
-            node_string = STRfmt("IfStatement");
+            node_string = STRcpy("IfStatement");
             break;
         case NT_EXPRS:
-            node_string = STRfmt("Exprs");
+            node_string = STRcpy("Exprs");
             break;
         case NT_PROCCALL:
-            node_string = STRfmt("ProcCall");
+            node_string = STRcpy("ProcCall");
             break;
         case NT_VARDEC:
             extra_string = datatype_to_string(VARDEC_TYPE(node));
@@ -162,19 +216,19 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             node_string = STRfmt("Binop -- op:'%s'", extra_string);
             break;
         case NT_ASSIGN:
-            node_string = STRfmt("Assign");
+            node_string = STRcpy("Assign");
             break;
         case NT_STATEMENTS:
-            node_string = STRfmt("Statements");
+            node_string = STRcpy("Statements");
             break;
         case NT_LOCALFUNDEFS:
-            node_string = STRfmt("LocalFunDefs");
+            node_string = STRcpy("LocalFunDefs");
             break;
         case NT_VARDECS:
-            node_string = STRfmt("VarDecs");
+            node_string = STRcpy("VarDecs");
             break;
         case NT_FUNBODY:
-            node_string = STRfmt("FunBody");
+            node_string = STRcpy("FunBody");
             break;
         case NT_PARAMS:
             extra_string = datatype_to_string(PARAMS_TYPE(node));
@@ -195,15 +249,16 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             node_string = STRfmt("FunDef -- has_export:'%d'", FUNDEF_HAS_EXPORT(node));
             break;
         case NT_FUNDEC:
-            node_string = STRfmt("FunDec");
+            node_string = STRcpy("FunDec");
             break;
         case NT_DECLARATIONS:
-            node_string = STRfmt("Declarations");
+            node_string = STRcpy("Declarations");
             break;
         case NT_PROGRAM:
-            node_string = STRfmt("Program");
+            node_string = STRcpy("Program");
             break;
         case NT_NULL:
+        case _NT_SIZE:
         default:
             // unknown datatype detected
             release_assert(false);
@@ -225,7 +280,8 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
     else
     {
         // Amputate the depth string to size - 5 for the format and afterward place it back
-        unsigned int position = STRlen(depth_string) - 5;
+        unsigned int len = STRlen(depth_string);
+        unsigned int position = len >= 5 ? len - 5 : 0;
         char depth_replace = depth_string[position];
         depth_string[position] = '\0';
         output = STRfmt("%s%s─ %s\n", depth_string, connection, node_string);
@@ -234,8 +290,22 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
 
     if (node != NULL)
     {
+        bool has_next = false;
+        if (node->num_children > 0)
+        {
+            node_st *child_last = node->children[node->num_children - 1];
+            if (child_last != NULL)
+            {
+                has_next = has_next_child(child_last);
+            }
+            else
+            {
+                has_next = has_next_child(node);
+            }
+        }
+
         // The last child is a special case
-        for (unsigned int i = 0; i < node->num_children - 1; i++)
+        for (unsigned int i = 0; i < node->num_children - 1 - (has_next ? 1 : 0); i++)
         {
             char *next_depth_string = STRcat(depth_string, "│  ");
             char *output_child =
@@ -247,12 +317,35 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             free(output_old);
         }
 
+        // Handel second last child, needed if has_next is active
+        if (has_next && node->num_children > 1)
+        {
+            node_st *child_second_last = node->children[node->num_children - 2];
+            char *next_depth_string = NULL;
+            char *output_child = NULL;
+            next_depth_string = STRcat(depth_string, "ﾠ  ");
+            output_child = _node_to_string(child_second_last, depth + 1, "└", next_depth_string);
+
+            char *output_old = output;
+            output = STRcat(output_old, output_child);
+            free(next_depth_string);
+            free(output_child);
+            free(output_old);
+        }
+
         // Handel the last children
         if (node->num_children > 0)
         {
-            char *next_depth_string = STRcat(depth_string, "ﾠ  ");
             node_st *child_last = node->children[node->num_children - 1];
-            char *output_child = _node_to_string(child_last, depth + 1, "└", next_depth_string);
+            const char *last_depth_ext = has_next ? "" : "ﾠ  ";
+            const char *last_connection = has_next ? (child_last != NULL ? "┣" : "┗") : "└";
+
+            char *next_depth_string = NULL;
+            char *output_child = NULL;
+            next_depth_string = STRcat(depth_string, last_depth_ext);
+            output_child =
+                _node_to_string(child_last, depth + 1, last_connection, next_depth_string);
+
             char *output_old = output;
             output = STRcat(output_old, output_child);
             free(next_depth_string);
@@ -272,5 +365,5 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
 /// caller.
 char *node_to_string(node_st *node)
 {
-    return _node_to_string(node, 0, "", "");
+    return _node_to_string(node, 0, "", "│  ");
 }

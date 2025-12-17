@@ -16,6 +16,7 @@ extern "C"
 class ScanParseTest : public testing::Test
 {
   public:
+    char *root_string = nullptr;
     node_st *root = nullptr;
     std::string filepath;
 
@@ -32,22 +33,21 @@ class ScanParseTest : public testing::Test
             << "File does not exist at path '" << filepath << "'";
         root = run_scan_parse(filepath.c_str());
         EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << filepath << "'";
+        root_string = node_to_string(root);
     }
 
     void TearDown() override
     {
         if (HasFailure())
         {
-            char *root_string = node_to_string(root);
             std::cerr
                 << "========================================================================\n"
                 << "                        Node Representation\n"
                 << "========================================================================\n"
                 << root_string << std::endl;
-
-            free(root_string);
         }
 
+        free(root_string);
         cleanup_scan_parse(root);
         root = nullptr;
     }
@@ -130,9 +130,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
                            "ﾠ  ﾠ  ﾠ  ﾠ  │  ﾠ  └─ Var -- name:'test3'\n"
                            "ﾠ  ﾠ  ﾠ  ﾠ  └─ NULL\n";
 
-    char *value = node_to_string(root);
-    ASSERT_STREQ(expected, value);
-    free(value);
+    ASSERT_STREQ(expected, root_string);
 }
 
 TEST_F(ScanParseTest, ScanParse_GlobalDecInt)
