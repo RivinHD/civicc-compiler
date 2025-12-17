@@ -1,3 +1,4 @@
+#include "to_string.h"
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "palm/str.h"
@@ -86,19 +87,37 @@ char *binoptype_to_string(enum BinOpType type)
     }
 }
 
-bool has_next_child(node_st *node)
+bool has_child_next(node_st *node, node_st **child_next)
 {
+    release_assert(node != NULL);
+    release_assert(child_next != NULL);
+
     switch (node->nodetype)
     {
     // nodes with next
     case NT_ARRAYINIT:
+        *child_next = ARRAYINIT_NEXT(node);
+        return true;
     case NT_DIMENSIONVARS:
+        *child_next = DIMENSIONVARS_NEXT(node);
+        return true;
     case NT_EXPRS:
+        *child_next = EXPRS_NEXT(node);
+        return true;
     case NT_STATEMENTS:
+        *child_next = STATEMENTS_NEXT(node);
+        return true;
     case NT_LOCALFUNDEFS:
+        *child_next = LOCALFUNDEFS_NEXT(node);
+        return true;
     case NT_VARDECS:
+        *child_next = VARDECS_NEXT(node);
+        return true;
     case NT_PARAMS:
+        *child_next = PARAMS_NEXT(node);
+        return true;
     case NT_DECLARATIONS:
+        *child_next = DECLARATIONS_NEXT(node);
         return true;
 
     // nodes without next
@@ -127,18 +146,49 @@ bool has_next_child(node_st *node)
     case NT_FUNDEF:
     case NT_FUNDEC:
     case NT_PROGRAM:
-        return false;
+        return NULL;
 
     default:
     case _NT_SIZE:
     case NT_NULL:
         // unknown datatype detected
         release_assert(false);
-        return false;
+        return NULL;
     }
 }
 
-char *_node_to_string(node_st *node, unsigned int depth, const char *connection, char *depth_string)
+char *_node_to_string_array(node_st *node, unsigned int depth, char *depth_string,
+                            bool is_last_child)
+{
+    char *output = NULL;
+    node_st *next = node;
+
+    while (next != NULL)
+    {
+        char *old_output = output;
+        char *output_child = _node_to_string(next, depth + 1, "┣", depth_string);
+        output = STRcat(old_output, output_child);
+        free(output_child);
+        free(old_output);
+        node_st *next_next = NULL;
+        release_assert(has_child_next(next, &next_next));
+        release_assert(next_next != next);
+        next = next_next;
+    }
+
+    // Last Element of the array is always NULL
+    char *old_output = output;
+    char *output_child =
+        _node_to_string(NULL, depth + 1, (is_last_child ? "┗" : "┡"), depth_string);
+    output = STRcat(old_output, output_child);
+    free(output_child);
+    free(old_output);
+
+    return output;
+}
+
+/// Gets the string representation of a node without its children
+char *get_node_name(node_st *node)
 {
     char *node_string = NULL;
     if (node == NULL)
@@ -271,6 +321,13 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
         }
     }
 
+    return node_string;
+}
+
+char *_node_to_string(node_st *node, unsigned int depth, const char *connection, char *depth_string)
+{
+
+    char *node_string = get_node_name(node);
     char *output = NULL;
 
     if (depth == 0)
@@ -282,73 +339,60 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
         // Amputate the depth string to size - 5 for the format and afterward place it back
         unsigned int len = STRlen(depth_string);
         unsigned int position = len >= 5 ? len - 5 : 0;
-        char depth_replace = depth_string[position];
-        depth_string[position] = '\0';
-        output = STRfmt("%s%s─ %s\n", depth_string, connection, node_string);
-        depth_string[position] = depth_replace;
+        char *sub = STRsubStr(depth_string, 0, position);
+        output = STRfmt("%s%s─ %s\n", sub, connection, node_string);
+        free(sub);
     }
 
-    if (node != NULL)
+    if (node != NULL && node->num_children > 0)
     {
-        bool has_next = false;
-        if (node->num_children > 0)
+        node_st *child_next = NULL;
+
+        for (unsigned int i = 0; i < node->num_children; i++)
         {
-            node_st *child_last = node->children[node->num_children - 1];
-            if (child_last != NULL)
+            node_st *child = node->children[i];
+            if (child != NULL && has_child_next(child, &child_next))
             {
-                has_next = has_next_child(child_last);
+                break;
+            }
+        }
+
+        bool child_next_is_last = has_child_next(node, &child_next) &&
+                                  child_next == node->children[node->num_children - 1];
+        // The last child is a special case
+        for (unsigned int i = 0; i < node->num_children; i++)
+        {
+            node_st *child = node->children[i];
+            char *output_child = NULL;
+
+            // The array was already printed by the first node of the array of the same type
+            if (has_child_next(node, &child_next) &&
+                (child == NULL ? child == child_next : node->nodetype == child->nodetype))
+            {
+                continue;
+            }
+            // Does the child start an array
+            else if (child != NULL && has_child_next(child, &child_next))
+            {
+                char *next_depth_string = STRcat(depth_string, "┃  ");
+                output_child = _node_to_string_array(child, depth + 1, next_depth_string,
+                                                     i == node->num_children - 1);
+                free(next_depth_string);
             }
             else
             {
-                has_next = has_next_child(node);
+                // Standard node
+                const char *connection =
+                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "└" : "├";
+                const char *depth_ext =
+                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "ﾠ  " : "│  ";
+                char *next_depth_string = STRcat(depth_string, depth_ext);
+                output_child = _node_to_string(child, depth + 1, connection, next_depth_string);
+                free(next_depth_string);
             }
-        }
-
-        // The last child is a special case
-        for (unsigned int i = 0; i < node->num_children - 1 - (has_next ? 1 : 0); i++)
-        {
-            char *next_depth_string = STRcat(depth_string, "│  ");
-            char *output_child =
-                _node_to_string(node->children[i], depth + 1, "├", next_depth_string);
-            char *output_old = output;
-            output = STRcat(output_old, output_child);
-            free(next_depth_string);
-            free(output_child);
-            free(output_old);
-        }
-
-        // Handel second last child, needed if has_next is active
-        if (has_next && node->num_children > 1)
-        {
-            node_st *child_second_last = node->children[node->num_children - 2];
-            char *next_depth_string = NULL;
-            char *output_child = NULL;
-            next_depth_string = STRcat(depth_string, "ﾠ  ");
-            output_child = _node_to_string(child_second_last, depth + 1, "└", next_depth_string);
 
             char *output_old = output;
             output = STRcat(output_old, output_child);
-            free(next_depth_string);
-            free(output_child);
-            free(output_old);
-        }
-
-        // Handel the last children
-        if (node->num_children > 0)
-        {
-            node_st *child_last = node->children[node->num_children - 1];
-            const char *last_depth_ext = has_next ? "" : "ﾠ  ";
-            const char *last_connection = has_next ? (child_last != NULL ? "┣" : "┗") : "└";
-
-            char *next_depth_string = NULL;
-            char *output_child = NULL;
-            next_depth_string = STRcat(depth_string, last_depth_ext);
-            output_child =
-                _node_to_string(child_last, depth + 1, last_connection, next_depth_string);
-
-            char *output_old = output;
-            output = STRcat(output_old, output_child);
-            free(next_depth_string);
             free(output_child);
             free(output_old);
         }
@@ -365,5 +409,5 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
 /// caller.
 char *node_to_string(node_st *node)
 {
-    return _node_to_string(node, 0, "", "│  ");
+    return _node_to_string(node, 0, "", "");
 }
