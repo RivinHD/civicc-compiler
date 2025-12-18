@@ -3,12 +3,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-struct globals {
+struct globals
+{
     int line;
     int col;
     int verbose;
-    char *input_file;
-    char *output_file;
+    const char *input_file;
+    const char *output_file;
 };
 
 extern struct globals global;

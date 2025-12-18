@@ -3,8 +3,8 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
-        Demo;
-        print;
+        Optimization;
+        Print;
     }
 };
 
@@ -12,21 +12,8 @@ traversal Print {
     uid = PRT
 };
 
-phase Demo {
+phase Optimization {
     actions {
-        traversal RenameIdentifiers {
-            uid = RI,
-            nodes = { Var, VarLet }
-        };
-
-        traversal SumInts {
-            uid = SI,
-            nodes = { Stmts, Num },
-            travdata {
-                int sum
-            }
-        };
-
         traversal OptSubstraction {
             uid = OS,
             nodes = { Binop }
@@ -35,6 +22,10 @@ phase Demo {
 };
 
 /*** AST ***/
+
+/**********************/
+/* Enums **************/
+/**********************/
 
 enum MonOpType {
     prefix = MO,
@@ -51,28 +42,136 @@ enum BinOpType {
     }
 };
 
-nodeset Expr = {Num, Float, Bool, Binop, Var};
-nodeset Stmt = {Assign};
+enum DataType {
+    prefix = DT,
+    values {
+        void, bool, int, float
+    }
+};
+
+/**********************/
+/* Nodesets ***********/
+/**********************/
+
+nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
+nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
+nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
+nodeset VarOptArrayVar = {Var, ArrayVar};
+nodeset VarOptArrayExpr = {Var, ArrayExpr};
+nodeset ExprOptArrayInit = Expr | {ArrayInit};
 
 // Nodes you want to be able to link to from your symbol table.
-nodeset Link = Expr | Stmt;
+nodeset Link = Expr | Statement;
+
+/**********************/
+/* Nodes **************/
+/**********************/
 
 root node Program {
     children {
-        Stmts stmts { constructor, mandatory }
+        Declarations decls { constructor, mandatory }
     }
 };
 
-node Stmts {
+node Declarations {
     children {
-        Stmt stmt { constructor, mandatory },
-        Stmts next { constructor }
+        Declaration decl { constructor, mandatory },
+        Declarations next { constructor }
     }
 };
 
-node Assign {
+node FunDec {  // implicitly conditions the 'extern' attribute
     children {
-        VarLet let { constructor },
+        FunHeader funHeader { constructor, mandatory }
+    },
+};
+
+node FunDef {
+    children {
+        FunHeader funHeader { constructor, mandatory },
+        FunBody funBody { constructor, mandatory }
+    },
+
+    attributes {
+        bool has_export { constructor }                       // if exists, has to be 'export'
+    }
+};
+
+node GlobalDec {  // implicitly conditions the 'extern' attribute
+    children {
+        VarOptArrayVar var { constructor, mandatory } 
+    },
+
+    attributes {
+        DataType type { constructor }  // mandatory
+    }
+};
+
+node GlobalDef { 
+    children {
+        VarDec varDec { constructor, mandatory }
+    },
+
+    attributes {
+        bool has_export { constructor }                       // if exists, has to be 'export'
+    }
+};
+
+node FunHeader {
+    children {
+        Var var { constructor, mandatory },
+        Params params { constructor }
+    },
+
+    attributes {
+        DataType type { constructor } // mandatory
+    }
+};
+
+node Params {
+    children {
+        VarOptArrayVar var { constructor, mandatory },
+        Params next { constructor }
+    },
+
+    attributes {
+       DataType type { constructor } // mandatory 
+    }
+};
+
+node FunBody {
+    children {
+        VarDecs varDecs { constructor },
+        LocalFunDefs localFunDefs { constructor },      // Extension 1
+        Statements stmts { constructor }
+    }
+};
+
+node VarDecs {
+    children {
+        VarDec varDec { constructor, mandatory },
+        VarDecs next { constructor }
+    }
+};
+
+// Extension 1
+node LocalFunDefs {
+    children {
+        FunDef localFunDef { constructor, mandatory },
+        LocalFunDefs next { constructor }
+    }
+};
+
+node Statements {
+    children {
+        Statement stmt { constructor, mandatory },
+        Statements next { constructor }
+    }
+};
+
+node Assign {                                   // Id = Expr
+    children {
+        Var var { constructor },
         Expr expr { constructor, mandatory }
     }
 };
@@ -84,32 +183,137 @@ node Binop {
     },
 
     attributes {
-        BinOpType op { constructor }
+        BinOpType op { constructor }  // mandatory not possible, but required for construction
     }
 };
 
-nodeset Vars {
-    nodes = {VarLet, Var},
+node Monop {
+    children {
+        Expr left { constructor, mandatory }
+    },
 
     attributes {
-        string name,
-        Link decl
+        MonOpType op { constructor }  // mandatory not possible, but required for construction
     }
 };
 
-node VarLet {
+node VarDec {
+    children {
+        VarOptArrayExpr var { constructor, mandatory },
+        ArrayInit expr { constructor }
+    },
+
     attributes {
-        string name { constructor }  // Repeat from nodeset to add constructor
+        DataType type { constructor } // mandatory
+    }
+};
+
+node ProcCall {
+    children {
+        Var var { constructor, mandatory },
+        Exprs exprs { constructor }
+    }
+};
+
+node Exprs {
+    children {
+        Expr expr { constructor, mandatory },
+        Exprs next { constructor }
+    }
+};
+
+node IfStatement {
+    children {
+        Expr expr { constructor, mandatory },
+        Statements block { constructor, mandatory },
+        Statements else_block { constructor }
+    }
+};
+
+
+node WhileLoop {
+    children {
+        Expr expr { constructor, mandatory },
+        Statements block { constructor, mandatory }
+    }
+};
+
+node DoWhileLoop {
+    children {
+        Statements block { constructor, mandatory },
+        Expr expr { constructor, mandatory }
+    }
+};
+
+node ForLoop {
+    children {
+        Assign assign { constructor, mandatory },
+        Expr cond { constructor, mandatory },
+        Expr iter { constructor },
+        Statements block { constructor, mandatory }
+    }
+};
+
+node RetStatement {
+    children {
+        Expr expr { constructor }
+    }
+};
+
+// ( DataType ) Expr
+node Cast {
+    children {
+        Expr expr { constructor, mandatory }
+    },
+
+    attributes {
+        DataType type { constructor } // mandatory
     }
 };
 
 node Var {
     attributes {
-        string name { constructor }
+        string name { constructor, mandatory },
+        Link decl
     }
 };
 
-node Num {
+node ArrayVar {
+    children {
+        DimensionVars dims { constructor, mandatory },
+        Var var { constructor, mandatory }
+    }
+};
+
+node DimensionVars {
+    children {
+        Var dim { constructor, mandatory },
+        Exprs next { constructor }
+    }
+};
+
+node ArrayExpr {
+    children {
+        Exprs dims { constructor, mandatory },
+        Var var { constructor, mandatory }
+    }
+};
+
+node ArrayInit {
+    children {
+        ExprOptArrayInit expr { constructor, mandatory },
+        ArrayInit next { constructor }
+    }
+};
+
+node ArrayAssign {
+    children {
+        ArrayExpr var { constructor, mandatory },
+        Expr expr { constructor, mandatory }
+    }
+};
+
+node Int {
     attributes {
         int val { constructor }
     }

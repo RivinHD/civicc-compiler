@@ -1,0 +1,110 @@
+bool funcDefFirst()
+{
+    return true;
+}
+
+export bool funcDefSecond()
+{
+    return false;
+}
+
+bool funcDefThird( int value )
+{
+    return true;
+}
+
+export bool funcDefFourth( int value )
+{
+    return true;
+}
+
+bool funcDefSixth( float value )
+{
+    return true;
+}
+
+export bool funcDefSeventh( float value )
+{
+    return true;
+}
+
+bool funcDefEighth( bool value )
+{
+    return true;
+}
+
+export bool funcDefNinth( bool value )
+{
+    return true;
+}
+
+bool funcDefTenth( int[dim1] values )
+{
+    return true;
+}
+
+export bool funcDefEleventh( int[dim1] values )
+{
+    return true;
+}
+
+bool funcDefTwelfth( float[dim1] values )
+{
+    return true;
+}
+
+export bool funcDefThirteenth( float[dim1] values )
+{
+    return true;
+}
+
+bool funcDefFourteenth( bool[dim1] values )
+{
+    return true;
+}
+
+export bool funcDefFifteenth( bool[dim1] values )
+{
+    return true;
+}
+
+bool funcDefSixteenth( int[dim1, dim2] values )
+{
+    return true;
+}
+
+export bool funcDefSeventeenth( int[dim1, dim2] values )
+{
+    return true;
+}
+
+bool funcDefEighteenth( float[dim1, dim2] values )
+{
+    return true;
+}
+
+export bool funcDefNineteenth( float[dim1, dim2] values )
+{
+    return true;
+}
+
+bool funcDefTwentieth( bool[dim1, dim2] values )
+{
+    return true;
+}
+
+export bool funcDefTwentyfirst( bool[dim1, dim2] values )
+{
+    return true;
+}
+
+
+bool funcDefTwentysecond( int valueOne, float valueTwo, bool valueThree, int[dim1] intValues, float[dim2, dim3] floatValues, bool[dim4, dim5, dim6] boolValues )
+{
+    return true;
+}
+
+export bool funcDefTwentysecond( int valueOne, float valueTwo, bool valueThree, int[dim1] intValues, float[dim2, dim3] floatValues, bool[dim4, dim5, dim6] boolValues )
+{
+    return true;
+}

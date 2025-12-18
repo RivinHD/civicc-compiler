@@ -1,0 +1,4 @@
+extern float test;
+extern float[dim] test1;
+extern float[dim1, dim2] test2;
+extern float[dim1, dim2, dim3] test3;

@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
+#include <float.h>
 
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
@@ -10,11 +12,14 @@
 #include "palm/str.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
+#include <stdio.h>
+#include "utils.h"
 
 // Use for error messages, see parser.y
 extern int yyerror(char *errname);
 
 #define FILTER(token) \
+  scanparse_fprintf(stdout, "%d: %s \n", token, yytext); \
   global.col += yyleng;  \
   return( token);
 
@@ -23,6 +28,7 @@ extern int yyerror(char *errname);
 #define YY_NO_INPUT
 
 static inline void token_action();
+
 
 int yycolumn = 1;
 #define YY_USER_ACTION token_action();
@@ -36,13 +42,26 @@ int yycolumn = 1;
 %option nounput
 %option yylineno
 
+SEP [ \t\r\n]
+SEPB ({SEP}|\()
+SEPC ({SEP}|\{)
+
+%x MULTI_COMMENT
 
 %%
+
+
+"/*"                       { BEGIN(MULTI_COMMENT); }
+"//"[^\n]*$                { global.col += yyleng; }
 
 "("                        { FILTER( BRACKET_L); }
 ")"                        { FILTER( BRACKET_R); }
 ","                        { FILTER( COMMA); }
 ";"                        { FILTER( SEMICOLON); }
+"{"                        { FILTER( CURLY_L); }
+"}"                        { FILTER( CURLY_R); }
+"["                        { FILTER( SQUARE_L); }
+"]"                        { FILTER( SQUARE_R); }
 
 "-"                        { FILTER( MINUS); }
 "+"                        { FILTER( PLUS);  }
@@ -56,21 +75,108 @@ int yycolumn = 1;
 ">"                        { FILTER( GT);    }
 "=="                       { FILTER( EQ);    }
 "!="                       { FILTER( NE);    }
+
 "&&"                       { FILTER( AND);    }
 "||"                       { FILTER( OR);    }
 
+"!"                        { FILTER( EXCLAMATION_MARK)}
+
 "="                        { FILTER( LET);    }
 
-"true"                     { FILTER( TRUEVAL); }
-"false"                    { FILTER( FALSEVAL); }
+"true"[^A-Za-z0-9_]            { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( TRUEVAL); }
+"false"[^A-Za-z0-9_]           { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( FALSEVAL); }
+
+"extern"{SEP}                   { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( EXTERN); }
+"export"{SEP}                   { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( EXPORT); }
+"return"({SEPB}|;)             { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng); 
+                             FILTER( RETURN); }
+
+
+"void"{SEP}                { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( VOID); }
+"bool"({SEP}|\[|\))                { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( BOOL); }
+"int"({SEP}|\[|\))                 { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( INT); }
+"float"({SEP}|\[|\))               { 
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            FILTER( FLOAT);}
+
+
+"if"{SEPB}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( IF);
+                            }
+"while"{SEPB}               { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( WHILE);
+                            }
+"for"{SEPB}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( FOR);
+                            }
+"do"{SEPC}                 { 
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( DO);
+                            }
+"else"{SEPC}              {
+                             yyleng = yyleng - 1; 
+                             yyless(yyleng);
+                             FILTER( ELSE);
+                            }
 
 [A-Za-z][A-Za-z0-9_]*      { yylval.id = STRcpy(yytext);
-                             FILTER( ID);
+                             FILTER( VAR);
                            }
 
-[0-9]+                     { yylval.cint=atoi(yytext);
-                             FILTER( NUM);
-                           }
+[0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9]+)? {
+    double value = strtod(yytext, NULL);
+
+    if(value > FLT_MAX || value < FLT_MIN)
+    {
+      printf("%s:%d:%d: WARNING: Float out of range. Will clamp the value '%s' to '%f'.\n", global.input_file, global.line, global.col, yytext, (float)value);
+    }
+
+    yylval.cflt = (float)value;
+    FILTER( FLOATCONST);
+}
+
+[0-9]+                     { 
+    long value = strtol(yytext, NULL, 10);
+
+    if(value > INT_MAX || value < INT_MIN)
+    {
+      printf("%s:%d:%d: WARNING: Int out of range. Will clamp the value '%s' to '%d'.\n", global.input_file, global.line, global.col, yytext, (int)value);
+    }
+
+    yylval.cint= (int)value;
+    FILTER( NUMCONST);
+}
 
 \n.*                       {
                              yycolumn = 1;
@@ -79,8 +185,18 @@ int yycolumn = 1;
                              yyless(1);
                            }
 
-[ \t]                      { global.col += yyleng;
-                           }
+[ \t]                      { global.col += yyleng; }
+
+<MULTI_COMMENT>{
+    [^*\n]*         { global.col += yyleng; }
+    "*"+[^*\/\n]*   { global.col += yyleng; }
+    \n              { 
+                      yycolumn = 1;
+                      global.line += 1;
+                      global.col = 0; 
+                    }
+    "*"+"/"         { BEGIN(INITIAL); }
+}
 %%
 
 static inline void token_action() {

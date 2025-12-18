@@ -8,7 +8,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(coconut)
 
 FetchContent_GetProperties(coconut
-    SOURCE_DIR COCONUT_ROOT_DIR 
+    SOURCE_DIR COCONUT_ROOT_DIR
     BINARY_DIR COCONUT_BUILD_DIR
 )
 
@@ -23,7 +23,12 @@ if(NOT EXISTS "${COCOGEN_DIR}/cocogen")
 
     message(STATUS "Build the cocogen executable")
     message(STATUS "Parallel Build: ${CPU_COUNT} cores")
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -B "${COCONUT_BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
+    if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        set(COCONUT_COMPILE_OPTIONS "-Wno-everything")
+    else()
+        set(COCONUT_COMPILE_OPTIONS "")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -B "${COCONUT_BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=${COCONUT_COMPILE_OPTIONS} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         WORKING_DIRECTORY "${COCONUT_ROOT_DIR}")
     execute_process(COMMAND ${CMAKE_COMMAND} --build "${COCONUT_BUILD_DIR}" --config Release --parallel ${CPU_COUNT} --target cocogen
         WORKING_DIRECTORY "${COCONUT_ROOT_DIR}")
@@ -58,6 +63,15 @@ function(coconut_target_generate TARGET DSL_FILE BACKEND)
     set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_BINARY_DIR}/ccngen")
     file(GLOB COCONUT_SOURCES "${PROJECT_BINARY_DIR}/ccngen/*.c" "${COCONUT_ROOT_DIR}/copra/src/*.c")
     target_sources("${TARGET}" PRIVATE "${COCONUT_SOURCES}")
-    target_include_directories("${TARGET}" PRIVATE "${PROJECT_BINARY_DIR}/ccngen/" "${COCONUT_ROOT_DIR}/copra/")
+    target_include_directories(
+        "${TARGET}" PRIVATE "${PROJECT_BINARY_DIR}/ccngen/" "${COCONUT_ROOT_DIR}/copra/")
+    target_link_libraries("${TARGET}" PRIVATE coconut::palm)
+endfunction()
+
+function(coconut_add_includes TARGET)
+    target_include_directories(
+        "${TARGET}" PRIVATE "${PROJECT_BINARY_DIR}/ccngen/"
+        "${COCONUT_ROOT_DIR}/copra/"
+    )
     target_link_libraries("${TARGET}" PRIVATE coconut::palm)
 endfunction()

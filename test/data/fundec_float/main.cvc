@@ -1,0 +1,6 @@
+extern float test();
+extern float test2(float test);
+extern float test3(bool test, int testi, float testf);
+extern float test4(int[dim] test);
+extern float test5(float[dim1, dim2] test);
+extern float test6(float[dim1, dim2, dim3] test, bool hi);

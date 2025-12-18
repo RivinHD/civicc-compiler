@@ -1,0 +1,4 @@
+extern bool test;
+extern bool[dim] test1;
+extern bool[dim1, dim2] test2;
+extern bool[dim1, dim2, dim3] test3;

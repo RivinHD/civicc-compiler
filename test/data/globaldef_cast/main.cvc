@@ -1,0 +1,3 @@
+float definition_3 = (float)Assignment_3;
+float definition_4 = (float)Assignment_4[func()];
+float definition_5 = (float)(Assignment_5[func()]);

@@ -1,0 +1,62 @@
+void test() {
+    if(test2 == test1)
+    {
+
+    }
+
+    if(test2 == test1)
+    {
+
+    }
+    else
+    {
+    }
+
+    if(test2 == test1)
+    {
+        if(true) return;
+    }
+    else
+    {
+        if(false) return; 
+        else test = 5;
+    }
+
+    if (q3(A__wi[2], 2))
+    {
+    U0();
+    }
+     else
+   H_v();
+
+    while(i == 1)
+        if (i == 0)
+            if (i==2)
+                return 0;
+            else 
+                return 1;
+    for (int i = fun(), !i, floae(0.0))
+        if (w[!!-b]){
+        }
+
+    for (int i = fun(), !i, floae(0.0))
+        for (int v = 45, w(), t[2.0E7])
+            if (w[!!-b]){
+            }
+
+    return 3;
+}
+
+int square(int num) {
+    if(num == 0)
+        do 
+            if(num == 1)
+                square(0);
+        while (num == 2);
+    else
+        num = 3;
+
+    if((bool)(v[9]  -9 / yw))
+    {
+    }
+}

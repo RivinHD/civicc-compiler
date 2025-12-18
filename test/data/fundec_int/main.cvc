@@ -1,0 +1,6 @@
+extern int test();
+extern int test2(int test);
+extern int test3(bool test, int testi, float testf);
+extern int test4(int[dim] test);
+extern int test5(float[dim1, dim2] test);
+extern int test6(int[dim1, dim2, dim3] test, bool hi);
