@@ -14,3 +14,4 @@ int i = a - b % c;
 int j = a * b - c;
 
 int all = a || b && c == d <= e + f * g;
+int all = a * b + c <= d == e && f || g;

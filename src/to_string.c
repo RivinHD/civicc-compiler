@@ -338,7 +338,8 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
     {
         // Amputate the depth string to size - 5 for the format and afterward place it back
         unsigned int len = STRlen(depth_string);
-        unsigned int position = len >= 5 ? len - 5 : 0;
+        unsigned int unit_length = (len >= 3 && depth_string[len - 3] == ' ' ? 3 : 5);
+        unsigned int position = (len >= unit_length ? len - unit_length : 0);
         char *sub = STRsubStr(depth_string, 0, position);
         output = STRfmt("%s%s─ %s\n", sub, connection, node_string);
         free(sub);
@@ -366,8 +367,8 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             char *output_child = NULL;
 
             // The array was already printed by the first node of the array of the same type
-            if (has_child_next(node, &child_next) &&
-                (child == NULL ? child == child_next : node->nodetype == child->nodetype))
+            if (has_child_next(node, &child_next) && child == child_next &&
+                (child == NULL ? true : node->nodetype == child->nodetype))
             {
                 continue;
             }
@@ -376,7 +377,7 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             {
                 char *next_depth_string = STRcat(depth_string, "┃  ");
                 output_child = _node_to_string_array(child, depth + 1, next_depth_string,
-                                                     i == node->num_children - 1);
+                                                     i == node->num_children - 1 || child_next_is_last);
                 free(next_depth_string);
             }
             else
@@ -385,7 +386,7 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
                 const char *connection =
                     (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "└" : "├";
                 const char *depth_ext =
-                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "ﾠ  " : "│  ";
+                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "   " : "│  ";
                 char *next_depth_string = STRcat(depth_string, depth_ext);
                 output_child = _node_to_string(child, depth + 1, connection, next_depth_string);
                 free(next_depth_string);
