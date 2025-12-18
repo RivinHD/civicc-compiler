@@ -159,7 +159,7 @@ SEPC ({SEP}|\{)
 
     if(value > FLT_MAX || value < FLT_MIN)
     {
-      printf("%s:%d:%d: WARNING: Float out of range. Will clamp the value '%s' to '%f'.\n", global.input_file, global.line, global.col, yytext, value);
+      printf("%s:%d:%d: WARNING: Float out of range. Will clamp the value '%s' to '%f'.\n", global.input_file, global.line, global.col, yytext, (float)value);
     }
 
     yylval.cflt = (float)value;
@@ -171,7 +171,7 @@ SEPC ({SEP}|\{)
 
     if(value > INT_MAX || value < INT_MIN)
     {
-      printf("%s:%d:%d: WARNING: Int out of range. Will clamp the value '%s' to '%d'.\n", global.input_file, global.line, global.col, yytext, value);
+      printf("%s:%d:%d: WARNING: Int out of range. Will clamp the value '%s' to '%d'.\n", global.input_file, global.line, global.col, yytext, (int)value);
     }
 
     yylval.cint= (int)value;
