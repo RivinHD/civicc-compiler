@@ -1,13 +1,14 @@
 #pragma once
 
-#include <sys/cdefs.h>
 
-#if __APPLE__
+#ifdef __APPLE__
+
 #include <_assert.h>
-#define release_assert(expr)                                                                       \
-    (__builtin_expect(!(expr), 0) ? __assert_rtn(__func__, __ASSERT_FILE_NAME, __LINE__, #expr)    \
-                                  : (void)0)
-#else
+#define release_assert(expr) ((expr) ? (void)0 : __assert(#expr, __FILE__, __LINE__)) 
+                                  
+#else // Linux
+
+#include <sys/cdefs.h>
 __BEGIN_DECLS
 
 /* Declaration extracted from assert.h*/
@@ -19,4 +20,5 @@ __END_DECLS
 
 #define release_assert(expr)                                                                       \
     ((expr) ? (void)0 : __assert_fail(#expr, __FILE__, __LINE__, __extension__ __PRETTY_FUNCTION__))
+
 #endif

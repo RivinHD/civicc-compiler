@@ -98,13 +98,17 @@ add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 
 # Enable address sanitizer
-if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
-    add_compile_options(
-        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
-    )
-    add_link_options(
-        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
-    )
+if(NOT DISABLE_ASAN AND NOT AFL_ENABLED )
+    if(APPLE)
+        message(STATUS "Sanitzier: Can not build with Sanitizer on Apple architecture.")
+    else()
+        add_compile_options(
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        )
+        add_link_options(
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        )
+    endif()
 endif()
 
 add_library("civicc_lib${AFL_EXT}" STATIC ${FLEX_CivicLexer_OUTPUTS} ${BISON_CivicParser_OUTPUTS} ${SOURCE_FILES})
