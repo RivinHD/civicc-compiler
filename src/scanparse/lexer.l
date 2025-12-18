@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
+#include <float.h>
 
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
@@ -26,6 +28,7 @@ extern int yyerror(char *errname);
 #define YY_NO_INPUT
 
 static inline void token_action();
+
 
 int yycolumn = 1;
 #define YY_USER_ACTION token_action();
@@ -152,13 +155,28 @@ SEPC ({SEP}|\{)
                            }
 
 [0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9]+)? {
-    yylval.cflt = atof(yytext);
-    FILTER( FLOATCONST);
+    double value = strtod(yytext, NULL);
+
+    if(value > FLT_MAX || value < FLT_MIN)
+    {
+      printf("%s:%d:%d: WARNING: Float out of range. Will clamp the value '%s' to '%f'.\n", global.input_file, global.line, global.col, yytext, value);
     }
 
-[0-9]+                     { yylval.cint=atoi(yytext);
-                             FILTER( NUMCONST);
-                           }
+    yylval.cflt = (float)value;
+    FILTER( FLOATCONST);
+}
+
+[0-9]+                     { 
+    long value = strtol(yytext, NULL, 10);
+
+    if(value > INT_MAX || value < INT_MIN)
+    {
+      printf("%s:%d:%d: WARNING: Int out of range. Will clamp the value '%s' to '%d'.\n", global.input_file, global.line, global.col, yytext, value);
+    }
+
+    yylval.cint= (int)value;
+    FILTER( NUMCONST);
+}
 
 \n.*                       {
                              yycolumn = 1;
