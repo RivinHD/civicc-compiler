@@ -146,14 +146,14 @@ bool has_child_next(node_st *node, node_st **child_next)
     case NT_FUNDEF:
     case NT_FUNDEC:
     case NT_PROGRAM:
-        return NULL;
+        return false;
 
     default:
     case _NT_SIZE:
     case NT_NULL:
         // unknown datatype detected
         release_assert(false);
-        return NULL;
+        return false;
     }
 }
 
@@ -376,8 +376,9 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             else if (child != NULL && has_child_next(child, &child_next))
             {
                 char *next_depth_string = STRcat(depth_string, "┃  ");
-                output_child = _node_to_string_array(child, depth + 1, next_depth_string,
-                                                     i == node->num_children - 1 || child_next_is_last);
+                output_child =
+                    _node_to_string_array(child, depth + 1, next_depth_string,
+                                          i == node->num_children - 1 || child_next_is_last);
                 free(next_depth_string);
             }
             else

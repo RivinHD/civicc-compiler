@@ -498,7 +498,7 @@ statementMatched: IF BRACKET_L expr BRACKET_R block ELSE block
                     AddLocToNode(statement, &@5, &@5);
 
                     node_st* statement_else = ASTstatements($7, NULL);
-                    AddLocToNode(statement, &@7, &@7);
+                    AddLocToNode(statement_else, &@7, &@7);
 
                     $$ = ASTifstatement($3, statement, statement_else);
                     AddLocToNode($$, &@1, &@7);
