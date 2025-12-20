@@ -3,6 +3,11 @@
 #include <ostream>
 #include <string>
 
+#ifdef AFL_MSAN_MODE
+#include <cstring>
+#include <sanitizer/msan_interface.h>
+#endif // AFL_MSAN_MODE
+
 extern "C"
 {
     struct node_st;
@@ -22,19 +27,26 @@ int main(int argc, char *argv[])
 
     if (argc != 2)
     {
-        std::cerr << "Missing input file argument. Usage ./scanner <filepath>" << std::endl;
+        std::cerr << "Missing input file argument. Usage ./civicc_scanparse <filepath>"
+                  << std::endl;
         return 1;
     }
 
-    std::string filepath = argv[1];
+#ifdef AFL_MSAN_MODE
+    __msan_unpoison(argv[1], std::strlen(argv[1]) + 1);
+#endif // AFL_MSAN_MODE
 
+    const char *filepath = argv[1];
+
+#ifndef AFL_MSAN_MODE
     if (!std::filesystem::exists(filepath))
     {
         std::cerr << "Input file does not exists on: '" << filepath << "'" << std::endl;
         return 1;
     }
+#endif // !AFL_MSAN_MODE
 
-    node_st *root = run_scan_parse(filepath.c_str());
+    node_st *root = run_scan_parse(filepath);
     cleanup_scan_parse(root);
 
     return 0;
