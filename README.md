@@ -208,20 +208,20 @@ The following targets are available:
 
 #### Multicore fuzzing
 
-The fuzz on multiple core you can set a flag `FUZZ_CORES=<Cores>` with a fuzz target.
+The fuzz on multiple cores, you can set the flag `FUZZ_CORES=<Cores>` on any fuzz target.
 This will start the amount of fuzzer with the name `fuzzer<i>` in separate tmux sessions that sync 
 on the same directory.
 We use tmux here to run them in individual terminals, thus `tmux` is an **additional dependency** when 
 fuzzing on multiple cores.
 Also see [AFL++ Documentation - Using Multiple Cores](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#c-using-multiple-cores).
 
-If `FUZZ_CORES=0` is set the core count of the system is used.\
-Note: The fuzzing session without the `FUZZ_CORE` argument will only use a single core and will not be started in a tmux session. 
-You can use `FUZZ_CORE=1` to run a single core session in tmux.
+If `FUZZ_CORES=0` is set, the core count of the system is used.\
+Note: The fuzzing session **without** the `FUZZ_CORES` argument will only use a single core and will not be started in a tmux session. 
+You can use `FUZZ_CORES=1` to run a single core fuzzing session in tmux.
 
 For example, you can run multicore fuzzing on automatic core count with:
 ```
-make fuzz_<target> FUZZ_CORE=0
+make fuzz_<target> FUZZ_CORES=0
 ```
 
 To clean up all tmux sessions of the fuzzer and stop the multicore fuzzing you can run:
