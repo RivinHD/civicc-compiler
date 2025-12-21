@@ -18,6 +18,9 @@ static node_st *parseresult = NULL;
 extern int yylex();
 int yyerror(char *errname);
 extern FILE *yyin;
+typedef void *YY_BUFFER_STATE;
+extern YY_BUFFER_STATE yy_scan_bytes(char *, size_t);
+extern void yy_delete_buffer(YY_BUFFER_STATE);
 void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
 #define assertSetType(node, setType) \
@@ -1079,11 +1082,21 @@ int yyerror(char *error)
 node_st *SPdoScanParse(node_st *root)
 {
     DBUG_ASSERT(root == NULL, "Started parsing with existing syntax tree.");
-    yyin = fopen(global.input_file, "r");
-    if (yyin == NULL) {
-        CTI(CTI_ERROR, true, "Cannot open file '%s'.", global.input_file);
-        CTIabortOnError();
+    if (global.input_buf == NULL)
+    {
+        yyin = fopen(global.input_file, "r");
+        if (yyin == NULL) {
+            CTI(CTI_ERROR, true, "Cannot open file '%s'.", global.input_file);
+            CTIabortOnError();
+        }
+        yyparse();
     }
-    yyparse();
+    else
+    {
+        YY_BUFFER_STATE buffer = yy_scan_bytes(global.input_buf, global.input_buf_len);
+        yyparse();
+        yy_delete_buffer(buffer);
+    }
+
     return parseresult;
 }

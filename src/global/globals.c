@@ -10,6 +10,8 @@ void GLBinitializeGlobals()
 {
     global.col = 1;
     global.line = 1;
+    global.input_buf_len = 0;
+    global.input_buf = NULL;
     global.input_file = NULL;
     global.output_file = NULL;
 }
