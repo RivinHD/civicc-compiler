@@ -1,12 +1,11 @@
-#ifdef __AFL_COMPILER
-#include <assert.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#else
 #include <filesystem>
 #include <iostream>
 #include <ostream>
-#endif // __AFL_COMPILER
+
+#ifdef AFL_MSAN_MODE
+#include <cstring>
+#include <sanitizer/msan_interface.h>
+#endif // AFL_MSAN_MODE
 
 extern "C"
 {
@@ -15,39 +14,16 @@ extern "C"
     void cleanup_scan_parse(node_st *root);
 }
 
-#ifdef __AFL_COMPILER
-__AFL_FUZZ_INIT();
-#endif
-
-// Also see
-// https://github.com/AFLplusplus/AFLplusplus/blob/stable/instrumentation%2FREADME.persistent_mode.md
-// https://nullprogram.com/blog/2025/02/05/
 int main(int argc, char *argv[])
 {
 
-#ifdef __AFL_COMPILER
-    (void)argc;
-    (void)argv;
-
+// This section should be in your code that you write after all the
+// necessary setup is done. It allows AFL++ to start from here in
+// your main() to save time and just throw new input at the target.
 #ifdef __AFL_HAVE_MANUAL_CONTROL
     __AFL_INIT();
 #endif
 
-    unsigned char *buf = __AFL_FUZZ_TESTCASE_BUF;
-    int fd = memfd_create("fuzz", 0);
-    assert(fd == 3);
-
-    while (__AFL_LOOP(10000))
-    {
-        int len = __AFL_FUZZ_TESTCASE_LEN;
-
-        ftruncate(fd, 0);
-        pwrite(fd, buf, len, 0);
-        node_st *root = run_scan_parse("/proc/self/fd/3");
-        cleanup_scan_parse(root);
-    }
-
-#else
     if (argc != 2)
     {
         std::cerr << "Missing input file argument. Usage ./civicc_scanparse <filepath>"
@@ -55,17 +31,22 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+#ifdef AFL_MSAN_MODE
+    __msan_unpoison(argv[1], std::strlen(argv[1]) + 1);
+#endif // AFL_MSAN_MODE
+
     const char *filepath = argv[1];
 
+#ifndef AFL_MSAN_MODE
     if (!std::filesystem::exists(filepath))
     {
         std::cerr << "Input file does not exists on: '" << filepath << "'" << std::endl;
         return 1;
     }
+#endif // !AFL_MSAN_MODE
 
     node_st *root = run_scan_parse(filepath);
     cleanup_scan_parse(root);
-#endif // __AFL_COMPILER
 
     return 0;
 }
