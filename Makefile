@@ -120,7 +120,7 @@ kill_fuzzer_sessions:
 # To use ASAN with 64-bit Target we use -m none and ensure memory safty by setting the ASAN option
 # soft_rss_limit_mb=256 which return null if we try to allocate more.
 .PHONY: fuzz_civicc_multi
-fuzz_civicc_multi: afl_tooling
+fuzz_civicc_multi: 
 	@echo "Starting Multi-Core AFL++ on $(FUZZ_CORES) cores."
 	@mkdir -p afl/civicc/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc/out/fuzzer1
@@ -138,14 +138,14 @@ fuzz_civicc_multi: afl_tooling
 	)
 
 .PHONY: fuzz_civicc
-fuzz_civicc: afl_tooling
+fuzz_civicc: 
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc"
 	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
 
 .PHONY: fuzz_civicc_grammar_multi
-fuzz_civicc_grammar_multi: afl_tooling
+fuzz_civicc_grammar_multi: 
 	@echo "Starting Multi-Core AFL++ on $(FUZZ_CORES) cores."
 	@mkdir -p afl/civicc_grammar/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_grammar/out/fuzzer1
@@ -161,7 +161,7 @@ fuzz_civicc_grammar_multi: afl_tooling
 	done; \
 
 .PHONY: fuzz_civicc_grammar
-fuzz_civicc_grammar: afl_tooling
+fuzz_civicc_grammar: 
 	@mkdir -p afl/civicc_grammar/out/default
 	@cp -r -u afl/trees afl/civicc_grammar/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc_grammar"
@@ -169,7 +169,7 @@ fuzz_civicc_grammar: afl_tooling
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse_multi
-fuzz_scanparse_multi: afl_tooling
+fuzz_scanparse_multi: 
 	@echo "Starting Multi-Core AFL++ on $(FUZZ_CORES) cores."
 	@mkdir -p afl/civicc_scanparse/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_scanparse/out/fuzzer1
@@ -185,14 +185,14 @@ fuzz_scanparse_multi: afl_tooling
 	done; \
 
 .PHONY: fuzz_scanparse
-fuzz_scanparse: afl_tooling
+fuzz_scanparse: 
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse"
 	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: fuzz_scanparse_grammar_multi
-fuzz_scanparse_grammar_multi: afl_tooling
+fuzz_scanparse_grammar_multi: 
 	@echo "Starting Multi-Core AFL++ on $(FUZZ_CORES) cores."
 	@mkdir -p afl/civicc_scanparse_grammar/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_scanparse_grammar/out/fuzzer1
@@ -208,7 +208,7 @@ fuzz_scanparse_grammar_multi: afl_tooling
 	done; \
 
 .PHONY: fuzz_scanparse_grammar
-fuzz_scanparse_grammar: afl_tooling
+fuzz_scanparse_grammar: 
 	@mkdir -p afl/civicc_scanparse_grammar/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse_grammar/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse_grammar"

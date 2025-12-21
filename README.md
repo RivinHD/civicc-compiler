@@ -193,7 +193,12 @@ This will reconfigure your system for more fuzzing performance.\
 *NOTE:* These changes will reduce the security of the system!\
 But these are none-persistent changes and will be reset after system is rebooted.
 
-Now you can run the fuzzer with:
+Now you can setup the fuzzing campaign with:
+```
+make afl_tooling
+```
+
+And run the fuzzer with:
 ```
 make fuzz_<target>
 ```
