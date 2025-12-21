@@ -1,4 +1,22 @@
 .DEFAULT_GOAL := debug
+
+# Fallback to number of CPUs
+CORE_COUNT := $(shell (command -v nproc >/dev/null 2>&1 && nproc) || (uname | grep -i Darwin >/dev/null 2>&1 && sysctl -n hw.ncpu) || echo 1)
+
+# Try to extract -j value from MAKEFLAGS (handles both '-j4' and '-j 4')
+JOBS_FROM_MAKE := $(shell echo $(MAKEFLAGS) | sed -n 's/.*-j[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+
+  # use JOBS if provided, otherwise use detected CORE_COUNT
+ifeq ($(JOBS_FROM_MAKE),)
+  JOBS ?= $(CORE_COUNT)
+else
+  override JOBS := $(JOBS_FROM_MAKE)
+endif
+
+ifeq ($(FUZZ_CORES),)
+	override FUZZ_CORES := $(CORE_COUNT)
+endif
+
 .PHONY: help
 help:
 	@echo "Targets:"
@@ -15,20 +33,6 @@ help:
 	@echo "  fuzz_civicc_grammer:  Fuzz the complete civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_scanparse:  Fuzz the scanner and parser of the civcc compiler with afl, with correct and incorrect civicc programs."
 	@echo "  fuzz_scanparse_grammer:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
-
-
-# Fallback to number of CPUs
-CORE_COUNT := $(shell (command -v nproc >/dev/null 2>&1 && nproc) || (uname | grep -i Darwin >/dev/null 2>&1 && sysctl -n hw.ncpu) || echo 1)
-
-# Try to extract -j value from MAKEFLAGS (handles both '-j4' and '-j 4')
-JOBS_FROM_MAKE := $(shell echo $(MAKEFLAGS) | sed -n 's/.*-j[[:space:]]*\([0-9][0-9]*\).*/\1/p')
-
-  # use JOBS if provided, otherwise use detected CORE_COUNT
-ifeq ($(JOBS_FROM_MAKE),)
-  JOBS ?= $(CORE_COUNT)
-else
-  override JOBS := $(JOBS_FROM_MAKE)
-endif
 
 .PHONY: jobs
 jobs:
@@ -104,16 +108,12 @@ afl_tooling: check_tmpfs afl_build generate_seeds
 kill_fuzzer_sessions:
 	@read -p "Delete all fuzzer tmux session in the group 'fuzz_civicc'? [y/n] " -n 1 -r 
 	@echo # move to new line
-	@if [[ $$REPLY =~ ^[yY]$ ]]; then \
-		tmux list-sessions -F '#{session_group} #{session_name}' | grep "^fuzz_civcc " | cut --delimiter=' ' --fields=2 | while read session; do \
+	@if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+		tmux list-sessions -F '#{session_group} #{session_name}' | grep "^fuzz_civicc " | cut --delimiter=' ' --fields=2 | while read session; do \
 			tmux kill-session -t $$session; \
 			done; \
 		echo "Deleted all tmux session in group 'fuzz_civicc'!"; \
 	fi
-
-ifeq ($(FUZZ_CORES),)
-	override FUZZ_CORES := $(CORE_COUNT)
-endif
 
 # Fuzz the complete compiler
 # We use the exit code 1 for the grammer space fuzzer which leverages the grammar
