@@ -125,13 +125,13 @@ fuzz_civicc_multi: afl_tooling
 	@mkdir -p afl/civicc/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc/out/fuzzer1
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc/fuzzer1"
-	tmux new-session -s fuzzer1 -t fuzz_civicc -d AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc/out -M fuzzer1 -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@ \
+	tmux new-session -s fuzzer1 -t fuzz_civicc -d && tmux send-keys -t fuzzer1 'AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc/out -M fuzzer1 -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@' Enter \
 	@( \
 		for i in $(shell seq 2 $(FUZZ_CORES)); do \
 			mkdir -p afl/civicc/out/fuzzer$$i; \
 			cp -r -u afl/trees afl/civicc/out/fuzzer$$i; \
 			mkdir -p "${TMPFS_DIR}/fuzz_civicc/fuzzer$$i"; \
-			tmux new-session -s fuzzer$$i -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc/out -S fuzzer$$i -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@; \
+			tmux new-session -s fuzzer$$i -t fuzz_civicc -d && tmux send-keys -t fuzzer$$i 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc/out -S fuzzer$$i -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@' Enter; \
 		done; \
 	)
 
@@ -140,7 +140,7 @@ fuzz_civicc: afl_tooling
 	@mkdir -p afl/civicc/out/default
 	@cp -r -u afl/trees afl/civicc/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc"
-	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
+	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
 
 .PHONY: fuzz_civicc_grammar_multi
 fuzz_civicc_grammar_multi: afl_tooling
@@ -148,13 +148,13 @@ fuzz_civicc_grammar_multi: afl_tooling
 	@mkdir -p afl/civicc_grammar/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_grammar/out/fuzzer1
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer1"
-	tmux new-session -s fuzzer1 -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_grammar/out -M fuzzer1 -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
+	tmux new-session -s fuzzer1 -t fuzz_civicc -d && tmux send-keys -t fuzzer1 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_grammar/out -M fuzzer1 -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc' Enter @@
 	@( \
 		for i in $(shell seq 2 $(FUZZ_CORES)); do \
 			mkdir -p afl/civicc_grammar/out/fuzzer$$i; \
 			cp -r -u afl/trees afl/civicc_grammar/out/fuzzer$$i; \
 			mkdir -p "${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer$$i"; \
-			tmux new-session -s fuzzer$$i -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_grammar/out -S fuzzer$$i -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@; \
+			tmux new-session -s fuzzer$$i -t fuzz_civicc -d && tmux send-keys -t fuzzer$$i 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_grammar/out -S fuzzer$$i -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@' Enter; \
 		done; \
 	)
 
@@ -163,7 +163,7 @@ fuzz_civicc_grammar: afl_tooling
 	@mkdir -p afl/civicc_grammar/out/default
 	@cp -r -u afl/trees afl/civicc_grammar/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_civicc_grammar"
-	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_grammar/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
+	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_civicc_grammar" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_grammar/out -w ./build-afl/civicc_asan -w ./build-afl/civicc_ubsan -w ./build-afl/civicc_msan -- ./build-afl/civicc @@
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse_multi
@@ -172,13 +172,13 @@ fuzz_scanparse_multi: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_scanparse/out/fuzzer1
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse/fuzzer1"
-	tmux new-session -s fuzzer1 -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -M fuzzer1 -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
+	tmux new-session -s fuzzer1 -t fuzz_civicc -d && tmux send-keys -t fuzzer1 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse/fuzzer1" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse/out -M fuzzer1 -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@' Enter
 	@( \
 		for i in $(shell seq 2 $(FUZZ_CORES)); do \
 			mkdir -p afl/civicc_scanparse/out/fuzzer$$i; \
 			cp -r -u afl/trees afl/civicc_scanparse/out/fuzzer$$i; \
 			mkdir -p "${TMPFS_DIR}/fuzz_scanparse/fuzzer$$i"; \
-			tmux new-session -s fuzzer$$i -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -S fuzzer$$i -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@; \
+			tmux new-session -s fuzzer$$i -t fuzz_civicc -d && tmux send-keys -t fuzzer$$i 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse/fuzzer$$i" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse/out -S fuzzer$$i -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@' Enter; \
 		done; \
 	)
 
@@ -187,7 +187,7 @@ fuzz_scanparse: afl_tooling
 	@mkdir -p afl/civicc_scanparse/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse"
-	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
+	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: fuzz_scanparse_grammar_multi
 fuzz_scanparse_grammar_multi: afl_tooling
@@ -195,13 +195,13 @@ fuzz_scanparse_grammar_multi: afl_tooling
 	@mkdir -p afl/civicc_scanparse_grammar/out/fuzzer1
 	@cp -r -u afl/trees afl/civicc_scanparse_grammar/out/fuzzer1
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer1"
-	tmux new-session -s fuzzer1 -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer1" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -M fuzzer1 -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
+	tmux new-session -s fuzzer1 -t fuzz_civicc -d && tmux send-keys -t fuzzer1 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer1" AFL_CRASH_EXITCODE=\'1\' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -M fuzzer1 -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@' Enter
 	( \
 		for i in $(shell seq 2 $(FUZZ_CORES)); do \
 			mkdir -p afl/civicc_scanparse_grammar/out/fuzzer$$i; \
 			cp -r -u afl/trees afl/civicc_scanparse_grammar/out/fuzzer$$i; \
 			mkdir -p "${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer$$i"; \
-			tmux new-session -s fuzzer$$i -t fuzz_civicc -d ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer$$i" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -S fuzzer$$i -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@; \
+			tmux new-session -s fuzzer$$i -t fuzz_civicc -d && tmux send-keys -t fuzzer$$i 'ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar/fuzzer$$i" AFL_CRASH_EXITCODE=\'1\' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -S fuzzer$$i -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@' Enter; \
 		done; \
 	) 
 
@@ -210,7 +210,7 @@ fuzz_scanparse_grammar: afl_tooling
 	@mkdir -p afl/civicc_scanparse_grammar/out/default
 	@cp -r -u afl/trees afl/civicc_scanparse_grammar/out/default
 	@mkdir -p "${TMPFS_DIR}/fuzz_scanparse_grammar"
-	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
+	ASAN_OPTIONS=soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_TMPDIR="${TMPFS_DIR}/fuzz_scanparse_grammar" AFL_CRASH_EXITCODE='1' AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so AFL_CUSTOM_MUTATOR_ONLY=1 afl-fuzz -m none -t 60 -i ./afl/seeds -o ./afl/civicc_scanparse_grammar/out -w ./build-afl/civicc_scanparse_asan -w ./build-afl/civicc_scanparse_ubsan -w ./build-afl/civicc_scanparse_msan -- ./build-afl/civicc_scanparse @@
 
 .PHONY: dist
 dist:
