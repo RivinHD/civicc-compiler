@@ -104,15 +104,26 @@ afl_tooling: check_tmpfs afl_build generate_seeds
 	@echo "Finished Building Tooling & Setup"
 
 
-.PHONY: kill_fuzzer_sessions
-kill_fuzzer_sessions:
-	@read -p "Delete all fuzzer tmux session in starting with 'fuzzer'? [y/n] " -n 1 -r 
-	@echo # move to new line
-	@if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+.PHONY: stop_fuzzer_sessions
+stop_fuzzer_sessions:
+	@read -p "Stop all fuzzer in tmux session starting with 'fuzzer'? [y/n] " -r -n 1; \
+	echo; \
+	if [[ "$$REPLY" =~ ^[Yy]$$ ]]; then \
+		echo "Sending stop signal to fuzzer"; \
 		tmux list-sessions -F '#{session_name}' | grep "^fuzzer" | while read session; do \
-			tmux kill-session -t $$session; \
-			done; \
-		echo "Deleted all tmux session starting with 'fuzzer'!"; \
+			tmux send-keys -t $$session C-c; \
+		done; \
+		seconds=0; \
+		running_fuzzer=$$(tmux list-sessions -F '#{session_name}' | grep "^fuzzer" | tr '\n' ', '); \
+		while [ -n "$$running_fuzzer" ]; do \
+			echo "Waiting ($$seconds seconds) for the fuzzer to finish:"; \
+			echo "$$running_fuzzer"; \
+			seconds=$$((seconds + 1)); \
+			sleep 1; \
+			printf '\033[2A\033[J'; \
+			running_fuzzer=$$(tmux list-sessions -F '#{session_name}' | grep "^fuzzer" | tr '\n' ', '); \
+		done; \
+		echo "All fuzzer stopped!"; \
 	fi
 
 # Fuzz the complete compiler

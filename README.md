@@ -228,7 +228,7 @@ For example, you can run multicore fuzzing on 4 cores with:
 make fuzz_<target>_multi FUZZ_CORES=4
 ```
 
-To clean up all tmux sessions of the fuzzer and stop the multicore fuzzing you can run:
+To stop the multicore fuzzing you can run:
 ```
-make kill_fuzzer_sessions 
+make stop_fuzzer_sessions 
 ```
