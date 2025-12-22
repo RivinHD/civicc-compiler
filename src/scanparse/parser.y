@@ -174,6 +174,11 @@ funBody: funBody_varDecs_localFunDefs statements
             $$ = $1;
             AddLocToNode($$, &@1, &@2);
        }
+       | funBody_varDecs_localFunDefs
+       {
+            assertType($1, NT_FUNBODY);
+            $$ = $1;
+       }
        | varDecs statements
        {
             assertType($1, NT_VARDECS);

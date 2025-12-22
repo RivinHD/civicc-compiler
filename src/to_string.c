@@ -162,11 +162,13 @@ char *_node_to_string_array(node_st *node, unsigned int depth, char *depth_strin
 {
     char *output = NULL;
     node_st *next = node;
+    char *connection = "┢";
 
     while (next != NULL)
     {
         char *old_output = output;
-        char *output_child = _node_to_string(next, depth + 1, "┣", depth_string);
+        char *output_child = _node_to_string(next, depth + 1, connection, depth_string);
+        connection = "┣";
         output = STRcat(old_output, output_child);
         free(output_child);
         free(old_output);

@@ -1,0 +1,40 @@
+void test1() {
+    int varDec = 1;
+    int fun() {
+    }
+
+    varDec = fun() + 2;
+}
+
+void test2() {
+    int varDec = 1;
+    int fun() {
+    }
+}
+
+void test3() {
+    int varDec = 1;
+
+    varDec = fun() + 2;
+}
+
+void test4() {
+    int fun() {
+    }
+
+    varDec = fun() + 2;
+}
+
+void test5() {
+    int varDec = 1;
+}
+
+void test6() {
+    int fun() {
+    }
+}
+
+void test7() {
+    varDec = fun() + 2;
+}
+
