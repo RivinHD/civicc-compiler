@@ -48,12 +48,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(cmake/afl.cmake)
 
 if(AFL_ENABLED)
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        message(WARNING "Build type 'Debug' is set for Fuzzing. Build type 'Release' is recommand
+        as we want to fuzz as fast as possible.")
+    endif()
+
     # We set the scanparse exit code to 1 as it can be used for positive space fuzzing
     add_compile_definitions(YY_EXIT_FAILURE=1)
 
     # We remove the NDEBUG flags for the AFL builds as assertions are key part of crashes.
     string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+
+    # Add additional optimization options
+    add_compile_options(-flto)
+    string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR_ARCH)
+    if(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(arm|aarch).*") # ARM architecture
+        # See https://developer.arm.com/community/arm-community-blogs/b/tools-software-ides-blog/posts/compiler-flags-across-architectures-march-mtune-and-mcpu
+        add_compile_options(-mcpu=native)
+    elseif(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(amd64|86).*") # x86 architecture
+        add_compile_options(-march=native -mtune=native)
+    else()
+        message(WARNING "Native Architecture optimizations not supported on: ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
 endif()
 
 include(FetchContent)

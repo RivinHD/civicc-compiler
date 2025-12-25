@@ -97,6 +97,5 @@ if(AFL_ENABLED)
         unset(AFL_EXT)
         setup_grammar("grammars/civicc.json")
     endif()
-
 endif()
 
