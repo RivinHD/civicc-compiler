@@ -138,7 +138,7 @@ define fuzz_multicore
 	@mkdir -p afl/${$@_dirname}/multi/fuzzer1
 	@cp -r -u afl/trees afl/${$@_dirname}/multi/fuzzer1
 	@mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1"
-	tmux new-session -s fuzzer1 -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so ${$@_afl_extra_args} afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/${$@_target}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
+	tmux new-session -s fuzzer1 -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so ${$@_afl_extra_args} afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/${$@_dirname}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
 	sleep 5 # Let Master stabelize
 	@for i in $(shell seq 2 $(FUZZ_CORES)); do \
 		mkdir -p afl/${$@_dirname}/multi/fuzzer$$i; \
