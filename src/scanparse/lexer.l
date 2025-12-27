@@ -157,12 +157,18 @@ SEPC ({SEP}|\{)
 [0-9]+\.[0-9]+(("e"|"E")("+"|"-")?[0-9]+)? {
     double value = strtod(yytext, NULL);
 
-    if(value > FLT_MAX || value < FLT_MIN)
+    if(errno == ERANGE)
     {
-      printf("%s:%d:%d: WARNING: Float out of range. Will clamp the value '%s' to '%f'.\n", global.input_file, global.line, global.col, yytext, (float)value);
+        char* filename = STRcpy(global.input_file);
+    struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+      CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
+      if(filename != NULL)
+      {
+          free(filename);
+      }
     }
 
-    yylval.cflt = (float)value;
+    yylval.cflt = value;
     FILTER( FLOATCONST);
 }
 
@@ -171,7 +177,14 @@ SEPC ({SEP}|\{)
 
     if(value > INT_MAX || value < INT_MIN)
     {
-      printf("%s:%d:%d: WARNING: Int out of range. Will clamp the value '%s' to '%d'.\n", global.input_file, global.line, global.col, yytext, (int)value);
+        char* filename = STRcpy(global.input_file);
+        value = (value > INT_MAX) ? INT_MAX : INT_MIN;
+    struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
+      if(filename != NULL)
+      {
+          free(filename);
+      }
     }
 
     yylval.cint= (int)value;

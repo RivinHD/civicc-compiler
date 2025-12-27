@@ -1,5 +1,6 @@
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include <filesystem>
-#include <gtest/gtest.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -19,37 +20,58 @@ class ScanParseTest : public testing::Test
     char *root_string = nullptr;
     node_st *root = nullptr;
     std::string filepath;
+    std::string err_output;
+    std::string std_output;
 
   protected:
     ScanParseTest()
     {
     }
 
-    void SetUp(std::string filename)
+    void SetUpNoExecute(std::string filename)
     {
         filepath =
             std::filesystem::absolute(std::string(PROJECT_DIRECTORY) + "/test/data/" + filename);
         ASSERT_TRUE(std::filesystem::exists(filepath))
             << "File does not exist at path '" << filepath << "'";
+    }
+
+    void SetUp(std::string filename)
+    {
+        SetUpNoExecute(filename);
+        testing::internal::CaptureStdout();
+        testing::internal::CaptureStderr();
         root = run_scan_parse(filepath.c_str());
         EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << filepath << "'";
+        err_output = testing::internal::GetCapturedStderr();
+        std_output = testing::internal::GetCapturedStdout();
+        ASSERT_THAT(err_output,
+                    testing::Not(testing::HasSubstr("error: Inconsistent node found in AST")));
         root_string = node_to_string(root);
     }
 
     void TearDown() override
     {
-        if (HasFailure())
+        if (root_string != nullptr)
         {
-            std::cerr
-                << "========================================================================\n"
-                << "                        Node Representation\n"
-                << "========================================================================\n"
-                << root_string << std::endl;
+
+            if (HasFailure())
+            {
+                std::cerr
+                    << "========================================================================\n"
+                    << "                        Node Representation\n"
+                    << "========================================================================\n"
+                    << root_string << std::endl;
+            }
+
+            free(root_string);
         }
 
-        free(root_string);
-        cleanup_scan_parse(root);
-        root = nullptr;
+        if (root != nullptr)
+        {
+            cleanup_scan_parse(root);
+            root = nullptr;
+        }
     }
 };
 
@@ -5286,5 +5308,205 @@ TEST_F(ScanParseTest, ScanParse_Suite_NestedFuns_LocalFun)
                            "┃        └─ NULL\n"
                            "┗─ NULL\n";
 
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+// ////////////////////////////
+// Everything from CHECK ERROR
+// ////////////////////////////
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_Empty)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/empty.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_ExportExternFun)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/export_extern_fun.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_GlobalStatement)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/global_statement.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_IntergerOutOfRange)
+{
+    SetUp("testsuite_public/basic/check_error/integer_out_of_range.cvc");
+    ASSERT_NE(nullptr, root);
+    ASSERT_THAT(err_output, testing::HasSubstr("warning: Int out of range."));
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidForLoop)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/invalid_for_loop_type.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnType)
+{
+    SetUp("testsuite_public/basic/check_error/invalid_return_type.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'int'\n"
+                           "┃     │  ├─ Var -- name:'f'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ RetStatement\n"
+                           "┃        ┃     └─ Bool -- val:'1'\n"
+                           "┃        ┗─ NULL\n"
+                           "┗─ NULL\n";
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnVoidFunc)
+{
+    SetUp("testsuite_public/basic/check_error/invalid_return_voidfunc.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'f'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ RetStatement\n"
+                           "┃        ┃     └─ Bool -- val:'1'\n"
+                           "┃        ┗─ NULL\n"
+                           "┗─ NULL\n";
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidStatement)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/invalid_statements.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_UndefinedVar)
+{
+    SetUp("testsuite_public/basic/check_error/undefined_var.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'f'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'a'\n"
+                           "┃        ┃     └─ Var -- name:'notdef'\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Basic_UnterminatedComment)
+{
+    SetUpNoExecute("testsuite_public/basic/check_error/unterminated_comment.cvc");
+    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Arrays_InvalidInit)
+{
+    SetUp("testsuite_public/arrays/check_error/invalid_init.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'foo'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'a'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'b'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     ┃  ┃  ┗─ NULL\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ShadowedDimension)
+{
+    SetUp("testsuite_public/arrays/check_error/shadowed_dimension.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'foo'\n"
+                           "┃     │  ┢─ Params -- type:'int'\n"
+                           "┃     │  ┃  └─ ArrayVar\n"
+                           "┃     │  ┃     ┢─ DimensionVars\n"
+                           "┃     │  ┃     ┃  └─ Var -- name:'a'\n"
+                           "┃     │  ┃     ┡─ NULL\n"
+                           "┃     │  ┃     └─ Var -- name:'a'\n"
+                           "┃     │  ┗─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
     ASSERT_MLSTREQ(expected, root_string);
 }

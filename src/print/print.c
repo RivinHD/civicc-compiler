@@ -43,7 +43,7 @@ node_st *PRTdeclarations(node_st *node)
     TRAVdecl(node);
     if (DECLARATIONS_NEXT(node) != NULL)
     {
-        printf("`");
+        printf("\n");
         TRAVnext(node);
     }
     return node;
@@ -294,7 +294,6 @@ node_st *PRTvardec(node_st *node)
             TRAVexpr(node);
         }
     }
-    printf(";");
     return node;
 }
 

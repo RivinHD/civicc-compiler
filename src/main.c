@@ -5,10 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ccn/ccn.h"
+#include "ccn/dynamic_core.h"
+#include "ccn/phase_driver.h"
 #include "global/globals.h"
-#include "palm/dbug.h"
-#include "palm/str.h"
 
 static void Usage(char *program)
 {

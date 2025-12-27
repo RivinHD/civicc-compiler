@@ -16,6 +16,7 @@
 
 extern "C"
 {
+#include "palm/ctinfo.h"
     struct node_st;
     node_st *run_scan_parse_buf(const char *filepath, char *buffer, int buffer_length);
     void cleanup_scan_parse(node_st *root);
@@ -104,5 +105,6 @@ int main(int argc, char *argv[])
         free(src);
     }
 
+    CTIabortOnError();
     return 0;
 }

@@ -23,6 +23,7 @@ node_st *run_scan_parse_buf(const char *filepath, char *buffer, int buffer_lengt
     resetPhaseDriver();
     node_st *node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SPDOSCANPARSE), CCN_ROOT_TYPE, NULL, false);
+    TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }
 

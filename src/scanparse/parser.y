@@ -45,7 +45,7 @@ do { \
 %union {
  char               *id;
  int                 cint;
- float               cflt;
+ double               cflt;
  enum BinOpType     cbinop;
  enum MonOpType     cmonop;
  enum DataType      ctype;

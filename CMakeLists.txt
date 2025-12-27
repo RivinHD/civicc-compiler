@@ -37,6 +37,7 @@ option(BUILD_GRAMMAR_GENERATOR
 Note: Afl is not requiered to build the generator."
     OFF
 )
+option(DEBUG_SCANPARSE "Prints deubg information from the lexing and parsing to the console." ON)
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")
@@ -74,6 +75,7 @@ if(AFL_ENABLED)
 endif()
 
 include(FetchContent)
+set(INSTALL_GTEST OFF)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest
@@ -106,7 +108,9 @@ include(cmake/coconut.cmake)
 
 # Add compile options before all targets but after the includes to only apply them to the targets
 if(NOT AFL_ENABLED)
-    add_compile_definitions(DEBUG_SCANPARSE=1)
+    if(DEBUG_SCANPARSE)
+        add_compile_definitions($<$<CONFIG:Debug>:DEBUG_SCANPARSE=1>)
+    endif()
 endif()
 add_compile_definitions(PROJECT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 message(STATUS "Set Definition 'PROJECT_DIRECTORY=${PROJECT_SOURCE_DIR}'")
@@ -115,7 +119,7 @@ add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 
 # Enable address sanitizer
-if(NOT DISABLE_ASAN AND NOT AFL_ENABLED )
+if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
     if(APPLE)
         message(STATUS "Sanitzier: Can not build with Sanitizer on Apple architecture.")
     else()
@@ -151,7 +155,7 @@ target_include_directories("civicc_scanparse${AFL_EXT}"
 
 if(NOT AFL_ENABLED)
     add_executable(tests ${TEST_FILES}) # No need to apply afl to tests
-    target_link_libraries(tests PRIVATE gtest_main civicc_lib)
+    target_link_libraries(tests PRIVATE gmock_main civicc_lib)
     coconut_add_includes(tests)
     target_include_directories(tests
         PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"

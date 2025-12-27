@@ -200,7 +200,7 @@ node Monop {
 node VarDec {
     children {
         VarOptArrayExpr var { constructor, mandatory },
-        ArrayInit expr { constructor }
+        ExprOptArrayInit expr { constructor }
     },
 
     attributes {
@@ -288,7 +288,7 @@ node ArrayVar {
 node DimensionVars {
     children {
         Var dim { constructor, mandatory },
-        Exprs next { constructor }
+        DimensionVars next { constructor }
     }
 };
 
