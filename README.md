@@ -195,7 +195,7 @@ But these are none-persistent changes and will be reset after system is rebooted
 
 Now you can setup the fuzzing campaign with:
 ```
-make afl_tooling
+make afl_build
 ```
 
 And run the fuzzer with:

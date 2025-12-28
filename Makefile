@@ -99,11 +99,6 @@ generate_seeds:
 		echo "Seed generation skipped, already exists."; \
 	fi
 
-.PHONY: afl_tooling
-afl_tooling: check_tmpfs afl_build generate_seeds
-	@echo "Finished Building Tooling & Setup"
-
-
 .PHONY: stop_fuzzer_sessions
 stop_fuzzer_sessions:
 	@read -p "Stop all fuzzer in tmux session starting with 'fuzzer'? [y/n] " -r -n 1; \
@@ -162,36 +157,36 @@ endef
 
 # Fuzz the complete compiler
 .PHONY: fuzz_civicc_multi
-fuzz_civicc_multi: 
+fuzz_civicc_multi: check_tmpfs generate_seeds
 	$(call fuzz_multicore,civicc,civicc,)
 
 .PHONY: fuzz_civicc
-fuzz_civicc: 
+fuzz_civicc: check_tmpfs generate_seeds
 	$(call fuzz_single,civicc,civicc,)
 
 .PHONY: fuzz_civicc_grammar_multi
-fuzz_civicc_grammar_multi: 
+fuzz_civicc_grammar_multi: check_tmpfs generate_seeds
 	$(call fuzz_multicore,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_civicc_grammar
-fuzz_civicc_grammar: 
+fuzz_civicc_grammar: check_tmpfs generate_seeds
 	$(call fuzz_single,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse_multi
-fuzz_scanparse_multi: 
+fuzz_scanparse_multi: check_tmpfs generate_seeds
 	$(call fuzz_multicore,civicc_scanparse,civicc_scanparse,)
 
 .PHONY: fuzz_scanparse
-fuzz_scanparse: 
+fuzz_scanparse: check_tmpfs generate_seeds
 	$(call fuzz_single,civicc_scanparse,civicc_scanparse,)
 
 .PHONY: fuzz_scanparse_grammar_multi
-fuzz_scanparse_grammar_multi: 
+fuzz_scanparse_grammar_multi: check_tmpfs generate_seeds
 	$(call fuzz_multicore,civicc_scanparse,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_scanparse_grammar
-fuzz_scanparse_grammar: 
+fuzz_scanparse_grammar: check_tmpfs generate_seeds
 	$(call fuzz_single,civicc_scanparse,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: dist
