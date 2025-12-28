@@ -160,12 +160,12 @@ SEPC ({SEP}|\{)
     if(errno == ERANGE)
     {
         char* filename = STRcpy(global.input_file);
-    struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
-      CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
-      if(filename != NULL)
-      {
-          free(filename);
-      }
+        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
+        if(filename != NULL)
+        {
+            free(filename);
+        }
     }
 
     yylval.cflt = value;
@@ -179,12 +179,12 @@ SEPC ({SEP}|\{)
     {
         char* filename = STRcpy(global.input_file);
         value = (value > INT_MAX) ? INT_MAX : INT_MIN;
-    struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
         CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
-      if(filename != NULL)
-      {
-          free(filename);
-      }
+        if(filename != NULL)
+        {
+            free(filename);
+        }
     }
 
     yylval.cint= (int)value;

@@ -13,5 +13,7 @@ void GLBinitializeGlobals()
     global.input_buf_len = 0;
     global.input_buf = NULL;
     global.input_file = NULL;
+    global.output_buf_len = 0;
+    global.output_buf = NULL;
     global.output_file = NULL;
 }

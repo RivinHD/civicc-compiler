@@ -1,17 +1,14 @@
+#include "testutils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <filesystem>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 extern "C"
 {
-#include "ccngen/ast.h"
-#include "ccngen/enum.h"
+#include "test_interface.h"
 #include "to_string.h"
-    node_st *run_scan_parse(const char *filepath);
-    void cleanup_scan_parse(node_st *root);
 }
 
 class ScanParseTest : public testing::Test
@@ -19,7 +16,7 @@ class ScanParseTest : public testing::Test
   public:
     char *root_string = nullptr;
     node_st *root = nullptr;
-    std::string filepath;
+    std::string input_filepath;
     std::string err_output;
     std::string std_output;
 
@@ -28,21 +25,21 @@ class ScanParseTest : public testing::Test
     {
     }
 
-    void SetUpNoExecute(std::string filename)
+    void SetUpNoExecute(std::string filepath)
     {
-        filepath =
-            std::filesystem::absolute(std::string(PROJECT_DIRECTORY) + "/test/data/" + filename);
-        ASSERT_TRUE(std::filesystem::exists(filepath))
-            << "File does not exist at path '" << filepath << "'";
+        input_filepath =
+            std::filesystem::absolute(std::string(PROJECT_DIRECTORY) + "/test/data/" + filepath);
+        ASSERT_TRUE(std::filesystem::exists(input_filepath))
+            << "File does not exist at path '" << input_filepath << "'";
     }
 
-    void SetUp(std::string filename)
+    void SetUp(std::string filepath)
     {
-        SetUpNoExecute(filename);
+        SetUpNoExecute(filepath);
         testing::internal::CaptureStdout();
         testing::internal::CaptureStderr();
-        root = run_scan_parse(filepath.c_str());
-        EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << filepath << "'";
+        root = run_scan_parse(input_filepath.c_str());
+        EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << input_filepath << "'";
         err_output = testing::internal::GetCapturedStderr();
         std_output = testing::internal::GetCapturedStdout();
         ASSERT_THAT(err_output,
@@ -69,32 +66,13 @@ class ScanParseTest : public testing::Test
 
         if (root != nullptr)
         {
-            cleanup_scan_parse(root);
+            cleanup_nodes(root);
             root = nullptr;
         }
     }
 };
 
-static inline void ASSERT_MLSTREQ(const char *expected, const char *value)
-{
-    std::string token_expected;
-    std::string token_value;
-    std::istringstream stream_expected(expected);
-    std::istringstream stream_value(value);
-    unsigned int relative_line = 1;
-
-    // intendet bitwise & to process both getline
-    while (!std::getline(stream_expected, token_expected).eof() &
-           !std::getline(stream_value, token_value).eof())
-    {
-        ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;
-        relative_line++;
-    }
-
-    ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;
-}
-
-TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
+TEST_F(ScanParseTest, GlobalDecBool)
 {
     SetUp("globaldec_bool/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -174,7 +152,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecBool)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDecInt)
+TEST_F(ScanParseTest, GlobalDecInt)
 {
     SetUp("globaldec_int/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -215,7 +193,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecInt)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDecFloat)
+TEST_F(ScanParseTest, GlobalDecFloat)
 {
     SetUp("globaldec_float/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -256,7 +234,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecFloat)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDefBool)
+TEST_F(ScanParseTest, GlobalDefBool)
 {
     SetUp("globaldef_bool/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -340,7 +318,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefBool)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDefInt)
+TEST_F(ScanParseTest, GlobalDefInt)
 {
     SetUp("globaldef_int/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -425,7 +403,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefInt)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
+TEST_F(ScanParseTest, GlobalDefFloat)
 {
     SetUp("globaldef_float/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -441,12 +419,12 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
         "┃        ├─ Var -- name:'test_long'\n"
-        "┃        └─ Float -- val:'212.239395'\n"
+        "┃        └─ Float -- val:'212.239402'\n"
         "┣─ Declarations\n"
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
         "┃        ├─ Var -- name:'test_321'\n"
-        "┃        └─ Float -- val:'999999995904.000000'\n"
+        "┃        └─ Float -- val:'1000000000000.000000'\n"
         "┣─ Declarations\n"
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
@@ -456,7 +434,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
         "┃        ├─ Var -- name:'test_3'\n"
-        "┃        └─ Float -- val:'999999995904.000000'\n"
+        "┃        └─ Float -- val:'1000000000000.000000'\n"
         "┣─ Declarations\n"
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
@@ -467,7 +445,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
         "┃     └─ VarDec -- type:'float'\n"
         "┃        ├─ Var -- name:'test_3'\n"
         "┃        └─ Monop -- op:'-'\n"
-        "┃           └─ Float -- val:'999999995904.000000'\n"
+        "┃           └─ Float -- val:'1000000000000.000000'\n"
         "┣─ Declarations\n"
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
@@ -545,7 +523,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
         "┃        │  ┃  └─ Int -- val:'15'\n"
         "┃        │  ┡─ NULL\n"
         "┃        │  └─ Var -- name:'array7'\n"
-        "┃        └─ Float -- val:'4999999913984.000000'\n"
+        "┃        └─ Float -- val:'5000000000000.000000'\n"
         "┣─ Declarations\n"
         "┃  └─ GlobalDef -- has_export:'0'\n"
         "┃     └─ VarDec -- type:'float'\n"
@@ -559,18 +537,17 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefFloat)
         "┃        ┣─ ArrayInit\n"
         "┃        ┃  └─ Float -- val:'4.000000'\n"
         "┃        ┣─ ArrayInit\n"
-        "┃        ┃  └─ Float -- val:'30000001227554362788892595812564992.000000'\n"
+        "┃        ┃  └─ Float -- val:'30000000000000001826021443431825408.000000'\n"
         "┃        ┣─ ArrayInit\n"
-        "┃        ┃  └─ Float -- val:'1999999991808.000000'\n"
+        "┃        ┃  └─ Float -- val:'2000000000000.000000'\n"
         "┃        ┣─ ArrayInit\n"
-        "┃        ┃  └─ Float -- val:'100000003318135351409612647563264.000000'\n"
+        "┃        ┃  └─ Float -- val:'100000000000000005366162204393472.000000'\n"
         "┃        ┗─ NULL\n"
         "┗─ NULL\n";
-
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDecBool)
+TEST_F(ScanParseTest, FunDecBool)
 {
     SetUp("fundec_bool/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -645,7 +622,7 @@ TEST_F(ScanParseTest, ScanParse_FunDecBool)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDecInt)
+TEST_F(ScanParseTest, FunDecInt)
 {
     SetUp("fundec_int/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -720,7 +697,7 @@ TEST_F(ScanParseTest, ScanParse_FunDecInt)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDecFloat)
+TEST_F(ScanParseTest, FunDecFloat)
 {
     SetUp("fundec_float/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -795,7 +772,7 @@ TEST_F(ScanParseTest, ScanParse_FunDecFloat)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDefBool)
+TEST_F(ScanParseTest, FunDefBool)
 {
     SetUp("fundef_bool/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -1226,7 +1203,7 @@ TEST_F(ScanParseTest, ScanParse_FunDefBool)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDefInt)
+TEST_F(ScanParseTest, FunDefInt)
 {
     SetUp("fundef_int/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -1657,7 +1634,7 @@ TEST_F(ScanParseTest, ScanParse_FunDefInt)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_FunDefFloat)
+TEST_F(ScanParseTest, FunDefFloat)
 {
     SetUp("fundef_float/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2088,7 +2065,7 @@ TEST_F(ScanParseTest, ScanParse_FunDefFloat)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_LocalFundef)
+TEST_F(ScanParseTest, LocalFundef)
 {
     SetUp("local_fundef/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2131,7 +2108,7 @@ TEST_F(ScanParseTest, ScanParse_LocalFundef)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_LocalFundefs)
+TEST_F(ScanParseTest, LocalFundefs)
 {
     SetUp("local_fundefs/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2187,7 +2164,7 @@ TEST_F(ScanParseTest, ScanParse_LocalFundefs)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_LocalFundefsRecursive)
+TEST_F(ScanParseTest, LocalFundefsRecursive)
 {
     SetUp("local_fundefs_recursive/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2252,7 +2229,7 @@ TEST_F(ScanParseTest, ScanParse_LocalFundefsRecursive)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDefAssignArray)
+TEST_F(ScanParseTest, GlobalDefAssignArray)
 {
     SetUp("globaldef_assign_array/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2283,7 +2260,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefAssignArray)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDefCast)
+TEST_F(ScanParseTest, GlobalDefCast)
 {
     SetUp("globaldef_cast/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2324,7 +2301,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDefCast)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_ProcCall)
+TEST_F(ScanParseTest, ProcCall)
 {
     SetUp("proc_call/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2400,7 +2377,7 @@ TEST_F(ScanParseTest, ScanParse_ProcCall)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Binops)
+TEST_F(ScanParseTest, Binops)
 {
     SetUp("binops/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2743,7 +2720,7 @@ TEST_F(ScanParseTest, ScanParse_Binops)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_GlobalDecArray)
+TEST_F(ScanParseTest, GlobalDecArray)
 {
     SetUp("globaldec_array/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2808,7 +2785,7 @@ TEST_F(ScanParseTest, ScanParse_GlobalDecArray)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_DoWhile)
+TEST_F(ScanParseTest, DoWhile)
 {
     SetUp("dowhile/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -2862,7 +2839,7 @@ TEST_F(ScanParseTest, ScanParse_DoWhile)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_If)
+TEST_F(ScanParseTest, If)
 {
     SetUp("if/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -3098,7 +3075,7 @@ TEST_F(ScanParseTest, ScanParse_If)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_For)
+TEST_F(ScanParseTest, For)
 {
     SetUp("for/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -3261,7 +3238,7 @@ TEST_F(ScanParseTest, ScanParse_For)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Comment)
+TEST_F(ScanParseTest, Comment)
 {
     SetUp("comments/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -3277,7 +3254,7 @@ TEST_F(ScanParseTest, ScanParse_Comment)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_BinopsPrecedence)
+TEST_F(ScanParseTest, BinopsPrecedence)
 {
     SetUp("binops_precedence/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -3412,7 +3389,7 @@ TEST_F(ScanParseTest, ScanParse_BinopsPrecedence)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Funbody)
+TEST_F(ScanParseTest, Funbody)
 {
     SetUp("funbody/main.cvc");
     ASSERT_NE(nullptr, root);
@@ -3570,7 +3547,7 @@ TEST_F(ScanParseTest, ScanParse_Funbody)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_Binop)
+TEST_F(ScanParseTest, Suite_Basic_Binop)
 {
     SetUp("testsuite_public/basic/check_success/binops.cvc");
     ASSERT_NE(nullptr, root);
@@ -3626,7 +3603,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_Binop)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_Boolop)
+TEST_F(ScanParseTest, Suite_Basic_Boolop)
 {
     SetUp("testsuite_public/basic/check_success/boolop.cvc");
     ASSERT_NE(nullptr, root);
@@ -3804,7 +3781,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_Boolop)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_CommentMultiline)
+TEST_F(ScanParseTest, Suite_Basic_CommentMultiline)
 {
     SetUp("testsuite_public/basic/check_success/comment_multiline.cvc");
     ASSERT_NE(nullptr, root);
@@ -3820,7 +3797,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_CommentMultiline)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_CommentSingleline)
+TEST_F(ScanParseTest, Suite_Basic_CommentSingleline)
 {
     SetUp("testsuite_public/basic/check_success/comment_singleline.cvc");
     ASSERT_NE(nullptr, root);
@@ -3836,7 +3813,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_CommentSingleline)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_DoWhile)
+TEST_F(ScanParseTest, Suite_Basic_DoWhile)
 {
     SetUp("testsuite_public/basic/check_success/do_while.cvc");
     ASSERT_NE(nullptr, root);
@@ -3882,7 +3859,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_DoWhile)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_EarlyReturn)
+TEST_F(ScanParseTest, Suite_Basic_EarlyReturn)
 {
     SetUp("testsuite_public/basic/check_success/early_return.cvc");
     ASSERT_NE(nullptr, root);
@@ -3922,7 +3899,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_EarlyReturn)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ExternVar)
+TEST_F(ScanParseTest, Suite_Basic_ExternVar)
 {
     SetUp("testsuite_public/basic/check_success/extern_var.cvc");
     ASSERT_NE(nullptr, root);
@@ -3936,7 +3913,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ExternVar)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_NoReturn)
+TEST_F(ScanParseTest, Suite_Basic_NoReturn)
 {
     SetUp("testsuite_public/basic/check_success/no_return.cvc");
     ASSERT_NE(nullptr, root);
@@ -3956,7 +3933,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_NoReturn)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParamsFuncall)
+TEST_F(ScanParseTest, Suite_Basic_ParamsFuncall)
 {
     SetUp("testsuite_public/basic/check_success/params_funcall.cvc");
     ASSERT_NE(nullptr, root);
@@ -3987,7 +3964,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParamsFuncall)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParamsSimple)
+TEST_F(ScanParseTest, Suite_Basic_ParamsSimple)
 {
     SetUp("testsuite_public/basic/check_success/params_simple.cvc");
     ASSERT_NE(nullptr, root);
@@ -4011,7 +3988,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParamsSimple)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseAssign)
+TEST_F(ScanParseTest, Suite_Basic_ParseAssign)
 {
     SetUp("testsuite_public/basic/check_success/parse_assign.cvc");
     ASSERT_NE(nullptr, root);
@@ -4048,7 +4025,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseAssign)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseDoWhile)
+TEST_F(ScanParseTest, Suite_Basic_ParseDoWhile)
 {
     SetUp("testsuite_public/basic/check_success/parse_do_while.cvc");
     ASSERT_NE(nullptr, root);
@@ -4088,7 +4065,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseDoWhile)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFor)
+TEST_F(ScanParseTest, Suite_Basic_ParseFor)
 {
     SetUp("testsuite_public/basic/check_success/parse_for.cvc");
     ASSERT_NE(nullptr, root);
@@ -4149,7 +4126,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFor)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFunbody)
+TEST_F(ScanParseTest, Suite_Basic_ParseFunbody)
 {
     SetUp("testsuite_public/basic/check_success/parse_funbody.cvc");
     ASSERT_NE(nullptr, root);
@@ -4254,7 +4231,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFunbody)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFuncall)
+TEST_F(ScanParseTest, Suite_Basic_ParseFuncall)
 {
     SetUp("testsuite_public/basic/check_success/parse_funcall.cvc");
     ASSERT_NE(nullptr, root);
@@ -4278,7 +4255,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseFuncall)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseGlobaldec)
+TEST_F(ScanParseTest, Suite_Basic_ParseGlobaldec)
 {
     SetUp("testsuite_public/basic/check_success/parse_globaldec.cvc");
     ASSERT_NE(nullptr, root);
@@ -4298,7 +4275,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseGlobaldec)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseGlobaldef)
+TEST_F(ScanParseTest, Suite_Basic_ParseGlobaldef)
 {
     SetUp("testsuite_public/basic/check_success/parse_globaldef.cvc");
     ASSERT_NE(nullptr, root);
@@ -4369,7 +4346,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseGlobaldef)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseIfElse)
+TEST_F(ScanParseTest, Suite_Basic_ParseIfElse)
 {
     SetUp("testsuite_public/basic/check_success/parse_if_else.cvc");
     ASSERT_NE(nullptr, root);
@@ -4428,7 +4405,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseIfElse)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseOperators)
+TEST_F(ScanParseTest, Suite_Basic_ParseOperators)
 {
     SetUp("testsuite_public/basic/check_success/parse_operators.cvc");
     ASSERT_NE(nullptr, root);
@@ -4569,7 +4546,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseOperators)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseTypecast)
+TEST_F(ScanParseTest, Suite_Basic_ParseTypecast)
 {
     SetUp("testsuite_public/basic/check_success/parse_typecast.cvc");
     ASSERT_NE(nullptr, root);
@@ -4604,7 +4581,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseTypecast)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseVardec)
+TEST_F(ScanParseTest, Suite_Basic_ParseVardec)
 {
     SetUp("testsuite_public/basic/check_success/parse_vardec.cvc");
     ASSERT_NE(nullptr, root);
@@ -4648,7 +4625,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_ParseVardec)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_VardecInit)
+TEST_F(ScanParseTest, Suite_Basic_VardecInit)
 {
     SetUp("testsuite_public/basic/check_success/vardec_init.cvc");
     ASSERT_NE(nullptr, root);
@@ -4692,7 +4669,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_VardecInit)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ExternArrayArg)
+TEST_F(ScanParseTest, Suite_Arrays_ExternArrayArg)
 {
     SetUp("testsuite_public/arrays/check_success/extern_array_arg.cvc");
     ASSERT_NE(nullptr, root);
@@ -4743,7 +4720,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ExternArrayArg)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_LocalArraydef)
+TEST_F(ScanParseTest, Suite_Arrays_LocalArraydef)
 {
     SetUp("testsuite_public/arrays/check_success/local_arraydef.cvc");
     ASSERT_NE(nullptr, root);
@@ -4793,7 +4770,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Arrays_LocalArraydef)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ScanVectorMatrix)
+TEST_F(ScanParseTest, Suite_Arrays_ScanVectorMatrix)
 {
     SetUp("testsuite_public/arrays/check_success/scan_vector_matrix.cvc");
     ASSERT_NE(nullptr, root);
@@ -5004,7 +4981,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ScanVectorMatrix)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_Scopes)
+TEST_F(ScanParseTest, Suite_Arrays_Scopes)
 {
     SetUp("testsuite_public/arrays/check_success/scopes.cvc");
     ASSERT_NE(nullptr, root);
@@ -5260,7 +5237,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Arrays_Scopes)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_NestedFuns_LocalFun)
+TEST_F(ScanParseTest, Suite_NestedFuns_LocalFun)
 {
     SetUp("testsuite_public/nested_funs/check_success/local_funs.cvc");
     ASSERT_NE(nullptr, root);
@@ -5315,42 +5292,42 @@ TEST_F(ScanParseTest, ScanParse_Suite_NestedFuns_LocalFun)
 // Everything from CHECK ERROR
 // ////////////////////////////
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_Empty)
+TEST_F(ScanParseTest, Suite_Basic_Empty)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/empty.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_ExportExternFun)
+TEST_F(ScanParseTest, Suite_Basic_ExportExternFun)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/export_extern_fun.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_GlobalStatement)
+TEST_F(ScanParseTest, Suite_Basic_GlobalStatement)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/global_statement.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_IntergerOutOfRange)
+TEST_F(ScanParseTest, Suite_Basic_IntergerOutOfRange)
 {
     SetUp("testsuite_public/basic/check_error/integer_out_of_range.cvc");
     ASSERT_NE(nullptr, root);
     ASSERT_THAT(err_output, testing::HasSubstr("warning: Int out of range."));
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidForLoop)
+TEST_F(ScanParseTest, Suite_Basic_InvalidForLoop)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/invalid_for_loop_type.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnType)
+TEST_F(ScanParseTest, Suite_Basic_InvalidReturnType)
 {
     SetUp("testsuite_public/basic/check_error/invalid_return_type.cvc");
     ASSERT_NE(nullptr, root);
@@ -5372,7 +5349,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnType)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnVoidFunc)
+TEST_F(ScanParseTest, Suite_Basic_InvalidReturnVoidFunc)
 {
     SetUp("testsuite_public/basic/check_error/invalid_return_voidfunc.cvc");
     ASSERT_NE(nullptr, root);
@@ -5394,14 +5371,14 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidReturnVoidFunc)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_InvalidStatement)
+TEST_F(ScanParseTest, Suite_Basic_InvalidStatement)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/invalid_statements.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_UndefinedVar)
+TEST_F(ScanParseTest, Suite_Basic_UndefinedVar)
 {
     SetUp("testsuite_public/basic/check_error/undefined_var.cvc");
     ASSERT_NE(nullptr, root);
@@ -5424,14 +5401,14 @@ TEST_F(ScanParseTest, ScanParse_Suite_Basic_UndefinedVar)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Basic_UnterminatedComment)
+TEST_F(ScanParseTest, Suite_Basic_UnterminatedComment)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/unterminated_comment.cvc");
-    ASSERT_EXIT(run_scan_parse(filepath.c_str()), testing::ExitedWithCode(1),
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_InvalidInit)
+TEST_F(ScanParseTest, Suite_Arrays_InvalidInit)
 {
     SetUp("testsuite_public/arrays/check_error/invalid_init.cvc");
     ASSERT_NE(nullptr, root);
@@ -5486,7 +5463,7 @@ TEST_F(ScanParseTest, ScanParse_Suite_Arrays_InvalidInit)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
-TEST_F(ScanParseTest, ScanParse_Suite_Arrays_ShadowedDimension)
+TEST_F(ScanParseTest, Suite_Arrays_ShadowedDimension)
 {
     SetUp("testsuite_public/arrays/check_error/shadowed_dimension.cvc");
     ASSERT_NE(nullptr, root);

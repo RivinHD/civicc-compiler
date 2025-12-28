@@ -8,6 +8,7 @@
 #include "ccn/dynamic_core.h"
 #include "ccn/phase_driver.h"
 #include "global/globals.h"
+#include "release_assert.h"
 
 static void Usage(char *program)
 {
@@ -53,7 +54,9 @@ static int ProcessArgs(int argc, char *argv[])
         case 'b':
             if (optarg != NULL && isdigit(optarg[0]))
             {
-                CCNsetBreakpointWithID((int)strtol(optarg, NULL, 10));
+                long int id = strtol(optarg, NULL, 10);
+                release_assert(id >= 0);
+                CCNsetBreakpointWithID((size_t)id);
             }
             else
             {

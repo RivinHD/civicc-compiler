@@ -1,4 +1,6 @@
+#include "release_assert.h"
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -6,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <ostream>
+#include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -17,14 +20,12 @@
 extern "C"
 {
 #include "palm/ctinfo.h"
-    struct node_st;
-    node_st *run_scan_parse_buf(const char *filepath, char *buffer, int buffer_length);
-    void cleanup_scan_parse(node_st *root);
+#include "test_interface.h"
 }
 
 /* this lets the source compile without afl-clang-fast/lto */
 #ifndef __AFL_COMPILER
-ssize_t fuzz_len;
+size_t fuzz_len;
 const ssize_t fuzz_buf_capacity = 1024000;
 unsigned char fuzz_buf[fuzz_buf_capacity];
 #define __AFL_FUZZ_TESTCASE_LEN fuzz_len
@@ -85,7 +86,8 @@ int main(int argc, char *argv[])
         file.close();
         return 1;
     }
-    fuzz_len = size;
+    release_assert(size >= 0);
+    fuzz_len = (size_t)size;
     file.close();
 #else
     const char *filepath = "From AFL shared Memory";
@@ -93,11 +95,12 @@ int main(int argc, char *argv[])
 
     while (__AFL_LOOP(10000))
     {
-        int len = __AFL_FUZZ_TESTCASE_LEN;
+        size_t len = __AFL_FUZZ_TESTCASE_LEN;
         src = (char *)realloc(src, len);
         std::memcpy(src, buf, len);
-        node_st *root = run_scan_parse_buf(filepath, src, len);
-        cleanup_scan_parse(root);
+        release_assert(len <= UINT32_MAX);
+        node_st *root = run_scan_parse_buf(filepath, src, (uint32_t)len);
+        cleanup_nodes(root);
     }
 
     if (src != NULL)

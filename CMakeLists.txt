@@ -12,6 +12,9 @@ set(SOURCE_FILES
 set(TEST_FILES
     test/test_interface.c
     test/scanparse_tests.cpp
+    test/context_tests.cpp
+    test/behavior_tests.cpp
+    test/generation_tests.cpp
 )
 
 set(FUZZ_FILES
@@ -38,6 +41,11 @@ Note: Afl is not requiered to build the generator."
     OFF
 )
 option(DEBUG_SCANPARSE "Prints deubg information from the lexing and parsing to the console." ON)
+
+option(CIVICC_ASSEMBLER "The path to the civicc assembler 'civas'" "civas")
+option(CIVICC_VM "The path to the civicc virutal machine 'civvm'" "civvm")
+
+add_compile_definitions(PROGRAM_CIVAS="${CIVICC_ASSEMBLER}" PROGRAM_CIVVM="${CIVICC_VM}")
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")
@@ -74,6 +82,7 @@ if(AFL_ENABLED)
     endif()
 endif()
 
+
 include(FetchContent)
 set(INSTALL_GTEST OFF)
 FetchContent_Declare(
@@ -83,14 +92,6 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(googletest)
-
-
-# These will only work after you received the testing framework from us.
-enable_testing()
-# add_test(NAME "basic" COMMAND "${TEST_COMMAND}/run.bash" "${COMPILER}" basic WORKING_DIRECTORY "${TEST_DIR}")
-# add_test(NAME "nested_funs" COMMAND "${TEST_COMMAND}/run.bash" "${COMPILER}" nested_funs WORKING_DIRECTORY "${TEST_DIR}")
-# add_test(NAME "arrays" COMMAND "${TEST_COMMAND}/run.bash" "${COMPILER}" arrays WORKING_DIRECTORY "${TEST_DIR}")
-
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
@@ -115,7 +116,7 @@ endif()
 add_compile_definitions(PROJECT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 message(STATUS "Set Definition 'PROJECT_DIRECTORY=${PROJECT_SOURCE_DIR}'")
 
-add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function)
+add_compile_options(-Wall -Wextra -pedantic -Wno-unused-function -Wconversion)
 add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 
 # Enable address sanitizer
@@ -162,6 +163,7 @@ if(NOT AFL_ENABLED)
     )
 
     # === Google Test integration ===
+    enable_testing()
     include(GoogleTest)
     gtest_discover_tests(tests)
 

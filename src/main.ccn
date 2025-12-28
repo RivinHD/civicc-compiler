@@ -171,7 +171,7 @@ node Statements {
 
 node Assign {                                   // Id = Expr
     children {
-        Var var { constructor },
+        Var var { constructor, mandatory },
         Expr expr { constructor, mandatory }
     }
 };
@@ -225,7 +225,7 @@ node Exprs {
 node IfStatement {
     children {
         Expr expr { constructor, mandatory },
-        Statements block { constructor, mandatory },
+        Statements block { constructor },
         Statements else_block { constructor }
     }
 };
@@ -234,13 +234,13 @@ node IfStatement {
 node WhileLoop {
     children {
         Expr expr { constructor, mandatory },
-        Statements block { constructor, mandatory }
+        Statements block { constructor }
     }
 };
 
 node DoWhileLoop {
     children {
-        Statements block { constructor, mandatory },
+        Statements block { constructor },
         Expr expr { constructor, mandatory }
     }
 };
@@ -250,7 +250,7 @@ node ForLoop {
         Assign assign { constructor, mandatory },
         Expr cond { constructor, mandatory },
         Expr iter { constructor },
-        Statements block { constructor, mandatory }
+        Statements block { constructor }
     }
 };
 
@@ -315,18 +315,18 @@ node ArrayAssign {
 
 node Int {
     attributes {
-        int val { constructor }
+        int val { constructor }  // mandatory
     }
 };
 
 node Float {
     attributes {
-        float val { constructor }
+        double val { constructor }  // mandatory
     }
 };
 
 node Bool {
     attributes {
-        bool val { constructor }
+        bool val { constructor }  // mandatory
     }
 };

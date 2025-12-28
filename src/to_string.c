@@ -3,6 +3,7 @@
 #include "ccngen/enum.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -339,10 +340,11 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
     else
     {
         // Amputate the depth string to size - 5 for the format and afterward place it back
-        unsigned int len = STRlen(depth_string);
-        unsigned int unit_length = (len >= 3 && depth_string[len - 3] == ' ' ? 3 : 5);
-        unsigned int position = (len >= unit_length ? len - unit_length : 0);
-        char *sub = STRsubStr(depth_string, 0, position);
+        size_t len = STRlen(depth_string);
+        size_t unit_length = (len >= 3 && depth_string[len - 3] == ' ' ? 3 : 5);
+        size_t position = (len >= unit_length ? len - unit_length : 0);
+        release_assert(position <= INT_MAX);
+        char *sub = STRsubStr(depth_string, 0, (int)position);
         output = STRfmt("%s%s─ %s\n", sub, connection, node_string);
         free(sub);
     }

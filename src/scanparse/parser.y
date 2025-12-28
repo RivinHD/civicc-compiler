@@ -546,7 +546,7 @@ statementLoop: WHILE BRACKET_L expr BRACKET_R statementUnmatched
             assertSetType($9, NS_EXPR);
             assertSetType($11, NS_STATEMENT);
             node_st* assign = ASTassign($4, $6); 
-            AddLocToNode(assign, $4, $6);
+            AddLocToNode(assign, &@4, &@6);
 
             node_st* statement = ASTstatements($11, NULL);
             AddLocToNode(statement, &@11, &@11);
@@ -570,7 +570,7 @@ statementLoopMatched: WHILE BRACKET_L expr BRACKET_R blockOrMatched
             assertSetType($9, NS_EXPR);
             assertType($11, NT_STATEMENTS);
             node_st* assign = ASTassign($4, $6); 
-            AddLocToNode(assign, $4, $6);
+            AddLocToNode(assign, &@4, &@6);
             
             $$ = ASTforloop(assign, $8, $9, $11);
             AddLocToNode($$, &@1, &@11);
@@ -1070,10 +1070,17 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     // Needed because YYLTYPE unpacks later than top-level decl.
     YYLTYPE *loc_b = (YYLTYPE*)begin_loc;
     YYLTYPE *loc_e = (YYLTYPE*)end_loc;
-    NODE_BLINE(node) = loc_b->first_line;
-    NODE_BCOL(node) = loc_b->first_column;
-    NODE_ELINE(node) = loc_e->last_line;
-    NODE_ECOL(node) = loc_e->last_column;
+
+    release_assert(loc_b->first_line >= 0);
+    printf("column %d\n", loc_b->first_column);
+    release_assert(loc_b->first_column >= 0);
+    release_assert(loc_e->last_line >= 0);
+    release_assert(loc_e->last_column >= 0);
+
+    NODE_BLINE(node) = (uint32_t)loc_b->first_line;
+    NODE_BCOL(node) = (uint32_t)loc_b->first_column;
+    NODE_ELINE(node) = (uint32_t)loc_e->last_line;
+    NODE_ECOL(node) = (uint32_t)loc_e->last_column;
 }
 
 int yyerror(char *error)
