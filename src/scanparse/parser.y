@@ -23,22 +23,6 @@ extern YY_BUFFER_STATE yy_scan_bytes(char *, size_t);
 extern void yy_delete_buffer(YY_BUFFER_STATE);
 void AddLocToNode(node_st *node, void *begin_loc, void *end_loc);
 
-#define assertSetType(node, setType) \
-do { \
-   node_st *_ast_node = (node); \
-   if (_ast_node == NULL) break; \
-   scanparse_fprintf(stdout, "Set: %d %d\n", NODE_TYPE(_ast_node), (int)(setType)); \
-   uint64_t _ast_combined = nodessettype_to_nodetypes((setType)); \
-   release_assert(((1ull << NODE_TYPE(_ast_node)) & _ast_combined) != 0); \
-} while (0)
-
-#define assertType(node, type) \
-do { \
-   node_st *_at_node = (node); \
-   if (_at_node == NULL) break; \
-   scanparse_fprintf(stdout, "Type: %d %d\n", NODE_TYPE(_at_node), (int)(type)); \
-   release_assert(NODE_TYPE(_at_node) == (type)); \
-} while (0)
 
 %}
 

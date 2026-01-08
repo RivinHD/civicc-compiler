@@ -1,0 +1,24 @@
+export void test()
+{
+    int b;
+    for (int i = 0, 5, 1)
+    {
+        b = i; 
+        for (int i = 0, 5, 1)
+        {
+            b = i; 
+            for (int i = 0, 5, 1)
+            {
+               b = i; 
+               for (int i = 0, 5, 1)
+               {
+                   b = i; 
+               }
+               b = i; 
+            }
+            b = i; 
+        }
+        b = i; 
+    }
+    b = 0; 
+};

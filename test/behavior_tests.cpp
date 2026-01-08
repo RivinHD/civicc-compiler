@@ -88,7 +88,8 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         }
 
         std::string timeout_cmd = "timeout 3s "; // Add
-        std::string vm_cmd = timeout_cmd + PROGRAM_CIVVM + objects;
+        std::string options = " --size --instrs ";
+        std::string vm_cmd = timeout_cmd + PROGRAM_CIVVM + options + objects;
         testing::internal::CaptureStdout();
         testing::internal::CaptureStderr();
         system(vm_cmd.c_str());

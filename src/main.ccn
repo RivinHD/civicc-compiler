@@ -3,8 +3,10 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
+        ContextAnalysis;
         Optimization;
         Print;
+        FreeSymbols;
     }
 };
 
@@ -18,6 +20,52 @@ phase Optimization {
             uid = OS,
             nodes = { Binop }
         };
+    }
+};
+
+phase ContextAnalysis {
+    actions {
+        traversal ExtractForIterator {
+            uid = CA_EFI,
+            nodes = {
+                FunDef,
+                VarDecs,
+                ForLoop,
+                Var
+            }
+        };
+        traversal FunctionHeader {
+            uid = CA_FH,
+            nodes = {
+                Program,
+                FunDef,
+                FunDec
+            }
+        };
+        traversal DeclarationCheck {
+            uid = CA_DC,
+            nodes = {
+                Program,
+
+                // Declarations
+                GlobalDec,
+                VarDec,
+                Params,
+                FunDef,
+
+
+                // Usage
+                Var
+            } 
+        };
+    }
+};
+
+traversal FreeSymbols {
+    uid = FS,
+    nodes = {
+        Program,
+        FunDef
     }
 };
 
@@ -70,6 +118,10 @@ nodeset Link = Expr | Statement;
 root node Program {
     children {
         Declarations decls { constructor, mandatory }
+    },
+
+    attributes {
+        user htable_stptr symbols
     }
 };
 
@@ -93,7 +145,8 @@ node FunDef {
     },
 
     attributes {
-        bool has_export { constructor }                       // if exists, has to be 'export'
+        bool has_export { constructor },                       // if exists, has to be 'export'
+        user htable_stptr symbols
     }
 };
 

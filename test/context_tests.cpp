@@ -11,7 +11,7 @@ extern "C"
 #include "to_string.h"
 }
 
-class ScanParseTest : public testing::Test
+class ContextTest : public testing::Test
 {
   public:
     char *root_string = nullptr;
@@ -21,7 +21,7 @@ class ScanParseTest : public testing::Test
     std::string std_output;
 
   protected:
-    ScanParseTest()
+    ContextTest()
     {
     }
 
@@ -71,3 +71,11 @@ class ScanParseTest : public testing::Test
         }
     }
 };
+
+TEST_F(ContextTest, GlobalDecInt)
+{
+    SetUpNoExecute("globaldec_int/main.cvc");
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(testing::HasSubstr("was not declared"), testing::HasSubstr("6 Error")));
+}

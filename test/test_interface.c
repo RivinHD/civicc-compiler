@@ -37,7 +37,9 @@ node_st *run_scan_parse(const char *filepath)
 node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t buffer_length)
 {
     node_st *node = run_scan_parse_buf(filepath, buffer, buffer_length);
-    // node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_...), CCN_ROOT_TYPE, node, true);
+    node =
+        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CONTEXTANALYSIS), CCN_ROOT_TYPE, node, true);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }
 
@@ -55,6 +57,7 @@ node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint3
     global.output_buf = out_buffer;
     global.output_buf_len = out_buffer_length;
     // node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_...), CCN_ROOT_TYPE, node, true);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }
 
@@ -78,10 +81,12 @@ node_st *run_code_generation_node(node_st *node, char *out_buffer, uint32_t out_
     global.output_buf_len = out_buffer_length;
     resetPhaseDriver();
     // node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_...), NODE_TYPE(node), node, false);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }
 
 void cleanup_nodes(node_st *root)
 {
+    root = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_FREESYMBOLS), CCN_ROOT_TYPE, root, true);
     TRAVstart(root, TRAV_free);
 }

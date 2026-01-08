@@ -10,7 +10,7 @@ extern "C"
 #include "to_string.h"
 }
 
-class ScanParseTest : public testing::Test
+class GenerationTest : public testing::Test
 {
   public:
     char *root_string = nullptr;
@@ -24,7 +24,7 @@ class ScanParseTest : public testing::Test
     char *output_buffer = nullptr;
 
   protected:
-    ScanParseTest()
+    GenerationTest()
     {
         output_buffer = new char[output_buffer_size];
     }
