@@ -40,7 +40,7 @@ phase ContextAnalysis {
                 Program,
                 FunDef,
                 FunDec
-            }
+            } 
         };
         traversal DeclarationCheck {
             uid = CA_DC,
