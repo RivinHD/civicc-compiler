@@ -1,8 +1,11 @@
 #include "to_string.h"
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
+#include "context_analysis/definitions.h"
+#include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "user_types.h"
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -416,4 +419,139 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
 char *node_to_string(node_st *node)
 {
     return _node_to_string(node, 0, "", "");
+}
+
+char *_funheader_params_to_oneliner_string(node_st *node)
+{
+    if (NODE_TYPE(node) != NT_FUNHEADER)
+    {
+        return NULL;
+    }
+
+    char *output = NULL;
+    node_st *param = FUNHEADER_PARAMS(node);
+    while (param != NULL)
+    {
+        char *text = STRfmt("%s (%s), ", datatype_to_string(PARAMS_TYPE(param)),
+                            get_node_name(PARAMS_VAR(param)));
+        char *output_old = output;
+        output = STRcat(output_old, text);
+        free(text);
+        free(output_old);
+
+        param = PARAMS_NEXT(param);
+    }
+
+    return output;
+}
+
+char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
+{
+    if (node == NULL)
+    {
+        return NULL;
+    }
+
+    char *output = NULL;
+    htable_stptr symbols = NULL;
+    if (NODE_TYPE(node) == NT_PROGRAM)
+    {
+        symbols = PROGRAM_SYMBOLS(node);
+    }
+    else if (NODE_TYPE(node) == NT_FUNDEF)
+    {
+        symbols = FUNDEF_SYMBOLS(node);
+    }
+
+    if (symbols != NULL)
+    {
+
+        void *parent = NULL;
+        for (htable_iter_st *iter = HTiterate(symbols); iter; iter = HTiterateNext(iter))
+        {
+            // Getter functions to extract htable elements
+            char *key = HTiterKey(iter);
+            void *value = HTiterValue(iter);
+
+            if (STReq(key, htable_parent_name))
+            {
+                release_assert(parent == NULL);
+                parent = value;
+            }
+            else
+            {
+                char *text = NULL;
+                char *node_name = get_node_name((node_st *)value);
+                if (NODE_TYPE((node_st *)value) == NT_FUNHEADER)
+                {
+                    char *params = _funheader_params_to_oneliner_string((node_st *)value);
+                    text = STRfmt("├─ %s: %s -- Params: %s\n", key, node_name, params);
+                    free(params);
+                }
+                else
+                {
+                    text = STRfmt("├─ %s: %s\n", key, node_name);
+                }
+                free(node_name);
+
+                char *output_old = output;
+                output = STRcat(output_old, text);
+                free(output_old);
+                free(text);
+            }
+        }
+
+        char *output_old = output;
+        char *node_name = NULL;
+        if (NODE_TYPE(node) == NT_FUNDEF)
+        {
+            node_name = STRfmt("FunDef '%s'", VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))));
+        }
+        else
+        {
+            node_name = get_node_name(node);
+        }
+
+        HTinsert(htable, symbols, STRfmt("%d: %s", counter, node_name));
+        if (parent != NULL)
+        {
+            const char *parent_name = HTlookup(htable, parent);
+            release_assert(parent_name != NULL);
+            output = STRfmt("┌─ %d: %s -- parent: '%s'\n%s└────────────────────\n", counter,
+                            node_name, parent_name, output_old);
+        }
+        else
+        {
+            output =
+                STRfmt("┌─ %d: %s \n%s└────────────────────\n\n", counter, node_name, output_old);
+        }
+        free(output_old);
+        free(node_name);
+        counter++;
+    }
+
+    for (unsigned int i = 0; i < node->num_children; i++)
+    {
+        char *output_child = _symbols_to_string(node->children[i], htable, counter);
+        char *output_old = output;
+        output = STRcat(output_old, output_child);
+        free(output_child);
+        free(output_old);
+    }
+
+    return output;
+}
+/// Creates a string representation of all symbol tables. The returned char pointer needs to freed
+/// by the caller.
+char *symbols_to_string(node_st *node)
+{
+    htable_stptr htable = HTnew_Ptr(1 << 6);
+    char *output = _symbols_to_string(node, htable, 0);
+    for (htable_iter_st *iter = HTiterate(htable); iter; iter = HTiterateNext(iter))
+    {
+        void *value = HTiterValue(iter);
+        free(value);
+    }
+    HTdelete(htable);
+    return output;
 }

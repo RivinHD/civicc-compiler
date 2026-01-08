@@ -9,24 +9,24 @@
 #include <string>
 
 /// Multiline assert that asserts each line separately for better output.
-static inline void ASSERT_MLSTREQ(const char *expected, const char *value)
-{
-    std::string token_expected;
-    std::string token_value;
-    std::istringstream stream_expected(expected);
-    std::istringstream stream_value(value);
-    unsigned int relative_line = 1;
-
-    // intendet bitwise & to process both getline
-    while (!std::getline(stream_expected, token_expected).eof() &
-           !std::getline(stream_value, token_value).eof())
-    {
-        ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;
-        relative_line++;
-    }
-
-    ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;
-}
+#define ASSERT_MLSTREQ(expected, value)                                                            \
+    do                                                                                             \
+    {                                                                                              \
+        std::string token_expected;                                                                \
+        std::string token_value;                                                                   \
+        std::istringstream stream_expected((expected));                                            \
+        std::istringstream stream_value((value));                                                  \
+        unsigned int relative_line = 1;                                                            \
+                                                                                                   \
+        while (!std::getline(stream_expected, token_expected).eof() &                              \
+               !std::getline(stream_value, token_value).eof())                                     \
+        {                                                                                          \
+            ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;                   \
+            relative_line++;                                                                       \
+        }                                                                                          \
+                                                                                                   \
+        ASSERT_EQ(token_expected, token_value) << "Line: " << relative_line;                       \
+    } while (0)
 
 /// Reads a file to a string relative to the Project directory.
 static inline std::string read_file(const std::string &filepath)

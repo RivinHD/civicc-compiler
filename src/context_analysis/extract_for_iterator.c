@@ -1,6 +1,7 @@
 #include "ccngen/ast.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include <ccn/dynamic_core.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -38,11 +39,11 @@ node_st *CA_EFIforloop(node_st *node)
     // Replace potential outer for loop variables
     TRAVopt(FORLOOP_COND(node));
     TRAVopt(FORLOOP_ITER(node));
-    TRAVopt(FORLOOP_ASSIGN(node));
-
     node_st *assign = FORLOOP_ASSIGN(node);
+    TRAVopt(ASSIGN_EXPR(assign));
+
     char *old_name = VAR_NAME(ASSIGN_VAR(assign));
-    if (!STRprefix("@for", old_name))
+    if (STRprefix("@for", old_name))
     {
         // already renamed, Replace potential out for loop variables
         TRAVopt(FORLOOP_BLOCK(node));
@@ -51,7 +52,7 @@ node_st *CA_EFIforloop(node_st *node)
 
     char *new_name = STRfmt("@for%d_%s", for_counter++, old_name);
     VAR_NAME(ASSIGN_VAR(assign)) = new_name;
-    node_st *vardec = ASTvardec(ASSIGN_VAR(assign), ASSIGN_EXPR(assign), DT_int);
+    node_st *vardec = ASTvardec(CCNcopy(ASSIGN_VAR(assign)), NULL, DT_int);
     node_st *vardecs = ASTvardecs(vardec, NULL);
     VARDECS_NEXT(last_vardecs) = vardecs;
     last_vardecs = vardecs;
@@ -81,6 +82,13 @@ node_st *CA_EFIvar(node_st *node)
     {
         release_assert(old_for_name != NULL);
         release_assert(new_for_name != NULL);
+
+        char *name = VAR_NAME(node);
+        if (STReq(name, old_for_name))
+        {
+            VAR_NAME(node) = STRcpy(new_for_name);
+            free(name);
+        }
     }
     return node;
 }

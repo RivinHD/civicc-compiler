@@ -99,7 +99,13 @@ int main(int argc, char *argv[])
         src = (char *)realloc(src, len);
         std::memcpy(src, buf, len);
         release_assert(len <= UINT32_MAX);
+#if SLICE_TARGET == 1
         node_st *root = run_scan_parse_buf(filepath, src, (uint32_t)len);
+#elif SLICE_TARGET == 2
+        node_st *root = run_context_analysis_buf(filepath, src, (uint32_t)len);
+#else
+        static_assert(false, "No valid slice target given to preprocessor");
+#endif
         cleanup_nodes(root);
     }
 

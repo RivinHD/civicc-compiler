@@ -19,6 +19,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
 {
   public:
     char *root_string[TCount] = nullptr;
+    char *symbols_string[TCount] = nullptr;
     node_st *root[TCount] = nullptr;
     std::filesystem::path input_filepath[TCount];
     std::filesystem::path output_filepath[TCount];
@@ -64,6 +65,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
                 run_code_generation_file(input_filepath[i].c_str(), output_filepath[i].c_str());
             EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << input_filepath << "'";
             root_string[i] = node_to_string(root);
+            symbols_string[i] = symbols_to_string(root);
         }
         err_output = testing::internal::GetCapturedStderr();
         std_output = testing::internal::GetCapturedStdout();
@@ -137,6 +139,20 @@ template <size_t TCount> class BehaviorTest : public testing::Test
                 }
 
                 free(root_string[i]);
+            }
+            if (symbols_string[i] != nullptr)
+            {
+                if (HasFailure())
+                {
+                    std::cerr << "================================================================="
+                                 "=======\n"
+                              << "                        Symbol Tables of AST\n"
+                              << "================================================================="
+                                 "=======\n"
+                              << symbols_string[i] << std::endl;
+                }
+
+                free(symbols_string[i]);
             }
 
             if (root[i] != nullptr)

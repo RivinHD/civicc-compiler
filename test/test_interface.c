@@ -5,7 +5,10 @@
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "global/globals.h"
+#include "palm/ctinfo.h"
 #include "src/phase_driver.c"
+#include "to_string.h"
+#include <ccn/phase_driver.h>
 #include <stddef.h>
 
 // What to do when a breakpoint is reached.
@@ -23,6 +26,7 @@ node_st *run_scan_parse_buf(const char *filepath, char *buffer, uint32_t buffer_
     global.input_buf = buffer;
     global.input_buf_len = buffer_length;
     resetPhaseDriver();
+    phase_driver.verbosity = PD_V_HIGH;
     node_st *node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SPDOSCANPARSE), CCN_ROOT_TYPE, NULL, false);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
@@ -40,6 +44,7 @@ node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t b
     node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CONTEXTANALYSIS), CCN_ROOT_TYPE, node, true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    CTIabortOnError();
     return node;
 }
 

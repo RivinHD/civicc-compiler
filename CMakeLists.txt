@@ -151,10 +151,21 @@ target_include_directories("civicc${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src"
 )
 
-add_executable("civicc_scanparse${AFL_EXT}" ${FUZZ_FILES} test/fuzz_scanparse_slice.cpp)
+add_executable("civicc_scanparse${AFL_EXT}" ${FUZZ_FILES} test/fuzz_slice.cpp)
+target_compile_definitions("civicc_scanparse${AFL_EXT}"
+    PRIVATE SLICE_TARGET=1)
 target_link_libraries("civicc_scanparse${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
 coconut_add_includes("civicc_scanparse${AFL_EXT}")
 target_include_directories("civicc_scanparse${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
+add_executable("civicc_context${AFL_EXT}" ${FUZZ_FILES} test/fuzz_slice.cpp)
+target_compile_definitions("civicc_context${AFL_EXT}"
+    PRIVATE SLICE_TARGET=2)
+target_link_libraries("civicc_context${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_context${AFL_EXT}")
+target_include_directories("civicc_context${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 

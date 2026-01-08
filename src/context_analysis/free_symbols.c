@@ -11,6 +11,7 @@ node_st *FSprogram(node_st *node)
     if (symbols != NULL)
     {
         HTdelete(symbols);
+        PROGRAM_SYMBOLS(node) = NULL;
     }
     TRAVopt(PROGRAM_DECLS(node));
     return node;
@@ -21,17 +22,8 @@ node_st *FSfundef(node_st *node)
     htable_stptr symbols = FUNDEF_SYMBOLS(node);
     if (symbols != NULL)
     {
-        for (htable_iter_st *iter = HTiterate(symbols); iter; iter = HTiterateNext(iter))
-        {
-            char *key = HTiterKey(iter);
-            if (strcmp(key, "@parent"))
-            {
-                free(key);
-                break;
-            }
-        }
-
         HTdelete(symbols);
+        FUNDEF_SYMBOLS(node) = NULL;
     }
 
     TRAVopt(FUNDEF_FUNBODY(node));

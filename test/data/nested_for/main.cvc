@@ -21,4 +21,4 @@ export void test()
         b = i; 
     }
     b = 0; 
-};
+}

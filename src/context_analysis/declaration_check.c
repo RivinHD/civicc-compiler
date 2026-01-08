@@ -1,5 +1,6 @@
 #include "ccngen/ast.h"
 #include "ccngen/trav.h"
+#include "context_analysis/definitions.h"
 #include "palm/ctinfo.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
@@ -51,7 +52,19 @@ void add_var_symbol(node_st *node, node_st *var)
 node_st *CA_DCvar(node_st *node)
 {
     char *name = VAR_NAME(node);
-    node_st *entry = HTlookup(current, name);
+    htable_stptr htable = current;
+    node_st *entry = HTlookup(htable, name);
+    while (entry == NULL)
+    {
+        htable_stptr parent = HTlookup(htable, htable_parent_name);
+        if (parent == NULL)
+        {
+            break;
+        }
+
+        htable = parent;
+        entry = HTlookup(htable, name);
+    }
     if (entry == NULL)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
@@ -93,13 +106,11 @@ node_st *CA_DCglobaldec(node_st *node)
 node_st *CA_DCfundef(node_st *node)
 {
     current = FUNDEF_SYMBOLS(node);
-    TRAVfunHeader(node);
-    TRAVfunBody(node);
+    TRAVopt(FUNDEF_FUNHEADER(node));
+    TRAVopt(FUNDEF_FUNBODY(node));
     current = HTlookup(current, "@parent");
     release_assert(current != NULL);
 
-    TRAVopt(FUNDEF_FUNHEADER(node));
-    TRAVopt(FUNDEF_FUNBODY(node));
     return node;
 }
 
@@ -108,6 +119,5 @@ node_st *CA_DCprogram(node_st *node)
     current = PROGRAM_SYMBOLS(node);
 
     TRAVopt(PROGRAM_DECLS(node));
-    CTIabortOnError();
     return node;
 }

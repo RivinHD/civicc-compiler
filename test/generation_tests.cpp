@@ -14,6 +14,7 @@ class GenerationTest : public testing::Test
 {
   public:
     char *root_string = nullptr;
+    char *symbols_string = nullptr;
     node_st *root = nullptr;
     std::string input_filepath;
     std::string err_output;
@@ -62,6 +63,7 @@ class GenerationTest : public testing::Test
         ASSERT_THAT(err_output,
                     testing::Not(testing::HasSubstr("error: Inconsistent node found in AST")));
         root_string = node_to_string(root);
+        symbols_string = symbols_to_string(root);
     }
 
     void TearDown() override
@@ -79,6 +81,20 @@ class GenerationTest : public testing::Test
             }
 
             free(root_string);
+        }
+
+        if (symbols_string != nullptr)
+        {
+            if (HasFailure())
+            {
+                std::cerr
+                    << "========================================================================\n"
+                    << "                        Symbol Tables of AST\n"
+                    << "========================================================================\n"
+                    << symbols_string << std::endl;
+            }
+
+            free(symbols_string);
         }
 
         if (root != nullptr)

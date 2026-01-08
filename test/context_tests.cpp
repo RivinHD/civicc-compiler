@@ -15,6 +15,7 @@ class ContextTest : public testing::Test
 {
   public:
     char *root_string = nullptr;
+    char *symbols_string = nullptr;
     node_st *root = nullptr;
     std::string input_filepath;
     std::string err_output;
@@ -45,6 +46,7 @@ class ContextTest : public testing::Test
         ASSERT_THAT(err_output,
                     testing::Not(testing::HasSubstr("error: Inconsistent node found in AST")));
         root_string = node_to_string(root);
+        symbols_string = symbols_to_string(root);
     }
 
     void TearDown() override
@@ -64,6 +66,20 @@ class ContextTest : public testing::Test
             free(root_string);
         }
 
+        if (symbols_string != nullptr)
+        {
+            if (HasFailure())
+            {
+                std::cerr
+                    << "========================================================================\n"
+                    << "                        Symbol Tables of AST\n"
+                    << "========================================================================\n"
+                    << symbols_string << std::endl;
+            }
+
+            free(symbols_string);
+        }
+
         if (root != nullptr)
         {
             cleanup_nodes(root);
@@ -71,6 +87,127 @@ class ContextTest : public testing::Test
         }
     }
 };
+
+TEST_F(ContextTest, NestedFor)
+{
+    SetUp("nested_for/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'1'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'test'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'@for0_i'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'@for1_i'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'@for2_i'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'@for3_i'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ ForLoop\n"
+                           "┃        ┃     ├─ Assign\n"
+                           "┃        ┃     │  ├─ Var -- name:'@for0_i'\n"
+                           "┃        ┃     │  └─ Int -- val:'0'\n"
+                           "┃        ┃     ├─ Int -- val:'5'\n"
+                           "┃        ┃     ├─ Int -- val:'1'\n"
+                           "┃        ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     └─ Var -- name:'@for0_i'\n"
+                           "┃        ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃  └─ ForLoop\n"
+                           "┃        ┃     ┃     ├─ Assign\n"
+                           "┃        ┃     ┃     │  ├─ Var -- name:'@for1_i'\n"
+                           "┃        ┃     ┃     │  └─ Int -- val:'0'\n"
+                           "┃        ┃     ┃     ├─ Int -- val:'5'\n"
+                           "┃        ┃     ┃     ├─ Int -- val:'1'\n"
+                           "┃        ┃     ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     ┃     └─ Var -- name:'@for1_i'\n"
+                           "┃        ┃     ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃     ┃  └─ ForLoop\n"
+                           "┃        ┃     ┃     ┃     ├─ Assign\n"
+                           "┃        ┃     ┃     ┃     │  ├─ Var -- name:'@for2_i'\n"
+                           "┃        ┃     ┃     ┃     │  └─ Int -- val:'0'\n"
+                           "┃        ┃     ┃     ┃     ├─ Int -- val:'5'\n"
+                           "┃        ┃     ┃     ┃     ├─ Int -- val:'1'\n"
+                           "┃        ┃     ┃     ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃     ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     ┃     ┃     └─ Var -- name:'@for2_i'\n"
+                           "┃        ┃     ┃     ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃     ┃     ┃  └─ ForLoop\n"
+                           "┃        ┃     ┃     ┃     ┃     ├─ Assign\n"
+                           "┃        ┃     ┃     ┃     ┃     │  ├─ Var -- name:'@for3_i'\n"
+                           "┃        ┃     ┃     ┃     ┃     │  └─ Int -- val:'0'\n"
+                           "┃        ┃     ┃     ┃     ┃     ├─ Int -- val:'5'\n"
+                           "┃        ┃     ┃     ┃     ┃     ├─ Int -- val:'1'\n"
+                           "┃        ┃     ┃     ┃     ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃     ┃     ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ┃     ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     ┃     ┃     ┃     └─ Var -- name:'@for3_i'\n"
+                           "┃        ┃     ┃     ┃     ┃     ┗─ NULL\n"
+                           "┃        ┃     ┃     ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃     ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     ┃     ┃     └─ Var -- name:'@for2_i'\n"
+                           "┃        ┃     ┃     ┃     ┗─ NULL\n"
+                           "┃        ┃     ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     ┃     └─ Var -- name:'@for1_i'\n"
+                           "┃        ┃     ┃     ┗─ NULL\n"
+                           "┃        ┃     ┣─ Statements\n"
+                           "┃        ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     ┃     └─ Var -- name:'@for0_i'\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Int -- val:'0'\n"
+                           "┃        ┗─ NULL\n"
+                           "┗─ NULL\n";
+
+    ASSERT_MLSTREQ(expected, root_string);
+
+    expected = "┌─ 0: Program \n"
+               "├─ test: FunHeader -- type:'void' -- Params: (null)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef 'test' -- parent: '0: Program'\n"
+               "├─ @for1_i: VarDec -- type:'int'\n"
+               "├─ b: VarDec -- type:'int'\n"
+               "├─ @for2_i: VarDec -- type:'int'\n"
+               "├─ @for3_i: VarDec -- type:'int'\n"
+               "├─ @for0_i: VarDec -- type:'int'\n"
+               "└────────────────────\n";
+    ASSERT_MLSTREQ(expected, symbols_string);
+}
+
+// /////////////////////////
+// COMPILATION FAILURE tests
+// /////////////////////////
 
 TEST_F(ContextTest, GlobalDecInt)
 {
