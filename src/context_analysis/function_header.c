@@ -25,10 +25,10 @@ node_st *CA_FHfundec(node_st *node)
 {
     release_assert(current != NULL);
 
-    node_st *funheader = FUNDEF_FUNHEADER(node);
+    node_st *funheader = FUNDEC_FUNHEADER(node);
     char *name = VAR_NAME(FUNHEADER_VAR(funheader));
     node_st *entry = HTlookup(current, name);
-    if (node == NULL)
+    if (entry == NULL)
     {
 
         HTinsert(current, name, funheader);

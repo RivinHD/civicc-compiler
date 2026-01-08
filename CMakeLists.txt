@@ -10,6 +10,7 @@ set(SOURCE_FILES
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c
     src/context_analysis/extract_for_iterator.c
+    src/context_analysis/definitions.c
     src/to_string.c
 )
 

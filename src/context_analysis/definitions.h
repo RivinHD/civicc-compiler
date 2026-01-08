@@ -1,3 +1,3 @@
 #pragma once
 
-static char *htable_parent_name = "@parent";
+extern char *htable_parent_name;

@@ -208,6 +208,7 @@ The following targets are available:
 - `civicc_grammer`: Fuzz the complete compiler
 - `scanparse`: Fuzz the scanner and parser only
 - `scanparse_grammer`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CivicC code.
+- `context_grammer`: Fuzz with grammar valid CivicC code the scanner, parser & context analysis of the program.
 
 *Note:* Keeping the fuzz target/slice smaller is more efficient.
 
