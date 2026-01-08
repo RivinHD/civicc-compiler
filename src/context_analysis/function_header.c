@@ -40,7 +40,7 @@ node_st *CA_FHprogram(node_st *node)
         if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(main_candiate)) != DT_int)
         {
             CTIobj(CTI_WARN, true, info,
-                   "Defined main function should be of type int to return an exit code.");
+                   "Defined main function should be of type 'int' to return an exit code.");
         }
 
         if (FUNHEADER_PARAMS(FUNDEF_FUNHEADER(main_candiate)) != NULL)

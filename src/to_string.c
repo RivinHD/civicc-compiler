@@ -432,12 +432,16 @@ char *_funheader_params_to_oneliner_string(node_st *node)
     node_st *param = FUNHEADER_PARAMS(node);
     while (param != NULL)
     {
-        char *text = STRfmt("%s (%s), ", datatype_to_string(PARAMS_TYPE(param)),
-                            get_node_name(PARAMS_VAR(param)));
+
+        char *type = datatype_to_string(PARAMS_TYPE(param));
+        char *node_name = get_node_name(PARAMS_VAR(param));
+        char *text = STRfmt("%s (%s), ", type, node_name);
         char *output_old = output;
         output = STRcat(output_old, text);
         free(text);
         free(output_old);
+        free(node_name);
+        free(type);
 
         param = PARAMS_NEXT(param);
     }

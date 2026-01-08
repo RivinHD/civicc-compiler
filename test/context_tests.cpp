@@ -205,6 +205,53 @@ TEST_F(ContextTest, NestedFor)
     ASSERT_MLSTREQ(expected, symbols_string);
 }
 
+TEST_F(ContextTest, BadMain)
+{
+    SetUp("bad_main/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'main'\n"
+                           "┃     │  ┢─ Params -- type:'int'\n"
+                           "┃     │  ┃  └─ Var -- name:'a'\n"
+                           "┃     │  ┗─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'a'\n"
+                           "┃        ┃     └─ Int -- val:'5'\n"
+                           "┃        ┗─ NULL\n"
+                           "┗─ NULL\n";
+
+    ASSERT_MLSTREQ(expected, root_string);
+
+    expected = "┌─ 0: Program \n"
+               "├─ main: FunHeader -- type:'void' -- Params: int (Var -- name:'a'), \n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef 'main' -- parent: '0: Program'\n"
+               "├─ a: Params -- type:'int'\n"
+               "└────────────────────\n";
+
+    ASSERT_MLSTREQ(expected, symbols_string);
+
+    ASSERT_THAT(
+        err_output,
+        testing::HasSubstr("warning: Defined main functions is missing the 'export' attribute."));
+    ASSERT_THAT(
+        err_output,
+        testing::HasSubstr(
+            "warning: Defined main function should be of type 'int' to return an exit code."));
+    ASSERT_THAT(err_output,
+                testing::HasSubstr(
+                    "warning: Defined main function should not contain any function parameters."));
+}
+
 // /////////////////////////
 // COMPILATION FAILURE tests
 // /////////////////////////
