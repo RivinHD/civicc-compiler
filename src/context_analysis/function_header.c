@@ -12,9 +12,11 @@
 #include <ccngen/enum.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 static htable_stptr current = NULL;
-static node_st *main_candiate = NULL;
+static node_st *main_candidate = NULL;
+static char *cur_fun_param_types = "";
 
 node_st *CA_FHprogram(node_st *node)
 {
@@ -23,27 +25,27 @@ node_st *CA_FHprogram(node_st *node)
 
     TRAVopt(PROGRAM_DECLS(node));
 
-    // Check the main candiate and generate warnings
-    if (main_candiate != NULL)
+    // Check the main candidate and generate warnings
+    if (main_candidate != NULL)
     {
-        release_assert(NODE_TYPE(main_candiate) == NT_FUNDEF);
+        release_assert(NODE_TYPE(main_candidate) == NT_FUNDEF);
 
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
 
-        if (FUNDEF_HAS_EXPORT(main_candiate) == false)
+        if (FUNDEF_HAS_EXPORT(main_candidate) == false)
         {
             CTIobj(CTI_WARN, true, info,
                    "Defined main functions is missing the 'export' attribute.");
         }
 
-        if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(main_candiate)) != DT_int)
+        if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(main_candidate)) != DT_int)
         {
             CTIobj(CTI_WARN, true, info,
                    "Defined main function should be of type 'int' to return an exit code.");
         }
 
-        if (FUNHEADER_PARAMS(FUNDEF_FUNHEADER(main_candiate)) != NULL)
+        if (FUNHEADER_PARAMS(FUNDEF_FUNHEADER(main_candidate)) != NULL)
         {
             CTIobj(CTI_WARN, true, info,
                    "Defined main function should not contain any function parameters.");
@@ -63,6 +65,10 @@ node_st *CA_FHfundec(node_st *node)
     node_st *entry = HTlookup(current, name);
     if (entry == NULL)
     {
+        if (name[0] == '_')
+        {
+            error_invalid_identifier_name(node, entry, name);
+        }
 
         HTinsert(current, name, funheader);
     }
@@ -85,20 +91,65 @@ node_st *CA_FHfundef(node_st *node)
     // Add function type to parent symbol table
     node_st *funheader = FUNDEF_FUNHEADER(node);
     char *name = VAR_NAME(FUNHEADER_VAR(funheader));
-    node_st *entry = HTlookup(current, name);
-    if (entry == NULL)
+
+    if (name != NULL && name[0] == '_')
     {
-        if (STReq(name, "main"))
+        error_invalid_identifier_name(node, funheader, name);
+    }
+
+    char *new_name;
+    // Add params to name
+    if (strcmp(name, "main") != 0)
+    {
+
+        switch (FUNHEADER_TYPE(funheader))
         {
-            main_candiate = node;
+        case DT_bool:
+            cur_fun_param_types = "bool";
+            break;
+        case DT_int:
+            cur_fun_param_types = "int";
+            break;
+        case DT_float:
+            cur_fun_param_types = "float";
+            break;
+        case DT_void:
+            cur_fun_param_types = "void";
+            break;
+        default:
+            struct ctinfo info = NODE_TO_CTINFO(funheader);
+            info.filename = STRcpy(global.input_file);
+            CTIobj(CTI_ERROR, true, info, "function has no return type", funheader);
+            free(info.filename);
+            break;
         }
 
-        HTinsert(current, name, funheader);
+        if (FUNHEADER_PARAMS(funheader) != NULL)
+        {
+            TRAVopt(FUNHEADER_PARAMS(funheader));
+        }
+        new_name = STRfmt("%s_%s", name, cur_fun_param_types);
     }
     else
     {
-        error_already_defined(node, entry, name);
+        new_name = name;
     }
+
+    node_st *entry = HTlookup(current, new_name);
+    if (entry == NULL)
+    {
+        if (STReq(new_name, "main"))
+        {
+            main_candidate = node;
+        }
+
+        HTinsert(current, new_name, funheader);
+    }
+    else
+    {
+        error_already_defined(node, entry, new_name);
+    }
+    VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
 
     current = symbols;
     TRAVopt(FUNDEF_FUNBODY(node)); // check for nested functions
@@ -106,5 +157,32 @@ node_st *CA_FHfundef(node_st *node)
     current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
 
+    return node;
+}
+
+node_st *CA_FHparams(node_st *node)
+{
+    switch (PARAMS_TYPE(node))
+    {
+    case DT_bool:
+        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "bool");
+        break;
+    case DT_int:
+        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "int");
+        break;
+    case DT_float:
+        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "float");
+        break;
+    case DT_void:
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        CTIobj(CTI_ERROR, true, info, "param can't be of type void", node);
+        free(info.filename);
+        break;
+    default:
+        break;
+    }
+
+    TRAVopt(PARAMS_NEXT(node));
     return node;
 }

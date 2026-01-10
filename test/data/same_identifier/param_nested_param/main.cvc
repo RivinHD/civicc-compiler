@@ -1,0 +1,9 @@
+
+int fun_one(int param0)
+{
+    void nested_fun_one(int param0)
+    {
+    }
+
+    return param0;
+}

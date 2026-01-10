@@ -41,6 +41,11 @@ void add_var_symbol(node_st *node, node_st *var)
     node_st *entry = HTlookup(current, name);
     if (entry == NULL)
     {
+        if (name[0] == '_')
+        {
+            error_invalid_identifier_name(node, entry, name);
+        }
+
         HTinsert(current, name, node);
     }
     else
@@ -52,6 +57,11 @@ void add_var_symbol(node_st *node, node_st *var)
 node_st *CA_DCvar(node_st *node)
 {
     char *name = VAR_NAME(node);
+
+    if (name != NULL && name[0] == '_')
+    {
+        error_invalid_identifier_name(node, node, name);
+    }
     htable_stptr htable = current;
     node_st *entry = HTlookup(htable, name);
     while (entry == NULL)

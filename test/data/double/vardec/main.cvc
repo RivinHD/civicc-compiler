@@ -1,0 +1,6 @@
+void double_dec()
+{
+    int value1 = 1;
+    int value2 = 2;
+    int value1 = 3;
+}

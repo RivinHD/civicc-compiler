@@ -1,0 +1,12 @@
+int fun_one(int test)
+{
+    int i = 1;
+    return i;
+}
+
+int fun_one(int test, int test_2)
+{
+    int o = 1;
+    o = test;
+    return test;
+}
