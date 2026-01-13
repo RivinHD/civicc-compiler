@@ -444,6 +444,66 @@ TEST_F(ContextTest, SameIdentifierParamNestedParam)
     ASSERT_MLSTREQ(expected, symbols_string);
 }
 
+TEST_F(ContextTest, ProcCallContext)
+{
+    SetUp("proc_call/context/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_fun'\n"
+                           "┃     │  ┢─ Params -- type:'int'\n"
+                           "┃     │  ┃  └─ Var -- name:'i'\n"
+                           "┃     │  ┗─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ RetStatement\n"
+                           "┃        ┃     └─ Var -- name:'i'\n"
+                           "┃        ┗─ NULL\n"
+                           "┣─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'@fun_test'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃        ├─ ProcCall\n"
+                           "┃        ┃        │  ├─ Var -- name:'@fun_fun'\n"
+                           "┃        ┃        │  ┢─ Exprs\n"
+                           "┃        ┃        │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃        │  ┗─ NULL\n"
+                           "┃        ┃        └─ ProcCall\n"
+                           "┃        ┃           ├─ Var -- name:'@fun_fun'\n"
+                           "┃        ┃           ┢─ Exprs\n"
+                           "┃        ┃           ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃           ┗─ NULL\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
+    ASSERT_MLSTREQ(expected, root_string);
+
+    expected = "┌─ 0: Program\n"
+               "├─ @fun_test: FunHeader -- type:'void' -- Params: (null)\n"
+               "├─ @fun_fun: FunHeader -- type:'int' -- Params: int (Var -- name:'i')\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_fun' -- parent: '0: Program'\n"
+               "├─ i: Params -- type:'int'\n"
+               "└────────────────────\n"
+               "┌─ 1: FunDef '@fun_test' -- parent: '0: Program'\n"
+               "├─ b: VarDec -- type:'int'\n"
+               "└────────────────────\n";
+    ASSERT_MLSTREQ(expected, symbols_string);
+}
+
 // /////////////////////////
 // COMPILATION FAILURE tests
 // /////////////////////////

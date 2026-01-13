@@ -1,0 +1,9 @@
+int fun(int i) 
+{
+    return i;
+}
+
+void test()
+{
+    int b = fun(1) + fun(2);
+}

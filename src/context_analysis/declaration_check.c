@@ -54,6 +54,19 @@ void add_var_symbol(node_st *node, node_st *var)
     }
 }
 
+node_st *CA_DCproccall(node_st *node)
+{
+    node_st *var = PROCCALL_VAR(node);
+    char *name = VAR_NAME(var);
+
+    VAR_NAME(var) = STRfmt("@fun_%s", name);
+    free(name);
+
+    TRAVopt(var);
+    TRAVopt(PROCCALL_EXPRS(node));
+    return node;
+}
+
 node_st *CA_DCvar(node_st *node)
 {
     char *name = VAR_NAME(node);

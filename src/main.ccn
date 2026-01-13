@@ -55,7 +55,8 @@ phase ContextAnalysis {
 
 
                 // Usage
-                Var
+                Var,
+                ProcCall
             } 
         };
     }
