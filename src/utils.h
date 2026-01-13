@@ -101,7 +101,8 @@ static inline void error_invalid_identifier_name(node_st *node, node_st *found, 
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
     info.filename = STRcpy(global.input_file);
-    CTIobj(CTI_ERROR, true, info, "'%s' is not allowed to start with '_'. Defined at %d:%d - %d:%d.", name, NODE_BLINE(found),
-           NODE_BCOL(found), NODE_ELINE(found), NODE_ECOL(found));
+    CTIobj(CTI_ERROR, true, info,
+           "'%s' is not allowed to start with '_'. Defined at %d:%d - %d:%d.", name,
+           NODE_BLINE(found), NODE_BCOL(found), NODE_ELINE(found), NODE_ECOL(found));
     free(info.filename);
 }

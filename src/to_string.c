@@ -430,7 +430,12 @@ char *_funheader_params_to_oneliner_string(node_st *node)
 
     char *output = NULL;
     node_st *param = FUNHEADER_PARAMS(node);
-    while (param != NULL)
+    if (param == NULL)
+    {
+        return NULL;
+    }
+
+    while (PARAMS_NEXT(param) != NULL)
     {
 
         char *type = datatype_to_string(PARAMS_TYPE(param));
@@ -445,6 +450,17 @@ char *_funheader_params_to_oneliner_string(node_st *node)
 
         param = PARAMS_NEXT(param);
     }
+
+    release_assert(param != NULL);
+    char *type = datatype_to_string(PARAMS_TYPE(param));
+    char *node_name = get_node_name(PARAMS_VAR(param));
+    char *text = STRfmt("%s (%s)", type, node_name);
+    char *output_old = output;
+    output = STRcat(output_old, text);
+    free(text);
+    free(output_old);
+    free(node_name);
+    free(type);
 
     return output;
 }
@@ -527,7 +543,7 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
         else
         {
             output =
-                STRfmt("┌─ %d: %s \n%s└────────────────────\n\n", counter, node_name, output_old);
+                STRfmt("┌─ %d: %s\n%s└────────────────────\n\n", counter, node_name, output_old);
         }
         free(output_old);
         free(node_name);

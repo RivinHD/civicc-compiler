@@ -19,7 +19,7 @@
 extern int yyerror(char *errname);
 
 #define FILTER(token) \
-  scanparse_fprintf(stdout, "%d: %s \n", token, yytext); \
+  scanparse_fprintf(stdout, "'%d': '%s'\n", token, yytext); \
   global.col += yyleng;  \
   return( token);
 
@@ -199,6 +199,11 @@ SEPC ({SEP}|\{)
                            }
 
 [ \t]                      { global.col += yyleng; }
+
+. {                             
+    scanparse_fprintf(stdout, "UNDEF_CHAR: '%s'\n", yytext);
+    yyerror("invalid character");
+}
 
 <MULTI_COMMENT>{
     [^*\n]*         { global.col += yyleng; }

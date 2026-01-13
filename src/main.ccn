@@ -39,10 +39,7 @@ phase ContextAnalysis {
             nodes = {
                 Program,
                 FunDef,
-                FunDec,
-
-                // Edge
-                Params
+                FunDec
             } 
         };
         traversal DeclarationCheck {

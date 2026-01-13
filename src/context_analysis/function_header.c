@@ -16,7 +16,6 @@
 
 static htable_stptr current = NULL;
 static node_st *main_candidate = NULL;
-static char *cur_fun_param_types = "";
 
 node_st *CA_FHprogram(node_st *node)
 {
@@ -97,48 +96,12 @@ node_st *CA_FHfundef(node_st *node)
         error_invalid_identifier_name(node, funheader, name);
     }
 
-    char *new_name;
-    // Add params to name
-    if (strcmp(name, "main") != 0)
-    {
-
-        switch (FUNHEADER_TYPE(funheader))
-        {
-        case DT_bool:
-            cur_fun_param_types = "bool";
-            break;
-        case DT_int:
-            cur_fun_param_types = "int";
-            break;
-        case DT_float:
-            cur_fun_param_types = "float";
-            break;
-        case DT_void:
-            cur_fun_param_types = "void";
-            break;
-        default:
-            struct ctinfo info = NODE_TO_CTINFO(funheader);
-            info.filename = STRcpy(global.input_file);
-            CTIobj(CTI_ERROR, true, info, "function has no return type", funheader);
-            free(info.filename);
-            break;
-        }
-
-        if (FUNHEADER_PARAMS(funheader) != NULL)
-        {
-            TRAVopt(FUNHEADER_PARAMS(funheader));
-        }
-        new_name = STRfmt("%s_%s", name, cur_fun_param_types);
-    }
-    else
-    {
-        new_name = name;
-    }
+    char *new_name = STRfmt("@fun_%s", name);
 
     node_st *entry = HTlookup(current, new_name);
     if (entry == NULL)
     {
-        if (STReq(new_name, "main"))
+        if (STReq(new_name, "@fun_main"))
         {
             main_candidate = node;
         }
@@ -147,9 +110,11 @@ node_st *CA_FHfundef(node_st *node)
     }
     else
     {
-        error_already_defined(node, entry, new_name);
+        error_already_defined(node, entry, name);
     }
+
     VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
+    free(name);
 
     current = symbols;
     TRAVopt(FUNDEF_FUNBODY(node)); // check for nested functions
@@ -157,32 +122,5 @@ node_st *CA_FHfundef(node_st *node)
     current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
 
-    return node;
-}
-
-node_st *CA_FHparams(node_st *node)
-{
-    switch (PARAMS_TYPE(node))
-    {
-    case DT_bool:
-        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "bool");
-        break;
-    case DT_int:
-        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "int");
-        break;
-    case DT_float:
-        cur_fun_param_types = STRfmt("%s_%s", cur_fun_param_types, "float");
-        break;
-    case DT_void:
-        struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
-        CTIobj(CTI_ERROR, true, info, "param can't be of type void", node);
-        free(info.filename);
-        break;
-    default:
-        break;
-    }
-
-    TRAVopt(PARAMS_NEXT(node));
     return node;
 }

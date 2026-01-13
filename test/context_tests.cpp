@@ -97,7 +97,7 @@ TEST_F(ContextTest, NestedFor)
                            "┢─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'1'\n"
                            "┃     ├─ FunHeader -- type:'void'\n"
-                           "┃     │  ├─ Var -- name:'test_void'\n"
+                           "┃     │  ├─ Var -- name:'@fun_test'\n"
                            "┃     │  └─ NULL\n"
                            "┃     └─ FunBody\n"
                            "┃        ┢─ VarDecs\n"
@@ -191,11 +191,11 @@ TEST_F(ContextTest, NestedFor)
 
     ASSERT_MLSTREQ(expected, root_string);
 
-    expected = "┌─ 0: Program \n"
-               "├─ test_void: FunHeader -- type:'void' -- Params: (null)\n"
+    expected = "┌─ 0: Program\n"
+               "├─ @fun_test: FunHeader -- type:'void' -- Params: (null)\n"
                "└────────────────────\n"
                "\n"
-               "┌─ 1: FunDef 'test_void' -- parent: '0: Program'\n"
+               "┌─ 1: FunDef '@fun_test' -- parent: '0: Program'\n"
                "├─ @for1_i: VarDec -- type:'int'\n"
                "├─ b: VarDec -- type:'int'\n"
                "├─ @for2_i: VarDec -- type:'int'\n"
@@ -214,7 +214,7 @@ TEST_F(ContextTest, BadMain)
                            "┢─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'0'\n"
                            "┃     ├─ FunHeader -- type:'void'\n"
-                           "┃     │  ├─ Var -- name:'main'\n"
+                           "┃     │  ├─ Var -- name:'@fun_main'\n"
                            "┃     │  ┢─ Params -- type:'int'\n"
                            "┃     │  ┃  └─ Var -- name:'a'\n"
                            "┃     │  ┗─ NULL\n"
@@ -230,11 +230,11 @@ TEST_F(ContextTest, BadMain)
 
     ASSERT_MLSTREQ(expected, root_string);
 
-    expected = "┌─ 0: Program \n"
-               "├─ main: FunHeader -- type:'void' -- Params: int (Var -- name:'a'), \n"
+    expected = "┌─ 0: Program\n"
+               "├─ @fun_main: FunHeader -- type:'void' -- Params: int (Var -- name:'a')\n"
                "└────────────────────\n"
                "\n"
-               "┌─ 1: FunDef 'main' -- parent: '0: Program'\n"
+               "┌─ 1: FunDef '@fun_main' -- parent: '0: Program'\n"
                "├─ a: Params -- type:'int'\n"
                "└────────────────────\n";
 
@@ -252,77 +252,6 @@ TEST_F(ContextTest, BadMain)
                     "warning: Defined main function should not contain any function parameters."));
 }
 
-TEST_F(ContextTest, DoubleFundefValid)
-{
-    SetUp("double/fundef_valid/main.cvc");
-    ASSERT_NE(nullptr, root);
-
-    const char *expected = "Program\n"
-                           "┢─ Declarations\n"
-                           "┃  └─ FunDef -- has_export:'0'\n"
-                           "┃     ├─ FunHeader -- type:'int'\n"
-                           "┃     │  ├─ Var -- name:'fun_one_int_int'\n"
-                           "┃     │  ┢─ Params -- type:'int'\n"
-                           "┃     │  ┃  └─ Var -- name:'test'\n"
-                           "┃     │  ┗─ NULL\n"
-                           "┃     └─ FunBody\n"
-                           "┃        ┢─ VarDecs\n"
-                           "┃        ┃  └─ VarDec -- type:'int'\n"
-                           "┃        ┃     ├─ Var -- name:'i'\n"
-                           "┃        ┃     └─ Int -- val:'1'\n"
-                           "┃        ┡─ NULL\n"
-                           "┃        ├─ NULL\n"
-                           "┃        ┢─ Statements\n"
-                           "┃        ┃  └─ RetStatement\n"
-                           "┃        ┃     └─ Var -- name:'i'\n"
-                           "┃        ┗─ NULL\n"
-                           "┣─ Declarations\n"
-                           "┃  └─ FunDef -- has_export:'0'\n"
-                           "┃     ├─ FunHeader -- type:'int'\n"
-                           "┃     │  ├─ Var -- name:'fun_one_int_int_int'\n"
-                           "┃     │  ┢─ Params -- type:'int'\n"
-                           "┃     │  ┃  └─ Var -- name:'test'\n"
-                           "┃     │  ┣─ Params -- type:'int'\n"
-                           "┃     │  ┃  └─ Var -- name:'test_2'\n"
-                           "┃     │  ┗─ NULL\n"
-                           "┃     └─ FunBody\n"
-                           "┃        ┢─ VarDecs\n"
-                           "┃        ┃  └─ VarDec -- type:'int'\n"
-                           "┃        ┃     ├─ Var -- name:'o'\n"
-                           "┃        ┃     └─ Int -- val:'1'\n"
-                           "┃        ┡─ NULL\n"
-                           "┃        ├─ NULL\n"
-                           "┃        ┢─ Statements\n"
-                           "┃        ┃  └─ Assign\n"
-                           "┃        ┃     ├─ Var -- name:'o'\n"
-                           "┃        ┃     └─ Var -- name:'test'\n"
-                           "┃        ┣─ Statements\n"
-                           "┃        ┃  └─ RetStatement\n"
-                           "┃        ┃     └─ Var -- name:'test'\n"
-                           "┃        ┗─ NULL\n"
-                           "┗─ NULL\n";
-
-    ASSERT_MLSTREQ(expected, root_string);
-
-    expected = "┌─ 0: Program \n"
-               "├─ fun_one_int_int: FunHeader -- type:'int' -- Params: int (Var -- name:'test'), \n"
-               "├─ fun_one_int_int_int: FunHeader -- type:'int' -- Params: int (Var -- "
-               "name:'test'), int (Var -- name:'test_2'), \n"
-               "└────────────────────\n"
-               "\n"
-               "┌─ 1: FunDef 'fun_one_int_int' -- parent: '0: Program'\n"
-               "├─ i: VarDec -- type:'int'\n"
-               "├─ test: Params -- type:'int'\n"
-               "└────────────────────\n"
-               "┌─ 1: FunDef 'fun_one_int_int_int' -- parent: '0: Program'\n"
-               "├─ o: VarDec -- type:'int'\n"
-               "├─ test_2: Params -- type:'int'\n"
-               "├─ test: Params -- type:'int'\n"
-               "└────────────────────\n";
-
-    ASSERT_MLSTREQ(expected, symbols_string);
-}
-
 TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
 {
     SetUp("same_identifier/fundef_vardec/main.cvc");
@@ -332,7 +261,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┢─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'0'\n"
                            "┃     ├─ FunHeader -- type:'int'\n"
-                           "┃     │  ├─ Var -- name:'fun_one_int_int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_fun_one'\n"
                            "┃     │  ┢─ Params -- type:'int'\n"
                            "┃     │  ┃  └─ Var -- name:'param0'\n"
                            "┃     │  ┗─ NULL\n"
@@ -341,7 +270,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┃        ┢─ LocalFunDefs\n"
                            "┃        ┃  └─ FunDef -- has_export:'0'\n"
                            "┃        ┃     ├─ FunHeader -- type:'void'\n"
-                           "┃        ┃     │  ├─ Var -- name:'param0_void'\n"
+                           "┃        ┃     │  ├─ Var -- name:'@fun_param0'\n"
                            "┃        ┃     │  └─ NULL\n"
                            "┃        ┃     └─ FunBody\n"
                            "┃        ┃        ┢─ VarDecs\n"
@@ -359,7 +288,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┣─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'0'\n"
                            "┃     ├─ FunHeader -- type:'float'\n"
-                           "┃     │  ├─ Var -- name:'fun_two_float_int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_fun_two'\n"
                            "┃     │  ┢─ Params -- type:'int'\n"
                            "┃     │  ┃  └─ Var -- name:'param1'\n"
                            "┃     │  ┗─ NULL\n"
@@ -368,7 +297,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┃        ┢─ LocalFunDefs\n"
                            "┃        ┃  └─ FunDef -- has_export:'0'\n"
                            "┃        ┃     ├─ FunHeader -- type:'void'\n"
-                           "┃        ┃     │  ├─ Var -- name:'nested_void_int'\n"
+                           "┃        ┃     │  ├─ Var -- name:'@fun_nested'\n"
                            "┃        ┃     │  ┢─ Params -- type:'int'\n"
                            "┃        ┃     │  ┃  └─ Var -- name:'val1'\n"
                            "┃        ┃     │  ┗─ NULL\n"
@@ -392,7 +321,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┣─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'0'\n"
                            "┃     ├─ FunHeader -- type:'bool'\n"
-                           "┃     │  ├─ Var -- name:'fun_three_bool_int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_fun_three'\n"
                            "┃     │  ┢─ Params -- type:'int'\n"
                            "┃     │  ┃  └─ Var -- name:'param2'\n"
                            "┃     │  ┗─ NULL\n"
@@ -405,7 +334,7 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
                            "┃        ┢─ LocalFunDefs\n"
                            "┃        ┃  └─ FunDef -- has_export:'0'\n"
                            "┃        ┃     ├─ FunHeader -- type:'int'\n"
-                           "┃        ┃     │  ├─ Var -- name:'shadow_int_int'\n"
+                           "┃        ┃     │  ├─ Var -- name:'@fun_shadow'\n"
                            "┃        ┃     │  ┢─ Params -- type:'int'\n"
                            "┃        ┃     │  ┃  └─ Var -- name:'val1'\n"
                            "┃        ┃     │  ┗─ NULL\n"
@@ -429,38 +358,37 @@ TEST_F(ContextTest, SameIdentifierFunDefVarDecValid)
 
     ASSERT_MLSTREQ(expected, root_string);
 
-    expected =
-        "┌─ 0: Program \n"
-        "├─ fun_two_float_int: FunHeader -- type:'float' -- Params: int (Var -- name:'param1'), \n"
-        "├─ fun_one_int_int: FunHeader -- type:'int' -- Params: int (Var -- name:'param0'), \n"
-        "├─ fun_three_bool_int: FunHeader -- type:'bool' -- Params: int (Var -- name:'param2'), \n"
-        "└────────────────────\n"
-        "\n"
-        "┌─ 1: FunDef 'fun_one_int_int' -- parent: '0: Program'\n"
-        "├─ param0: Params -- type:'int'\n"
-        "├─ param0_void: FunHeader -- type:'void' -- Params: (null)\n"
-        "└────────────────────\n"
-        "┌─ 2: FunDef 'param0_void' -- parent: '1: FunDef 'fun_one_int_int''\n"
-        "├─ a: VarDec -- type:'int'\n"
-        "└────────────────────\n"
-        "┌─ 1: FunDef 'fun_two_float_int' -- parent: '0: Program'\n"
-        "├─ param1: Params -- type:'int'\n"
-        "├─ nested_void_int: FunHeader -- type:'void' -- Params: int (Var -- name:'val1'), \n"
-        "└────────────────────\n"
-        "┌─ 2: FunDef 'nested_void_int' -- parent: '1: FunDef 'fun_two_float_int''\n"
-        "├─ a: VarDec -- type:'int'\n"
-        "├─ val1: Params -- type:'int'\n"
-        "├─ nested: VarDec -- type:'int'\n"
-        "└────────────────────\n"
-        "┌─ 1: FunDef 'fun_three_bool_int' -- parent: '0: Program'\n"
-        "├─ param2: Params -- type:'int'\n"
-        "├─ shadow: VarDec -- type:'int'\n"
-        "├─ shadow_int_int: FunHeader -- type:'int' -- Params: int (Var -- name:'val1'), \n"
-        "└────────────────────\n"
-        "┌─ 2: FunDef 'shadow_int_int' -- parent: '1: FunDef 'fun_three_bool_int''\n"
-        "├─ a: VarDec -- type:'int'\n"
-        "├─ val1: Params -- type:'int'\n"
-        "└────────────────────\n";
+    expected = "┌─ 0: Program\n"
+               "├─ @fun_fun_three: FunHeader -- type:'bool' -- Params: int (Var -- name:'param2')\n"
+               "├─ @fun_fun_one: FunHeader -- type:'int' -- Params: int (Var -- name:'param0')\n"
+               "├─ @fun_fun_two: FunHeader -- type:'float' -- Params: int (Var -- name:'param1')\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_fun_one' -- parent: '0: Program'\n"
+               "├─ param0: Params -- type:'int'\n"
+               "├─ @fun_param0: FunHeader -- type:'void' -- Params: (null)\n"
+               "└────────────────────\n"
+               "┌─ 2: FunDef '@fun_param0' -- parent: '1: FunDef '@fun_fun_one''\n"
+               "├─ a: VarDec -- type:'int'\n"
+               "└────────────────────\n"
+               "┌─ 1: FunDef '@fun_fun_two' -- parent: '0: Program'\n"
+               "├─ param1: Params -- type:'int'\n"
+               "├─ @fun_nested: FunHeader -- type:'void' -- Params: int (Var -- name:'val1')\n"
+               "└────────────────────\n"
+               "┌─ 2: FunDef '@fun_nested' -- parent: '1: FunDef '@fun_fun_two''\n"
+               "├─ a: VarDec -- type:'int'\n"
+               "├─ val1: Params -- type:'int'\n"
+               "├─ nested: VarDec -- type:'int'\n"
+               "└────────────────────\n"
+               "┌─ 1: FunDef '@fun_fun_three' -- parent: '0: Program'\n"
+               "├─ param2: Params -- type:'int'\n"
+               "├─ shadow: VarDec -- type:'int'\n"
+               "├─ @fun_shadow: FunHeader -- type:'int' -- Params: int (Var -- name:'val1')\n"
+               "└────────────────────\n"
+               "┌─ 2: FunDef '@fun_shadow' -- parent: '1: FunDef '@fun_fun_three''\n"
+               "├─ a: VarDec -- type:'int'\n"
+               "├─ val1: Params -- type:'int'\n"
+               "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);
 }
@@ -474,7 +402,7 @@ TEST_F(ContextTest, SameIdentifierParamNestedParam)
                            "┢─ Declarations\n"
                            "┃  └─ FunDef -- has_export:'0'\n"
                            "┃     ├─ FunHeader -- type:'int'\n"
-                           "┃     │  ├─ Var -- name:'fun_one_int_int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_fun_one'\n"
                            "┃     │  ┢─ Params -- type:'int'\n"
                            "┃     │  ┃  └─ Var -- name:'param0'\n"
                            "┃     │  ┗─ NULL\n"
@@ -483,7 +411,7 @@ TEST_F(ContextTest, SameIdentifierParamNestedParam)
                            "┃        ┢─ LocalFunDefs\n"
                            "┃        ┃  └─ FunDef -- has_export:'0'\n"
                            "┃        ┃     ├─ FunHeader -- type:'void'\n"
-                           "┃        ┃     │  ├─ Var -- name:'nested_fun_one_void_int'\n"
+                           "┃        ┃     │  ├─ Var -- name:'@fun_nested_fun_one'\n"
                            "┃        ┃     │  ┢─ Params -- type:'int'\n"
                            "┃        ┃     │  ┃  └─ Var -- name:'param0'\n"
                            "┃        ┃     │  ┗─ NULL\n"
@@ -501,39 +429,32 @@ TEST_F(ContextTest, SameIdentifierParamNestedParam)
     ASSERT_MLSTREQ(expected, root_string);
 
     expected =
-        "┌─ 0: Program \n"
-        "├─ fun_one_int_int: FunHeader -- type:'int' -- Params: int (Var -- name:'param0'), \n"
+        "┌─ 0: Program\n"
+        "├─ @fun_fun_one: FunHeader -- type:'int' -- Params: int (Var -- name:'param0')\n"
         "└────────────────────\n"
         "\n"
-        "┌─ 1: FunDef 'fun_one_int_int' -- parent: '0: Program'\n"
+        "┌─ 1: FunDef '@fun_fun_one' -- parent: '0: Program'\n"
         "├─ param0: Params -- type:'int'\n"
-        "├─ nested_fun_one_void_int: FunHeader -- type:'void' -- Params: int (Var -- "
-        "name:'param0'), \n"
+        "├─ @fun_nested_fun_one: FunHeader -- type:'void' -- Params: int (Var -- name:'param0')\n"
         "└────────────────────\n"
-        "┌─ 2: FunDef 'nested_fun_one_void_int' -- parent: '1: FunDef 'fun_one_int_int''\n"
+        "┌─ 2: FunDef '@fun_nested_fun_one' -- parent: '1: FunDef '@fun_fun_one''\n"
         "├─ param0: Params -- type:'int'\n"
         "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);
 }
 
-/*TEST_F(ContextTest, VarDecInvalid)
-{
-    SetUp("double/vardec_invalid/main.cvc");
-    ASSERT_NE(nullptr, root);
-
-    const char *expected = "Program\n";
-
-    ASSERT_MLSTREQ(expected, root_string);
-
-    expected = "┌─ 0: Program \n";
-
-    ASSERT_MLSTREQ(expected, symbols_string);
-}*/
-
 // /////////////////////////
 // COMPILATION FAILURE tests
 // /////////////////////////
+
+TEST_F(ContextTest, DoubleFundefValid)
+{
+    SetUpNoExecute("double/fundef_valid/main.cvc");
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr("1 Error")));
+}
 
 TEST_F(ContextTest, GlobalDecInt)
 {
@@ -563,16 +484,14 @@ TEST_F(ContextTest, DoubleFunDef)
 {
     SetUpNoExecute("double/fundef/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("already defined"),
-                               testing::HasSubstr("'fun_one_int_int'"),
+                testing::AllOf(testing::HasSubstr("'fun_one' already defined"),
                                testing::HasSubstr("1:1 - 1:23")));
 }
 
-/*TEST_F(ContextTest, VarDecInvalid)
+TEST_F(ContextTest, VarDecInvalid)
 {
     SetUpNoExecute("double/vardec_invalid/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("not allowed"),
-                               testing::HasSubstr("'_c'"),
-                               testing::HasSubstr("5:1 - 1:23")));
-}*/
+                testing::AllOf(testing::HasSubstr("invalid character"),
+                               testing::HasSubstr("line 7, col 8")));
+}
