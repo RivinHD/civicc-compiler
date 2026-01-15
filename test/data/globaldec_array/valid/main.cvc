@@ -1,0 +1,2 @@
+export int[1] q;
+export bool[3 + 1] test;

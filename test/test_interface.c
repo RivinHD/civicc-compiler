@@ -53,11 +53,26 @@ node_st *run_context_analysis(const char *filepath)
     return run_context_analysis_buf(filepath, NULL, 0);
 }
 
+node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32_t buffer_length)
+{
+    node_st *node = run_context_analysis_buf(filepath, buffer, buffer_length);
+    node =
+        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGENPREPARATION), CCN_ROOT_TYPE, node, true);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    CTIabortOnError();
+    return node;
+}
+
+node_st *run_code_gen_preparation(const char *filepath)
+{
+    return run_code_gen_preparation_buf(filepath, NULL, 0);
+}
+
 node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint32_t buffer_length,
                                  const char *output_filepath, char *out_buffer,
                                  uint32_t out_buffer_length)
 {
-    node_st *node = run_context_analysis_buf(input_filepath, buffer, buffer_length);
+    node_st *node = run_code_gen_preparation_buf(input_filepath, buffer, buffer_length);
     global.output_file = output_filepath;
     global.output_buf = out_buffer;
     global.output_buf_len = out_buffer_length;

@@ -62,6 +62,44 @@ phase ContextAnalysis {
     }
 };
 
+phase CodeGenPreparation
+{
+    actions {
+        traversal InitFunction {
+            uid = CA_IF,
+            nodes = {
+                Program,
+                GlobalDef
+            }
+        };
+        traversal HeterogeneousAssignments {
+            uid = CA_AA,
+            nodes = {
+                // Symbol Table - Array Assign
+                Program,
+                FunDef,
+
+                // Place to store expr
+                FunBody,
+
+                // Nodes to update
+                ArrayAssign,
+                ArrayExpr
+            }
+        };
+        traversal HomogeneousAssignments {
+            uid = CA_HA,
+            nodes = {
+                // Place to store ArrayAssign
+                FunBody,
+
+                // Nodes to update
+                VarDec
+            }
+        };
+    }
+};
+
 traversal FreeSymbols {
     uid = FS,
     nodes = {

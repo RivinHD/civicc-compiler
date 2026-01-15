@@ -12,12 +12,16 @@ set(SOURCE_FILES
     src/context_analysis/extract_for_iterator.c
     src/context_analysis/definitions.c
     src/to_string.c
+    src/context_analysis/init_function.c
+    src/context_analysis/heterogeneous_assignments.c
+    src/context_analysis/homogeneous_assignments.c
 )
 
 set(TEST_FILES
     test/test_interface.c
     test/scanparse_tests.cpp
     test/context_tests.cpp
+    test/codegenprep_tests.cpp
     test/behavior_tests.cpp
     test/generation_tests.cpp
 )
@@ -127,7 +131,7 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 # Enable address sanitizer
 if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
     if(APPLE)
-        message(STATUS "Sanitzier: Can not build with Sanitizer on Apple architecture.")
+       message(STATUS "Sanitzier: Can not build with Sanitizer on Apple architecture.")
     else()
         add_compile_options(
             $<$<CONFIG:Debug>:-fsanitize=address,undefined>
@@ -167,6 +171,15 @@ target_compile_definitions("civicc_context${AFL_EXT}"
 target_link_libraries("civicc_context${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
 coconut_add_includes("civicc_context${AFL_EXT}")
 target_include_directories("civicc_context${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
+add_executable("civicc_codegenprep${AFL_EXT}" ${FUZZ_FILES} test/fuzz_slice.cpp)
+target_compile_definitions("civicc_codegenprep${AFL_EXT}"
+    PRIVATE SLICE_TARGET=3)
+target_link_libraries("civicc_codegenprep${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_codegenprep${AFL_EXT}")
+target_include_directories("civicc_codegenprep${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
