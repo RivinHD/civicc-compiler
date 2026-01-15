@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ccngen/enum.h"
+#include "context_analysis/definitions.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/str.h"
@@ -88,7 +89,7 @@ static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
         release_assert(NODE_TYPE(_at_node) == (type));                                             \
     } while (0)
 
-static inline void error_already_defined(node_st *node, node_st *found, char *name)
+static inline void error_already_defined(node_st *node, node_st *found, const char *name)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
     info.filename = STRcpy(global.input_file);
@@ -97,7 +98,7 @@ static inline void error_already_defined(node_st *node, node_st *found, char *na
     free(info.filename);
 }
 
-static inline void error_invalid_identifier_name(node_st *node, node_st *found, char *name)
+static inline void error_invalid_identifier_name(node_st *node, node_st *found, const char *name)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
     info.filename = STRcpy(global.input_file);
@@ -105,4 +106,42 @@ static inline void error_invalid_identifier_name(node_st *node, node_st *found, 
            "'%s' is not allowed to start with '_'. Defined at %d:%d - %d:%d.", name,
            NODE_BLINE(found), NODE_BCOL(found), NODE_ELINE(found), NODE_ECOL(found));
     free(info.filename);
+}
+
+/// Recursive lookup into the symbol table and in all parent symbol table for the given name.
+static inline node_st *deep_lookup(htable_stptr htable, const char *name)
+{
+    node_st *entry = HTlookup(htable, (void *)name);
+    while (entry == NULL)
+    {
+        htable_stptr parent = HTlookup(htable, htable_parent_name);
+        if (parent == NULL)
+        {
+            break;
+        }
+
+        htable = parent;
+        entry = HTlookup(htable, (void *)name);
+    }
+
+    return entry;
+}
+
+/// Extracts the type from an entry in the symbol table.
+static inline enum DataType symbol_to_type(node_st *entry)
+{
+    switch (NODE_TYPE(entry))
+    {
+    case NT_VARDEC:
+        return VARDEC_TYPE(entry);
+    case NT_GLOBALDEC:
+        return GLOBALDEC_TYPE(entry);
+    case NT_FUNHEADER:
+        return FUNHEADER_TYPE(entry);
+    case NT_PARAMS:
+        return PARAMS_TYPE(entry);
+    default:
+        release_assert(false);
+        return DT_NULL;
+    }
 }
