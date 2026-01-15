@@ -90,6 +90,9 @@ phase CodeGenPreparation
         traversal HomogeneousAssignments {
             uid = CA_HA,
             nodes = {
+                // For __init function
+                Program,
+
                 // Place to store ArrayAssign
                 FunBody,
 

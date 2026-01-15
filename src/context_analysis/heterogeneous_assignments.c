@@ -1,11 +1,15 @@
 #include "ccngen/ast.h"
+#include "context_analysis/definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 static node_st *last_funbody = NULL;
 static uint32_t temp_counter = 0;
@@ -95,10 +99,26 @@ node_st *CA_AAfunbody(node_st *node)
  */
 node_st *CA_AAfundef(node_st *node)
 {
-    current = FUNDEF_SYMBOLS(node);
+    bool is_init_function =
+        STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), global_init_func);
+
+    if (is_init_function)
+    {
+        release_assert(FUNDEF_SYMBOLS(node) == NULL);
+    }
+    else
+    {
+        current = FUNDEF_SYMBOLS(node);
+        release_assert(current != NULL);
+    }
+
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
-    current = HTlookup(current, "@parent");
+
+    if (!is_init_function)
+    {
+        current = HTlookup(current, htable_parent_name);
+    }
     release_assert(current != NULL);
 
     return node;
@@ -112,11 +132,10 @@ node_st *CA_AAprogram(node_st *node)
     current = PROGRAM_SYMBOLS(node);
 
     // Global arrays unpack assignment into the __init function
-    node_st* entry = HTlookup(current, global_init_func);
+    node_st *entry = HTlookup(current, global_init_func);
     release_assert(entry != NULL);
     release_assert(NODE_TYPE(entry) == NT_FUNDEF);
     last_funbody = FUNDEF_FUNBODY(entry);
-
 
     TRAVopt(PROGRAM_DECLS(node));
     return node;
