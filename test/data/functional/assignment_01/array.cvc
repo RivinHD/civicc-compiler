@@ -1,0 +1,197 @@
+#include "civic.h"
+
+/// Prints an array of int to the stdout.
+export void printIntVec(int[n] vec){
+    for (int i = 0, n, 1) {
+        printInt(vec[i]);
+        printSpaces(1);
+    }
+}
+
+/// Prints an array of flaot to the stdout.
+export void printFloatVec(float[n] vec){
+    for (int i = 0, n, 1) {
+        printFloat(vec[i]);
+        printSpaces(1);
+    }
+}
+
+/// Prints a 2D array of int to the stdout.
+export void printIntMat(int[m,n] mat){
+    for (int i = 0, m, 1) {
+        for (int j = 0, n, 1) {
+            printInt(mat[i, j]);
+            printSpaces(1);
+        }
+        printNewlines(1);
+    }
+}
+
+/// Prints a 2D array of float to the stdout.
+export void printFloatMat(float[m,n] mat){
+    for (int i = 0, m, 1) {
+        for (int j = 0, n, 1) {
+            printFloat(mat[i, j]);
+        }
+        printNewlines(1);
+    }
+}
+
+/// Reads an array of int to the stdin.
+export void scanIntVec(int[n] vec){
+    for (int i = 0, n, 1) {
+        vec[i] = scanInt();
+    }
+}
+
+/// Reads an array of flaot to the stdin.
+export void scanFloatVec(float[n] vec){
+    for (int i = 0, n, 1) {
+        vec[i] = scanFloat();
+    }
+}
+
+/// Reads a 2D array of int to the stdin.
+export void scanIntMat(int[m,n] mat){
+    for (int i = 0, m, 1) {
+        for (int j = 0, n, 1) {
+            mat[i, j] = scanInt();
+        }
+        printNewlines(1);
+    }
+}
+
+/// Reads a 2D array of float to the stdin.
+export void scanFloatMat(float[m,n] mat){
+    for (int i = 0, m, 1) {
+        for (int j = 0, n, 1) {
+            mat[i, j] = scanFloat();
+        }
+        printNewlines(1);
+    }
+}
+
+/// Matrix Mutliplies of the int a and b and stores the result in c.
+/// Returns true on success, otherwise false.
+export bool matMul(float[m,n] a, float[o,p] b, float[q,l] c) {
+
+    // Invalid sized matrices to calculate the multiplication
+    if (n != o || m != q || p != l) {
+        return false;
+    }
+
+    // Zero the result matrix c
+    for (int im = 0, m, 1) {
+        for (int ik = 0, p, 1) {
+            c[im, ik] = 0.0;
+        }
+    }
+
+    // Compute the MatMul
+    for (int im = 0, m, 1) {
+        for (int in = 0, n, 1) {
+            for (int ik = 0, p, 1) {
+                c[im, ik] = c[im, ik] + a[im, in] * b[in, ik];
+            }
+        }
+    }
+
+    return true;
+}
+
+/// Solve the 8-queens problem.
+/// If all fields are empty a new solution is produced in written into 'field'.
+/// If the field already contains positions the field is validated and the problem is completed 
+/// if possible.
+/// Returns true if the 8 queens problem was solved, otherwise false.
+export bool queens(bool[m,n] field) {
+    int[m] rows = -1;
+    int[m] diagnolPositive = m + n + 1;
+    int[m] diagnolNegative = -m - n;
+    int startIndex = 0;
+
+    /// Checks if an element is containd in an array.
+    bool contains(int[m] array, int value) {
+        for (int i = 0, m, 1) {
+            if (array[i] == value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// Checks and loads the current field in the processing arrays.
+    bool isValid() {
+        if (m != n) {
+            // invalid field
+            return false;
+        }
+
+        for (int im = 0, m, 1) {
+            for (int in = 0, n, 1) {
+                if (field[im, in])
+                {
+                    if (rows[im] != -1 
+                        || contains(rows, in) 
+                        || contains(diagnolPositive, im + in) 
+                        || contains(diagnolNegative, im - in)) {
+                        // Already queen in this column or row
+                        return false;
+                    }
+
+                    rows[im] = in;
+                    diagnolPositive[im] = im + in;
+                    diagnolNegative[im] = im - in;
+                    startIndex = im + 1;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    bool solveQueens(int im) {
+        if (im < m) {
+            for (int in = 0, n, 1) {
+                // debugPrint(im, in);
+
+                if (!contains(rows, in) 
+                    && !contains(diagnolPositive, im + in) 
+                    && !contains(diagnolNegative, im - in)) {
+                        rows[im] = in;
+                        diagnolPositive[im] = im + in;
+                        diagnolNegative[im] = im - in;
+
+                        if(!solveQueens(im + 1)) {
+                            // No sub solution found. Reset fields.
+                            rows[im] = -1;
+                            diagnolPositive[im] = m + n + 1;
+                            diagnolNegative[im] = -m - n;
+                        } else {
+                            return true;
+                        }
+                   }
+            }
+            return false;
+        } 
+
+        // Finished filling the field.
+        return true;
+    }
+
+    if(!isValid()) {
+        return false;
+    }
+
+    if (solveQueens(startIndex)) {
+        // Apply the rows back to the field
+        for (int im = 0, m, 1) {
+                field[im, rows[im]] = true;
+        }
+        return true;
+    }
+
+    return false;
+}
+

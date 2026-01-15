@@ -5,6 +5,7 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -38,19 +39,20 @@ void add_var_symbol(node_st *node, node_st *var)
         return;
     }
 
+    const char *pretty_name = get_pretty_name(name);
     node_st *entry = HTlookup(current, name);
     if (entry == NULL)
     {
         if (name[0] == '_')
         {
-            error_invalid_identifier_name(node, entry, name);
+            error_invalid_identifier_name(node, entry, pretty_name);
         }
 
         HTinsert(current, name, node);
     }
     else
     {
-        error_already_defined(node, entry, name);
+        error_already_defined(node, entry, pretty_name);
     }
 }
 
@@ -80,7 +82,7 @@ node_st *CA_DCvar(node_st *node)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
-        CTIobj(CTI_ERROR, true, info, "'%s' was not declared.", name);
+        CTIobj(CTI_ERROR, true, info, "'%s' was not declared.", get_pretty_name(name));
         free(info.filename);
     }
     return node;
@@ -111,6 +113,23 @@ node_st *CA_DCglobaldec(node_st *node)
     add_var_symbol(node, var);
 
     TRAVopt(GLOBALDEC_VAR(node));
+    return node;
+}
+
+node_st *CA_DCfundec(node_st *node)
+{
+    // No need to check fundec
+    return node;
+}
+
+node_st *CA_DCdimensionvars(node_st *node)
+{
+
+    node_st *var = DIMENSIONVARS_DIM(node);
+    add_var_symbol(node, var);
+
+    TRAVopt(var);
+    TRAVopt(DIMENSIONVARS_NEXT(node));
     return node;
 }
 

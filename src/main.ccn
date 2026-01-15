@@ -52,14 +52,18 @@ phase ContextAnalysis {
                 VarDec,
                 Params,
                 FunDef,
+                FunDec,
 
 
                 // Usage
                 Var,
-                ProcCall
+                ProcCall,
+
+                // Edge
+                DimensionVars // No need to check array var as they are defined implicitly
             } 
         };
-        traversal TypeCheckig {
+        traversal TypeChecking {
             uid = CA_TC,
             nodes = {
                 Program,
@@ -70,6 +74,10 @@ phase ContextAnalysis {
                 FunDef, // Return type
                 Assign,
                 ArrayAssign,
+                ForLoop,
+                DoWhileLoop,
+                WhileLoop,
+                IfStatement,
 
                 // Usage
                 ArrayExpr,
@@ -81,7 +89,7 @@ phase ContextAnalysis {
                 Bool,
                 Binop,
                 Monop,
-                ForLoop,
+                RetStatement,
 
                 // Edge
                 ArrayVar, // need to type check the dims as they are not user defined.
@@ -165,7 +173,7 @@ node Declarations {
 node FunDec {  // implicitly conditions the 'extern' attribute
     children {
         FunHeader funHeader { constructor, mandatory }
-    },
+    }
 };
 
 node FunDef {

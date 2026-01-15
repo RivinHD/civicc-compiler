@@ -10,12 +10,12 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 static htable_stptr current = NULL;
 static bool anytype = false; // Allows an expression to set the type
 static enum DataType type = DT_NULL;
+static enum DataType rettype = DT_NULL;
 
 static void type_check(node_st *node, const char *name, enum DataType expected, enum DataType value)
 {
@@ -31,8 +31,9 @@ static void type_check(node_st *node, const char *name, enum DataType expected, 
     info.filename = STRcpy(global.input_file);
     char *expected_str = datatype_to_string(expected);
     char *value_str = datatype_to_string(value);
-    CTIobj(CTI_ERROR, true, info, "'%s' has type '%s' but expected type '%s'.", name, value_str,
-           expected_str);
+    const char *pretty_name = get_pretty_name(name);
+    CTIobj(CTI_ERROR, true, info, "'%s' has type '%s' but expected type '%s'.", pretty_name,
+           value_str, expected_str);
     free(info.filename);
     free(expected_str);
     free(value_str);
@@ -40,7 +41,6 @@ static void type_check(node_st *node, const char *name, enum DataType expected, 
 
 static bool check_nesting(unsigned int level, node_st *init)
 {
-    release_assert(level >= 1);
     release_assert(init != NULL);
 
     if (level == 0)
@@ -186,6 +186,8 @@ node_st *CA_TCvar(node_st *node)
 node_st *CA_TCcast(node_st *node)
 {
     enum DataType has_type = CAST_TYPE(node);
+    release_assert(has_type != DT_void);
+
     if (anytype)
     {
         type = has_type;
@@ -194,6 +196,14 @@ node_st *CA_TCcast(node_st *node)
     else
     {
         type_check(node, "cast expression", type, has_type);
+    }
+
+    if (type == DT_void)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' to type '%s'", has_type);
+        free(info.filename);
     }
 
     enum DataType parent_type = type;
@@ -241,14 +251,14 @@ node_st *CA_TCmonop(node_st *node)
         break;
     }
 
-    if (is_correct)
+    if (!is_correct)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
         char *op_str = monoptype_to_string(MONOP_OP(node));
         char *type_str = datatype_to_string(type);
-        CTIobj(CTI_ERROR, true, info, "The operation '%s' is not defined on the type '%s'", op_str,
-               type_str);
+        CTIobj(CTI_ERROR, true, info, "The monop operation '%s' is not defined on the type '%s'",
+               op_str, type_str);
         free(info.filename);
         free(op_str);
         free(type_str);
@@ -265,106 +275,122 @@ node_st *CA_TCbinop(node_st *node)
     char *op_str = NULL;
     char *type_str = NULL;
 
-    switch (BINOP_OP(node))
+    if (type == DT_void)
     {
-    case BO_sub:
-    case BO_div:
-        if (anytype)
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        op_str = binoptype_to_string(BINOP_OP(node));
+        type_str = datatype_to_string(type);
+        CTIobj(CTI_ERROR, true, info, "The binop operation '%s' is not defined on the type '%s'",
+               op_str, type_str);
+        free(info.filename);
+    }
+    else
+    {
+        switch (BINOP_OP(node))
         {
-            // infer the type from the first argument
-            TRAVopt(BINOP_LEFT(node));
-            parent_type = type;
-        }
+        case BO_sub:
+        case BO_div:
+            if (anytype)
+            {
+                // infer the type from the first argument
+                TRAVopt(BINOP_LEFT(node));
+                parent_type = type;
+            }
 
-        if ((type != DT_int) | (type != DT_float))
-        {
-            struct ctinfo info = NODE_TO_CTINFO(node);
-            info.filename = STRcpy(global.input_file);
+            if ((type != DT_int) & (type != DT_float))
+            {
+                struct ctinfo info = NODE_TO_CTINFO(node);
+                info.filename = STRcpy(global.input_file);
+                op_str = binoptype_to_string(BINOP_OP(node));
+                type_str = datatype_to_string(type);
+                CTIobj(CTI_ERROR, true, info,
+                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       type_str);
+                free(info.filename);
+            }
+            break;
+        case BO_add:
+        case BO_mul:
+            if (anytype)
+            {
+                // infer the type from the first argument
+                TRAVopt(BINOP_LEFT(node));
+                parent_type = type;
+            }
+            release_assert((type == DT_int) | (type == DT_float) | (type == DT_bool));
+            break;
+        case BO_mod:
+            if (anytype)
+            {
+                // infer the type from the first argument
+                TRAVopt(BINOP_LEFT(node));
+                parent_type = type;
+            }
+            if (type != DT_int)
+            {
+                struct ctinfo info = NODE_TO_CTINFO(node);
+                info.filename = STRcpy(global.input_file);
+                op_str = binoptype_to_string(BINOP_OP(node));
+                type_str = datatype_to_string(type);
+                CTIobj(CTI_ERROR, true, info,
+                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       type_str);
+                free(info.filename);
+            }
+            break;
+        case BO_lt:
+        case BO_le:
+        case BO_gt:
+        case BO_ge:
+            // Always yield a boolean
+            if (anytype)
+            {
+                parent_type = DT_bool;
+            }
             op_str = binoptype_to_string(BINOP_OP(node));
-            type_str = datatype_to_string(type);
-            CTIobj(CTI_ERROR, true, info, "The operation '%s' is not defined on the type '%s'",
-                   op_str, type_str);
-            free(info.filename);
-        }
-        break;
-    case BO_add:
-    case BO_mul:
-        if (anytype)
-        {
-            // infer the type from the first argument
-            TRAVopt(BINOP_LEFT(node));
-            parent_type = type;
-        }
-        release_assert((type == DT_int) | (type == DT_float) | (type == DT_bool));
-        break;
-    case BO_mod:
-        if (anytype)
-        {
-            // infer the type from the first argument
-            TRAVopt(BINOP_LEFT(node));
-            parent_type = type;
-        }
-        if (type != DT_int)
-        {
-            struct ctinfo info = NODE_TO_CTINFO(node);
-            info.filename = STRcpy(global.input_file);
-            op_str = binoptype_to_string(BINOP_OP(node));
-            type_str = datatype_to_string(type);
-            CTIobj(CTI_ERROR, true, info, "The operation '%s' is not defined on the type '%s'",
-                   op_str, type_str);
-            free(info.filename);
-        }
-        break;
-    case BO_lt:
-    case BO_le:
-    case BO_gt:
-    case BO_ge:
-        // Always yield a boolean
-        if (anytype)
-        {
-            parent_type = DT_bool;
-        }
-        op_str = binoptype_to_string(BINOP_OP(node));
-        type_check(node, op_str, DT_bool, parent_type);
+            type_check(node, op_str, DT_bool, parent_type);
 
-        // infer the type from the first argument
-        anytype = true;
-        TRAVopt(BINOP_LEFT(node));
-        if ((type != DT_int) | (type != DT_float))
-        {
-            struct ctinfo info = NODE_TO_CTINFO(node);
-            info.filename = STRcpy(global.input_file);
-            type_str = datatype_to_string(type);
-            CTIobj(CTI_ERROR, true, info, "The operation '%s' is not defined on the type '%s'",
-                   op_str, type_str);
-            free(info.filename);
+            // infer the type from the first argument
+            anytype = true;
+            TRAVopt(BINOP_LEFT(node));
+            if ((type != DT_int) & (type != DT_float))
+            {
+                struct ctinfo info = NODE_TO_CTINFO(node);
+                info.filename = STRcpy(global.input_file);
+                type_str = datatype_to_string(type);
+                CTIobj(CTI_ERROR, true, info,
+                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       type_str);
+                free(info.filename);
+            }
+            break;
+        case BO_eq:
+        case BO_ne:
+            // Always yield a boolean
+            if (anytype)
+            {
+                parent_type = DT_bool;
+            }
+            op_str = binoptype_to_string(BINOP_OP(node));
+            type_check(node, op_str, DT_bool, parent_type);
+            anytype = true; // Check for constistency of both arguments
+            break;
+        case BO_and:
+        case BO_or:
+            // Always yield a boolean
+            if (anytype)
+            {
+                parent_type = DT_bool;
+            }
+            op_str = binoptype_to_string(BINOP_OP(node));
+            type_check(node, op_str, DT_bool, parent_type);
+            type = DT_bool; // Both arguments should be a bool
+            break;
+        case BO_NULL:
+            release_assert(false);
+            break;
         }
-        break;
-    case BO_eq:
-    case BO_ne:
-        // Always yield a boolean
-        if (anytype)
-        {
-            parent_type = DT_bool;
-        }
-        op_str = binoptype_to_string(BINOP_OP(node));
-        type_check(node, op_str, DT_bool, parent_type);
-        anytype = true; // Check for constistency of both arguments
-        break;
-    case BO_and:
-    case BO_or:
-        // Always yield a boolean
-        if (anytype)
-        {
-            parent_type = DT_bool;
-        }
-        op_str = binoptype_to_string(BINOP_OP(node));
-        type_check(node, op_str, DT_bool, parent_type);
-        type = DT_bool; // Both arguments should be a bool
-        break;
-    case BO_NULL:
-        release_assert(false);
-        break;
     }
 
     if (op_str != NULL)
@@ -378,6 +404,29 @@ node_st *CA_TCbinop(node_st *node)
 
     TRAVopt(BINOP_LEFT(node));
     TRAVopt(BINOP_RIGHT(node));
+    type = parent_type;
+    return node;
+}
+
+node_st *CA_TCretstatement(node_st *node)
+{
+    enum DataType parent_type = type;
+    type = rettype;
+    node_st *expr = RETSTATEMENT_EXPR(node);
+    if (expr == NULL)
+    {
+        if (type != DT_void)
+        {
+            struct ctinfo info = NODE_TO_CTINFO(node);
+            info.filename = STRcpy(global.input_file);
+            CTIobj(CTI_ERROR, true, info, "Cannot return 'void' for none-void function");
+            free(info.filename);
+        }
+    }
+    else
+    {
+        TRAVopt(expr);
+    }
     type = parent_type;
     return node;
 }
@@ -401,7 +450,12 @@ node_st *CA_TCproccall(node_st *node)
     }
     else
     {
-        type_check(var, name, type, has_type);
+        // only check type if called in a typed expression. A standalone procall in a function body
+        // is of type void.
+        if (type != DT_void)
+        {
+            type_check(var, name, type, has_type);
+        }
     }
 
     release_assert(NODE_TYPE(entry) == NT_FUNHEADER);
@@ -446,6 +500,36 @@ node_st *CA_TCproccall(node_st *node)
         free(info.filename);
     }
 
+    return node;
+}
+node_st *CA_TCdowhileloop(node_st *node)
+{
+    enum DataType parent_type = type;
+    type = DT_bool; // while loop should contain bool
+    TRAVopt(DOWHILELOOP_EXPR(node));
+    type = parent_type;
+    TRAVopt(DOWHILELOOP_BLOCK(node));
+    return node;
+}
+
+node_st *CA_TCwhileloop(node_st *node)
+{
+    enum DataType parent_type = type;
+    type = DT_bool; // while loop should contain bool
+    TRAVopt(WHILELOOP_EXPR(node));
+    type = parent_type;
+    TRAVopt(WHILELOOP_BLOCK(node));
+    return node;
+}
+
+node_st *CA_TCifstatement(node_st *node)
+{
+    enum DataType parent_type = type;
+    type = DT_bool; // if statement should contain bool
+    TRAVopt(IFSTATEMENT_EXPR(node));
+    type = parent_type;
+    TRAVopt(IFSTATEMENT_BLOCK(node));
+    TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
     return node;
 }
 
@@ -498,9 +582,10 @@ node_st *CA_TCarrayassign(node_st *node)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info,
-               "Array '%s' has '%d' dimension, but '%d' dimensions are used.", name, expected_count,
-               actual_count);
+               "Array '%s' has '%d' dimension, but '%d' dimensions are used.", pretty_name,
+               expected_count, actual_count);
         free(info.filename);
     }
 
@@ -533,7 +618,7 @@ node_st *CA_TCglobaldec(node_st *node)
 node_st *CA_TCvardec(node_st *node)
 {
     node_st *var = VARDEC_VAR(node);
-    char *name = VAR_NAME(var);
+    char *name = NODE_TYPE(var) == NT_ARRAYEXPR ? VAR_NAME(ARRAYEXPR_VAR(var)) : VAR_NAME(var);
     enum ccn_nodetype var_type = NODE_TYPE(var);
     node_st *expr = VARDEC_EXPR(node);
     if (expr == NULL)
@@ -551,8 +636,9 @@ node_st *CA_TCvardec(node_st *node)
         {
             struct ctinfo info = NODE_TO_CTINFO(node);
             info.filename = STRcpy(global.input_file);
+            const char *pretty_name = get_pretty_name(name);
             CTIobj(CTI_ERROR, true, info,
-                   "Array expression can not be assigned to the variable '%s'.", name);
+                   "Array expression can not be assigned to the variable '%s'.", pretty_name);
             free(info.filename);
         }
         else
@@ -593,12 +679,15 @@ node_st *CA_TCfundec(node_st *node)
 node_st *CA_TCfundef(node_st *node)
 {
     enum DataType parent_type = type;
-    type = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
+    enum DataType parent_rettype = rettype;
+    type = DT_void;
+    rettype = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
     current = FUNDEF_SYMBOLS(node);
     TRAVopt(FUNDEF_FUNBODY(node));
     current = HTlookup(current, "@parent");
     release_assert(current != NULL);
     type = parent_type;
+    rettype = parent_rettype;
     return node;
 }
 

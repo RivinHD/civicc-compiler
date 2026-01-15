@@ -5,6 +5,7 @@ set(SOURCE_FILES
     src/global/globals.c
     src/print/print.c
     src/scanparse/scanParse.c
+    src/scanparse/preprocessor.c
     src/optimization/opt_sub.c
     src/context_analysis/function_header.c
     src/context_analysis/declaration_check.c

@@ -5409,7 +5409,7 @@ TEST_F(ScanParseTest, Suite_Basic_GlobalStatement)
                 "Error parsing source code: syntax error");
 }
 
-TEST_F(ScanParseTest, Suite_Basic_IntergerOutOfRange)
+TEST_F(ScanParseTest, Suite_Basic_IntegerOutOfRange)
 {
     SetUp("testsuite_public/basic/check_error/integer_out_of_range.cvc");
     ASSERT_NE(nullptr, root);

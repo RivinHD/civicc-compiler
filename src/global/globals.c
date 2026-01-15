@@ -8,6 +8,7 @@ struct globals global;
 
 void GLBinitializeGlobals()
 {
+    global.preprocessor_enabled = true;
     global.col = 1;
     global.line = 1;
     global.input_buf_len = 0;
