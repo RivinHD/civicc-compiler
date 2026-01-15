@@ -202,6 +202,16 @@ SEPC ({SEP}|\{)
 
 [ \t]                      { global.col += yyleng; }
 
+"#".*\n {
+    // Preprocessor linemarker
+    // Reset the line on the linemarkers
+    // Also enable use to skip preprocesor stuff if it is disabled
+    yycolumn = 1;
+    yylineno = 1;
+    global.line = 1;
+    printf("Linemarker: '%s'\n", yytext);
+}
+
 . {                             
     scanparse_fprintf(stdout, "UNDEF_CHAR: '%s'\n", yytext);
     yyerror("invalid character");

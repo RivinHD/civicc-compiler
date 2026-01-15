@@ -26,7 +26,7 @@ FILE *preprocessorStart()
     // -C : keep comments
     // -P : remove linemarkers
     // -nostdinc : do not search standard sytem directories
-    char *command = STRfmt("cpp -nostdinc -P -C %s", global.input_file);
+    char *command = STRfmt("cpp -nostdinc -C %s", global.input_file);
     FILE *fd_preprocess = popen(command, "r");
     free(command);
 
