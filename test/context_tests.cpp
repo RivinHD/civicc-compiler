@@ -527,9 +527,11 @@ TEST_F(ContextTest, GlobalDecInt)
 TEST_F(ContextTest, NoVarDecsFor)
 {
     SetUpNoExecute("for/main.cvc");
-    ASSERT_EXIT(
-        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-        testing::AllOf(testing::HasSubstr("was not declared"), testing::HasSubstr("13 Error")));
+    ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+                testing::AllOf(testing::HasSubstr("was not declared"),
+                               testing::HasSubstr(
+                                   "'cast expression' has type 'float' but expected type 'int'"),
+                               testing::HasSubstr("14 Error")));
 }
 
 TEST_F(ContextTest, DoubleDec)

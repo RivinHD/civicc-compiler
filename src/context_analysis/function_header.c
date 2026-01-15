@@ -1,5 +1,4 @@
 #include "ccngen/ast.h"
-#include "ccngen/trav.h"
 #include "context_analysis/definitions.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
@@ -11,7 +10,6 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 static htable_stptr current = NULL;

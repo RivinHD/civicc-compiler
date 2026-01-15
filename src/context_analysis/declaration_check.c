@@ -75,19 +75,7 @@ node_st *CA_DCvar(node_st *node)
     {
         error_invalid_identifier_name(node, node, name);
     }
-    htable_stptr htable = current;
-    node_st *entry = HTlookup(htable, name);
-    while (entry == NULL)
-    {
-        htable_stptr parent = HTlookup(htable, htable_parent_name);
-        if (parent == NULL)
-        {
-            break;
-        }
-
-        htable = parent;
-        entry = HTlookup(htable, name);
-    }
+    node_st *entry = deep_lookup(current, name);
     if (entry == NULL)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);

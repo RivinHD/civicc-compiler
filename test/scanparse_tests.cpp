@@ -3254,6 +3254,102 @@ TEST_F(ScanParseTest, Comment)
     ASSERT_MLSTREQ(expected, root_string);
 }
 
+TEST_F(ScanParseTest, IntsCorrect)
+{
+    SetUp("ints/correct/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'test'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'binary'\n"
+                           "┃        ┃     └─ Int -- val:'110'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'binaryNeg'\n"
+                           "┃        ┃     └─ Monop -- op:'-'\n"
+                           "┃        ┃        └─ Int -- val:'110'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'binaryEdge'\n"
+                           "┃        ┃     └─ Int -- val:'0'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'octal'\n"
+                           "┃        ┃     └─ Int -- val:'342391'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'octalNeg'\n"
+                           "┃        ┃     └─ Monop -- op:'-'\n"
+                           "┃        ┃        └─ Int -- val:'342391'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'octalEdge'\n"
+                           "┃        ┃     └─ Int -- val:'0'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'decimal'\n"
+                           "┃        ┃     └─ Int -- val:'123456789'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'decimalNeg'\n"
+                           "┃        ┃     └─ Monop -- op:'-'\n"
+                           "┃        ┃        └─ Int -- val:'123456789'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'hex'\n"
+                           "┃        ┃     └─ Int -- val:'1282339'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'hexNeg'\n"
+                           "┃        ┃     └─ Monop -- op:'-'\n"
+                           "┃        ┃        └─ Int -- val:'1282339'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'hexEdge'\n"
+                           "┃        ┃     └─ Int -- val:'0'\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
+
+    ASSERT_MLSTREQ(expected, root_string);
+}
+
+TEST_F(ScanParseTest, IntsIncorrectBin)
+{
+    SetUpNoExecute("ints/incorrect_bin/main.cvc");
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, IntsIncorrectOctal)
+{
+    SetUpNoExecute("ints/incorrect_octal/main.cvc");
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, IntsIncorrectDecimal)
+{
+    SetUpNoExecute("ints/incorrect_decimal/main.cvc");
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
+TEST_F(ScanParseTest, IntsIncorrectHex)
+{
+    SetUpNoExecute("ints/incorrect_decimal/main.cvc");
+    ASSERT_EXIT(run_scan_parse(input_filepath.c_str()), testing::ExitedWithCode(1),
+                "Error parsing source code: syntax error");
+}
+
 TEST_F(ScanParseTest, BinopsPrecedence)
 {
     SetUp("binops_precedence/main.cvc");

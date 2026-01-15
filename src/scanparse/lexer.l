@@ -33,6 +33,7 @@ static inline void token_action();
 int yycolumn = 1;
 #define YY_USER_ACTION token_action();
 
+static inline void convert_int(int base);
 
 %}
 
@@ -172,22 +173,23 @@ SEPC ({SEP}|\{)
     FILTER( FLOATCONST);
 }
 
-[0-9]+                     { 
-    long value = strtol(yytext, NULL, 10);
+[1-9][0-9]*                     { 
+    convert_int(10);
+    FILTER( NUMCONST);
+}
 
-    if(value > INT_MAX || value < INT_MIN)
-    {
-        char* filename = STRcpy(global.input_file);
-        value = (value > INT_MAX) ? INT_MAX : INT_MIN;
-        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
-        CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
-        if(filename != NULL)
-        {
-            free(filename);
-        }
-    }
+"0"[0-7]*                     { 
+    convert_int(8);
+    FILTER( NUMCONST);
+}
 
-    yylval.cint= (int)value;
+"0x"[0-9a-fA-F]+                     { 
+    convert_int(16);
+    FILTER( NUMCONST);
+}
+
+"0b"[0-1]+                     { 
+    convert_int(2);
     FILTER( NUMCONST);
 }
 
@@ -222,4 +224,23 @@ static inline void token_action() {
     yylloc.first_column = yycolumn;
     yylloc.last_column = yycolumn + yyleng - 1;
     yycolumn += yyleng;
+}
+
+static inline void convert_int(int base) 
+{
+    long value = strtol(yytext, NULL, base);
+
+    if(value > INT_MAX || value < INT_MIN)
+    {
+        char* filename = STRcpy(global.input_file);
+        value = (value > INT_MAX) ? INT_MAX : INT_MIN;
+        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
+        if(filename != NULL)
+        {
+            free(filename);
+        }
+    }
+
+    yylval.cint= (int)value;
 }

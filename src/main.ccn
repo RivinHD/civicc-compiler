@@ -59,6 +59,35 @@ phase ContextAnalysis {
                 ProcCall
             } 
         };
+        traversal TypeCheckig {
+            uid = CA_TC,
+            nodes = {
+                Program,
+
+                // Assignments
+                GlobalDec,
+                VarDec,
+                FunDef, // Return type
+                Assign,
+                ArrayAssign,
+
+                // Usage
+                ArrayExpr,
+                Var,
+                ProcCall,
+                Cast,
+                Int,
+                Float,
+                Bool,
+                Binop,
+                Monop,
+                ForLoop,
+
+                // Edge
+                ArrayVar, // need to type check the dims as they are not user defined.
+                FunDec // no need to check function. 
+            }
+        };
     }
 };
 
