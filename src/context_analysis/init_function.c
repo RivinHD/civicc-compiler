@@ -31,7 +31,7 @@ node_st *CA_IFglobaldef(node_st *node)
 
         if (NODE_TYPE(var) == NT_VAR)
         {
-            new_assign = ASTassign(CCNcopy(var), CCNcopy(expr));
+            new_assign = ASTassign(CCNcopy(var), expr);
             VARDEC_EXPR(cur_vardec) = NULL;
         }
         else

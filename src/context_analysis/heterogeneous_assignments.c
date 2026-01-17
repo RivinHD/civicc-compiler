@@ -136,7 +136,7 @@ node_st *CA_AAarrayexpr(node_st *node)
                 FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
             }
 
-            EXPRS_EXPR(exprs) = temp_var;
+            EXPRS_EXPR(exprs) = CCNcopy(temp_var);
 
             // If nested expr, traverse next
             TRAVopt(cur_expr);
