@@ -375,7 +375,7 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
 
             // The array was already printed by the first node of the array of the same type
             if (has_child_next(node, &child_next) && child == child_next &&
-                (child == NULL ? true : node->nodetype == child->nodetype))
+                (child == NULL ? true : node->nodetype == child->nodetype) && depth != 0)
             {
                 continue;
             }
@@ -392,9 +392,11 @@ char *_node_to_string(node_st *node, unsigned int depth, const char *connection,
             {
                 // Standard node
                 const char *connection =
-                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "└" : "├";
+                    (i == node->num_children - (child_next_is_last && depth != 0 ? 2 : 1)) ? "└"
+                                                                                           : "├";
                 const char *depth_ext =
-                    (i == node->num_children - (child_next_is_last ? 2 : 1)) ? "   " : "│  ";
+                    (i == node->num_children - (child_next_is_last && depth != 0 ? 2 : 1)) ? "   "
+                                                                                           : "│  ";
                 char *next_depth_string = STRcat(depth_string, depth_ext);
                 output_child = _node_to_string(child, depth + 1, connection, next_depth_string);
                 free(next_depth_string);

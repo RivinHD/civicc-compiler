@@ -27,7 +27,8 @@ void nested_init_index_calculation(node_st *node, node_st *start_exprs)
         node_st *new_arrayexpr = ASTarrayexpr(start_exprs, new_var);
         node_st *new_arrayassign = ASTarrayassign(new_arrayexpr, CCNcopy(node));
 
-        node_st *new_stmts = ASTstatements(new_arrayassign, FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)));
+        node_st *new_stmts =
+            ASTstatements(new_arrayassign, FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)));
         FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)) = new_stmts;
         return;
     }
@@ -41,7 +42,7 @@ void nested_init_index_calculation(node_st *node, node_st *start_exprs)
             node_st *copy_start_exprs = CCNcopy(start_exprs);
             release_assert(NODE_TYPE(copy_start_exprs) == NT_EXPRS);
             node_st *exprs = copy_start_exprs;
-            while (EXPRS_NEXT(exprs) != NULL )
+            while (EXPRS_NEXT(exprs) != NULL)
             {
                 exprs = EXPRS_NEXT(exprs);
                 release_assert(NODE_TYPE(exprs) == NT_EXPRS);
@@ -110,7 +111,7 @@ node_st *CA_IFglobaldef(node_st *node)
             {
                 char *tmp_name = STRfmt("@init%d", init_counter++);
                 node_st *tmp_var = ASTvar(tmp_name);
-                new_assign = ASTassign(tmp_var, CCNcopy(expr));
+                new_assign = ASTassign(tmp_var, expr);
 
                 // update current node
                 VARDEC_EXPR(cur_vardec) = CCNcopy(tmp_var);

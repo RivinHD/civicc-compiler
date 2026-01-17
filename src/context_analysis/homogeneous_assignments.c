@@ -14,8 +14,6 @@ static node_st *first_decls = NULL;
 static node_st *last_fundef = NULL;
 static uint32_t loop_counter = 0;
 
-// TODO skip all assign statement in last_funbody starting with '@' and only then add additional
-// statements e.g. VAR_NAME(ASSIGN_VAR(<node>))[0] == '@' should be skipped
 node_st *CA_HAvardec(node_st *node)
 {
     node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
@@ -109,16 +107,33 @@ node_st *CA_HAvardec(node_st *node)
     return node;
 }
 
+node_st *CA_HAfunbody(node_st *node)
+{
+    TRAVopt(FUNBODY_VARDECS(node));
+    TRAVopt(FUNBODY_LOCALFUNDEFS(node));
+    TRAVopt(FUNBODY_STMTS(node));
+
+    char *strn = get_node_name(node);
+    char *str = node_to_string(node);
+    printf("%s\n%s\n", strn, str);
+    free(str);
+    free(strn);
+
+    return node;
+}
+
 /**
  * Position to append nodes to.
  */
 node_st *CA_HAfundef(node_st *node)
 {
+    node_st *parent_fundef = last_fundef;
     last_fundef = node;
     loop_counter = 0;
 
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
+    last_fundef = parent_fundef;
     return node;
 }
 

@@ -9,3 +9,8 @@ void fun(int[k] arr)
 
     int[m, n] arr3;
 }
+
+void fukk(int[k] arr)
+{
+    int[3+3, 2+2] arr3;
+}

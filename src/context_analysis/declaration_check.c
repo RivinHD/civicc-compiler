@@ -137,7 +137,7 @@ node_st *CA_DCfundef(node_st *node)
     current = FUNDEF_SYMBOLS(node);
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
-    current = HTlookup(current, "@parent");
+    current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
 
     return node;

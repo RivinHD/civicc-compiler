@@ -1058,7 +1058,6 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     YYLTYPE *loc_e = (YYLTYPE*)end_loc;
 
     release_assert(loc_b->first_line >= 0);
-    printf("column %d\n", loc_b->first_column);
     release_assert(loc_b->first_column >= 0);
     release_assert(loc_e->last_line >= 0);
     release_assert(loc_e->last_column >= 0);

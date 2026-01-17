@@ -117,7 +117,9 @@ phase CodeGenPreparation
                 FunDef,
 
                 // Nodes to update
-                ArrayExpr
+                Funbody,
+                ArrayExpr,
+                VarDecs
             }
         };
         traversal HomogeneousAssignments {
@@ -128,6 +130,7 @@ phase CodeGenPreparation
                 FunDef,
 
                 // Nodes to update
+                Funbody,
                 VarDec
             }
         };
