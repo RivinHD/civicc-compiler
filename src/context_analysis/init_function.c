@@ -31,11 +31,11 @@ static uint32_t init_counter = 0;
  * array[1, 2] = 6;
  */
 
-void nested_init_index_calculation(node_st *node, node_st *exprs, node_st *start_exprs)
+void nested_init_index_calculation(node_st *node, node_st *start_exprs)
 {
     release_assert(node != NULL);
-    release_assert(exprs != NULL);
-    release_assert(NODE_TYPE(exprs) == NT_EXPRS);
+    release_assert(start_exprs != NULL);
+    release_assert(NODE_TYPE(start_exprs) == NT_EXPRS);
 
     if (NODE_TYPE(node) != NT_ARRAYINIT)
     {
@@ -55,12 +55,23 @@ void nested_init_index_calculation(node_st *node, node_st *exprs, node_st *start
         release_assert(NODE_TYPE(node) == NT_ARRAYINIT);
         if (ARRAYINIT_EXPR(node) != NULL)
         {
+            node_st *copy_start_exprs = CCNcopy(start_exprs);
+            release_assert(NODE_TYPE(copy_start_exprs) == NT_EXPRS);
+            node_st *exprs = copy_start_exprs;
+            while (EXPRS_NEXT(exprs) != NULL )
+            {
+                exprs = EXPRS_NEXT(exprs);
+                release_assert(NODE_TYPE(exprs) == NT_EXPRS);
+            }
+
             node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
+            printf("%s", node_to_string(copy_start_exprs));
             EXPRS_NEXT(exprs) = new_exprs;
-            nested_init_index_calculation(ARRAYINIT_EXPR(node), new_exprs, start_exprs);
+            nested_init_index_calculation(ARRAYINIT_EXPR(node), copy_start_exprs);
         }
         node = ARRAYINIT_NEXT(node);
     }
+    CCNfree(start_exprs);
 }
 
 void init_index_calculation(node_st *node)
@@ -72,7 +83,7 @@ void init_index_calculation(node_st *node)
         if (ARRAYINIT_EXPR(rec_init) != NULL)
         {
             node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
-            nested_init_index_calculation(ARRAYINIT_EXPR(rec_init), new_exprs, new_exprs);
+            nested_init_index_calculation(ARRAYINIT_EXPR(rec_init), new_exprs);
         }
         rec_init = ARRAYINIT_NEXT(rec_init);
     }
