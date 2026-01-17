@@ -127,10 +127,6 @@ node_st *CA_HAfundef(node_st *node)
  */
 node_st *CA_HAprogram(node_st *node)
 {
-    char *str = node_to_string(node);
-    printf("%s\n", str);
-    free(str);
-
     htable_stptr symbols = PROGRAM_SYMBOLS(node);
     first_decls = PROGRAM_DECLS(node);
 
@@ -144,9 +140,5 @@ node_st *CA_HAprogram(node_st *node)
 
     PROGRAM_DECLS(node) = first_decls;
 
-    printf("------------------------------");
-    str = node_to_string(node);
-    printf("%s\n", str);
-    free(str);
     return node;
 }

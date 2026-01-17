@@ -127,10 +127,6 @@ node_st *CA_AAfundef(node_st *node)
  */
 node_st *CA_AAprogram(node_st *node)
 {
-    char *str = node_to_string(node);
-    printf("%s\n", str);
-    free(str);
-
     current = PROGRAM_SYMBOLS(node);
     program_decls = PROGRAM_DECLS(node);
 

@@ -14,23 +14,6 @@ static node_st *cur_var_array_expr = NULL;
 static node_st *init_fun = NULL;
 static uint32_t init_counter = 0;
 
-/**
- * calc_index(Exprs, ArrayInit)
- * index  = 0
- *       .. calc index
- *       while (NEXT(ARRAYinit))
- *       Exprs = ASTint(index)
- *       ASTarrayassign(array, )
- *       calc_index(NEXT(Exprs), Expr(Array))
- *
- * array[n, m]
- * unpack e.g. {{1, 2, 3,}, {4,5,6}}
- * array[0, 0] = 1;
- * array[0, 1] = 2;
- * ..
- * array[1, 2] = 6;
- */
-
 void nested_init_index_calculation(node_st *node, node_st *start_exprs)
 {
     release_assert(node != NULL);
@@ -65,7 +48,6 @@ void nested_init_index_calculation(node_st *node, node_st *start_exprs)
             }
 
             node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
-            printf("%s", node_to_string(copy_start_exprs));
             EXPRS_NEXT(exprs) = new_exprs;
             nested_init_index_calculation(ARRAYINIT_EXPR(node), copy_start_exprs);
         }
@@ -112,16 +94,6 @@ node_st *CA_IFglobaldef(node_st *node)
         }
         else
         {
-            // ArrayExpr
-
-            // array assign: name[4,5] = 5;
-            // int [1,2]array = 5;
-            // ----
-            // int [1,2]aray = tmp;
-            // tmp = 5; // array assign
-            // ----
-            // for ...
-            // array[i] = tmp;
             if (NODE_TYPE(expr) == NT_ARRAYINIT)
             {
                 cur_var_array_expr = ARRAYEXPR_VAR(var);
@@ -136,14 +108,6 @@ node_st *CA_IFglobaldef(node_st *node)
             }
             else
             {
-                // Expr
-
-                // Exprs
-                // array[1,2] = 5;
-                // ----
-                // tmp = 5;
-                // array[1,2] = tmp;
-                // Step 3: New @init var
                 char *tmp_name = STRfmt("@init%d", init_counter++);
                 node_st *tmp_var = ASTvar(tmp_name);
                 new_assign = ASTassign(tmp_var, CCNcopy(expr));
@@ -163,10 +127,6 @@ node_st *CA_IFglobaldef(node_st *node)
 
 node_st *CA_IFprogram(node_st *node)
 {
-    char *str = node_to_string(node);
-    printf("%s\n", str);
-    free(str);
-
     node_st *last_decls = PROGRAM_DECLS(node);
     release_assert(last_decls);
     while (DECLARATIONS_NEXT(last_decls) != NULL)
