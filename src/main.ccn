@@ -80,7 +80,6 @@ phase CodeGenPreparation
                 FunDef,
 
                 // Nodes to update
-                // ArrayAssign,
                 ArrayExpr
             }
         };

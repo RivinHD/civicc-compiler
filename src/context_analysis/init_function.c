@@ -31,7 +31,7 @@ static uint32_t init_counter = 0;
  * array[1, 2] = 6;
  */
 
-node_st *nested_init_index_calculation(node_st *node, node_st *exprs)
+void nested_init_index_calculation(node_st *node, node_st *exprs, node_st *start_exprs)
 {
     release_assert(node != NULL);
     release_assert(exprs != NULL);
@@ -41,13 +41,12 @@ node_st *nested_init_index_calculation(node_st *node, node_st *exprs)
     {
         // Here: rec_init = Int -- val:'1'
         node_st *new_var = ASTvar(STRcpy(VAR_NAME(cur_var_array_expr)));
-        node_st *new_arrayexpr = ASTarrayexpr(NULL, new_var);
+        node_st *new_arrayexpr = ASTarrayexpr(start_exprs, new_var);
         node_st *new_arrayassign = ASTarrayassign(new_arrayexpr, CCNcopy(node));
 
         node_st *new_stmts = ASTstatements(new_arrayassign, FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)));
         FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)) = new_stmts;
-
-        return new_arrayassign;
+        return;
     }
 
     int index_counter = 0;
@@ -58,7 +57,7 @@ node_st *nested_init_index_calculation(node_st *node, node_st *exprs)
         {
             node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
             EXPRS_NEXT(exprs) = new_exprs;
-            return nested_init_index_calculation(ARRAYINIT_EXPR(node), new_exprs);
+            nested_init_index_calculation(ARRAYINIT_EXPR(node), new_exprs, start_exprs);
         }
         node = ARRAYINIT_NEXT(node);
     }
@@ -73,10 +72,7 @@ void init_index_calculation(node_st *node)
         if (ARRAYINIT_EXPR(rec_init) != NULL)
         {
             node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
-            node_st *array_assign =
-                nested_init_index_calculation(ARRAYINIT_EXPR(rec_init), new_exprs);
-            release_assert(NODE_TYPE(array_assign) == NT_ARRAYASSIGN);
-            ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(array_assign)) = new_exprs;
+            nested_init_index_calculation(ARRAYINIT_EXPR(rec_init), new_exprs, new_exprs);
         }
         rec_init = ARRAYINIT_NEXT(rec_init);
     }

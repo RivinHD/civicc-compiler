@@ -17,73 +17,6 @@ static uint32_t temp_counter = 0;
 static htable_stptr current = NULL;
 
 /**
- * Extract expressions from array assignments.
- *
- * Structure: array[...] = ... expr ...;
- */
-/*node_st *CA_AAarrayassign(node_st *node)
-{
-    release_assert(last_fundef);
-    node_st *init_fun = deep_lookup(current, global_init_func);
-
-    if (NODE_TYPE(ARRAYASSIGN_EXPR(node)) != NT_VAR)
-    {
-        // Step 1: DataType Lookup
-        node_st *arrayassign_var = ARRAYASSIGN_VAR(node);
-        node_st *temp_arrayvar = deep_lookup(current, VAR_NAME(ARRAYEXPR_VAR(arrayassign_var)));
-        const enum DataType var_type = symbol_to_type(temp_arrayvar);
-
-        // Step 2: Update (temp) "expr -> var"
-        node_st *assign_expr = ARRAYASSIGN_EXPR(node);
-        node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
-        node_st *temp_var = NULL;
-
-        // GlobalDef case
-        if (STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(init_fun))),
-                  VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(last_fundef)))))
-        {
-            // TODO: vardec without expr need to be added to the globaldef
-            // and additional assignments need to be added to __init with the expr.
-
-            // Step 2.1: Create temp globalDef (without expr)
-            temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
-            node_st *temp_vardec = ASTvardec(temp_var, NULL, var_type);
-            node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
-
-            // Step 2.2: Append to before the current globalDef (decls)
-            node_st *temp_decls =
-                ASTdeclarations(temp_globaldef, program_decls);
-            program_decls = temp_decls;
-
-            // Step 2.3: Add varAssign (+ expr) to init fun
-            node_st *new_assign = ASTassign(CCNcopy(temp_var), assign_expr);
-            // Todo: Something missing?
-            node_st *new_stmts = ASTstatements(new_assign, FUNBODY_STMTS(cur_funbody));
-            FUNBODY_STMTS(cur_funbody) = new_stmts;
-        }
-        else
-        {
-            // Step 2.1
-            temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
-            node_st *temp_vardec = ASTvardec(temp_var, assign_expr, var_type);
-
-            // Step 2.2: Update varDecs
-            node_st *temp_vardecs = ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
-            FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
-
-        }
-
-        // Step 3: Update (node) "expr -> var"
-        ARRAYASSIGN_EXPR(node) = CCNcopy(temp_var);
-    }
-
-    TRAVopt(ARRAYASSIGN_VAR(node));
-    TRAVopt(ARRAYASSIGN_EXPR(node));
-
-    return node;
-}*/
-
-/**
  * Extract dimension expressions and substitute constants.
  *
  * Structure: array[ ... expr ... ] var;
@@ -104,6 +37,7 @@ node_st *CA_AAarrayexpr(node_st *node)
             node_st *cur_expr = EXPRS_EXPR(exprs);
 
             node_st *temp_var = NULL;
+            release_assert(temp_counter != UINT32_MAX);
 
             // currently in global def (init fun)
             if (STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(init_fun))),
