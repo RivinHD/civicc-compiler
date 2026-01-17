@@ -418,7 +418,6 @@ node_st *CA_TCbinop(node_st *node)
             // infer the type from the first argument
             anytype = true;
             TRAVopt(BINOP_LEFT(node));
-            parent_type = type;
             free(op_str);
 
             if (type == DT_NULL && CTIgetErrors() > 0)
