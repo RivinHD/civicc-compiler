@@ -1,2 +1,9 @@
 export int[1] q;
 export bool[3 + 1] test;
+export int[2] a = 3;
+
+int fun()
+{
+    int[4] d;
+    return 1;
+}

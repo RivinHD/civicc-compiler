@@ -1,0 +1,8 @@
+---------------GLOBAL DEF---------------GlobalDef -- has_export:'0'
+└─ VarDec -- type:'bool'
+   ├─ ArrayExpr
+   │  ┢─ Exprs
+   │  ┃  └─ Int -- val:'9'
+   │  ┡─ NULL
+   │  └─ Var -- name:'fb'
+   └─ NULL

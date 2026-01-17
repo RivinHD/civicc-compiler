@@ -79,9 +79,6 @@ phase CodeGenPreparation
                 Program,
                 FunDef,
 
-                // Place to store expr
-                FunBody,
-
                 // Nodes to update
                 ArrayAssign,
                 ArrayExpr
@@ -92,9 +89,7 @@ phase CodeGenPreparation
             nodes = {
                 // For __init function
                 Program,
-
-                // Place to store ArrayAssign
-                FunBody,
+                FunDef,
 
                 // Nodes to update
                 VarDec
