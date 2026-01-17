@@ -45,7 +45,7 @@ node_st *CA_HAvardec(node_st *node)
         // Step 2: Find position to append to
         node_st *stmts = FUNBODY_STMTS(cur_funbody);
         node_st *last_stmts = NULL;
-        while (NODE_TYPE(STATEMENTS_STMT(stmts)) == NT_ASSIGN &&
+        while (stmts != NULL && NODE_TYPE(STATEMENTS_STMT(stmts)) == NT_ASSIGN &&
                VAR_NAME(ASSIGN_VAR(STATEMENTS_STMT(stmts))) != NULL &&
                VAR_NAME(ASSIGN_VAR(STATEMENTS_STMT(stmts)))[0] == '@')
         {

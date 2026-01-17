@@ -35,9 +35,15 @@ node_st *CA_AAarrayexpr(node_st *node)
         while (exprs != NULL)
         {
             node_st *cur_expr = EXPRS_EXPR(exprs);
-
+            release_assert(cur_expr != NULL);
             node_st *temp_var = NULL;
             release_assert(temp_counter != UINT32_MAX);
+
+            if (NODE_TYPE(cur_expr) == NT_INT)
+            {
+                exprs = EXPRS_NEXT(exprs);
+                continue;
+            }
 
             // currently in global def (init fun)
             if (STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(init_fun))),
@@ -49,13 +55,11 @@ node_st *CA_AAarrayexpr(node_st *node)
                 node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
 
                 // Step 2: Append to before the current globalDef (decls)
-                node_st *temp_decls =
-                    ASTdeclarations(temp_globaldef, program_decls);
+                node_st *temp_decls = ASTdeclarations(temp_globaldef, program_decls);
                 program_decls = temp_decls;
 
                 // Step 3: Add varAssign to init fun (+ expr)
                 node_st *new_assign = ASTassign(CCNcopy(temp_var), cur_expr);
-                // Todo: Something missing?
                 node_st *new_stmts = ASTstatements(new_assign, FUNBODY_STMTS(cur_funbody));
                 FUNBODY_STMTS(cur_funbody) = new_stmts;
             }
