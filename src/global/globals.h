@@ -7,6 +7,7 @@
 
 struct globals
 {
+    bool preprocessor_enabled;
     const char *input_file;
     const char *output_file;
     char *input_buf;  // Buffer holding the input to the compiler if empty the input file is

@@ -1,0 +1,65 @@
+
+void ops() {
+    bool b = 5 + 3 > 7;
+    int a = 5 - -5;
+
+    b = 5.0 + 3.0 != 7.0;
+    b = 5.0 - 3.0 == 7.0;
+    b = 5 + 3 != 7;
+    b = 5 - 3 == 7;
+    b = true != b;
+    b = true == b;
+    b = 5.0 * 3.0 < -7.0 / 3.0;
+    b = 5 + 3 <= 7 / 2;
+    b = 5 * 3 >= 7 * 2;
+    b = !b;
+    b = !!!!(5 > 7);
+    b = b + b * b;
+
+    a = a % a + -5;
+
+    b = b && b && true;
+    b = b || b || false;
+}
+
+int retint() {
+
+    float retfloat() {
+
+        bool retbool() {
+            return true;
+        }
+
+        if (true)
+            return 6.0;
+        else
+            return 4.0;
+        // No missing return
+    }
+
+    if (true)
+        return 1;
+    else {
+        // No missing return
+    }
+
+    return 5;
+}
+
+void cast()  {
+    int a = (int)(bool)(float)(int)true;
+    bool b = (bool)(5 + 5 + 7 + 8);
+    float f = (float)(a < 5 && 10 > a);
+}
+
+void array(float[m,n] param) {
+    float[3,2] input1 = [[1.0,2.0],[3.0,4.0],[5.0,6.0]];
+    float[2,5] input2 = [[1.0,2.0,3.0,4.0,5.0],[6.0,7.0,8.0,9.0,10.0]];
+    int[6] input3 = [1,2,3,4,5,6];
+    bool[1,1,1,1,1] input4 = [[[[[true]]]]];
+    float[3,2] input5 = 1.0;
+    int[6] input6 = 2;
+    bool[1,1,1,1,1] input7 = true;
+
+    param[0,1] = 1.0;
+}

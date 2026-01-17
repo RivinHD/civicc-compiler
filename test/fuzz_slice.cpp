@@ -49,8 +49,7 @@ int main(int argc, char *argv[])
 #ifndef __AFL_COMPILER
     if (argc != 2)
     {
-        std::cerr << "Missing input file argument. Usage ./civicc_scanparse <filepath>"
-                  << std::endl;
+        std::cerr << "Missing input file argument. Usage ./civicc_<target> <filepath>" << std::endl;
         return 1;
     }
 #else

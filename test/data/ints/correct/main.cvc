@@ -1,0 +1,14 @@
+void test()
+{
+    int binary = 0b01101110;
+    int binaryNeg = -0b01101110;
+    int binaryEdge = 0b0000000;
+    int octal = 01234567;
+    int octalNeg = -01234567;
+    int octalEdge = 000000;
+    int decimal = 123456789;
+    int decimalNeg = -123456789;
+    int hex = 0x139123;
+    int hexNeg = -0x139123;
+    int hexEdge = 0x000000;
+}

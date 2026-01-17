@@ -13,6 +13,7 @@
 #include "global/globals.h"
 #include "release_assert.h"
 #include "utils.h"
+#include "scanparse/preprocessor.h"
 
 static node_st *parseresult = NULL;
 extern int yylex();
@@ -664,6 +665,7 @@ arrayInit: SQUARE_L arrayInits SQUARE_R
          {
             assertType($2, NT_ARRAYINIT);
             $$ = $2;
+            AddLocToNode($$, &@1, &@3);
          }
          | expr
          {
@@ -1080,12 +1082,17 @@ node_st *SPdoScanParse(node_st *root)
     DBUG_ASSERT(root == NULL, "Started parsing with existing syntax tree.");
     if (global.input_buf == NULL)
     {
-        yyin = fopen(global.input_file, "r");
+        FILE* fd = preprocessorStart();
+        yyin = fd;
         if (yyin == NULL) {
             CTI(CTI_ERROR, true, "Cannot open file '%s'.", global.input_file);
             CTIabortOnError();
         }
         yyparse();
+
+        if (global.preprocessor_enabled){
+            preprocessorEnd(fd);
+        }
     }
     else
     {

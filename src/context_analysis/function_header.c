@@ -1,5 +1,4 @@
 #include "ccngen/ast.h"
-#include "ccngen/trav.h"
 #include "context_analysis/definitions.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
@@ -11,7 +10,6 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 static htable_stptr current = NULL;
@@ -69,7 +67,11 @@ node_st *CA_FHfundec(node_st *node)
             error_invalid_identifier_name(node, entry, name);
         }
 
-        HTinsert(current, name, funheader);
+        char *new_name = STRfmt("@fun_%s", name);
+        HTinsert(current, new_name, funheader);
+
+        VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
+        free(name);
     }
     else
     {

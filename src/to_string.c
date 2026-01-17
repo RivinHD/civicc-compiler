@@ -532,12 +532,17 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
             node_name = get_node_name(node);
         }
 
+        if (output_old == NULL)
+        {
+            output_old = STRcpy("");
+        }
+
         HTinsert(htable, symbols, STRfmt("%d: %s", counter, node_name));
         if (parent != NULL)
         {
             const char *parent_name = HTlookup(htable, parent);
             release_assert(parent_name != NULL);
-            output = STRfmt("┌─ %d: %s -- parent: '%s'\n%s└────────────────────\n", counter,
+            output = STRfmt("┌─ %d: %s -- parent: '%s'\n%s└────────────────────\n\n", counter,
                             node_name, parent_name, output_old);
         }
         else
@@ -545,6 +550,7 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
             output =
                 STRfmt("┌─ %d: %s\n%s└────────────────────\n\n", counter, node_name, output_old);
         }
+
         free(output_old);
         free(node_name);
         counter++;

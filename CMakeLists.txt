@@ -5,12 +5,14 @@ set(SOURCE_FILES
     src/global/globals.c
     src/print/print.c
     src/scanparse/scanParse.c
+    src/scanparse/preprocessor.c
     src/optimization/opt_sub.c
     src/context_analysis/function_header.c
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c
     src/context_analysis/extract_for_iterator.c
     src/context_analysis/definitions.c
+    src/context_analysis/type_checking.c
     src/to_string.c
     src/context_analysis/init_function.c
     src/context_analysis/heterogeneous_assignments.c

@@ -6,7 +6,9 @@
 #include "palm/ctinfo.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include <ccngen/ast.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -140,8 +142,35 @@ static inline enum DataType symbol_to_type(node_st *entry)
         return FUNHEADER_TYPE(entry);
     case NT_PARAMS:
         return PARAMS_TYPE(entry);
+    case NT_DIMENSIONVARS:
+        return DT_int;
     default:
         release_assert(false);
         return DT_NULL;
+    }
+}
+
+// Converts the compiler extended names into the old user defined name for the error output.
+// No new memory is allocated.
+static inline const char *get_pretty_name(const char *name)
+{
+    if (STRprefix("@fun_", name))
+    {
+        return name + 5; // remove the '@fun_' part
+    }
+    else if (STRprefix("@for", name))
+    {
+        unsigned int start = 0;
+        while (name[start] != '_' && name[start] != '\0')
+        {
+            start++;
+        }
+
+        release_assert(name[start] != '\0');
+        return name + start;
+    }
+    else
+    {
+        return name;
     }
 }
