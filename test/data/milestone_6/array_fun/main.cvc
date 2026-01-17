@@ -1,0 +1,11 @@
+int k = 7;
+
+void fun(int[k] arr)
+{
+    int[4] arr2 = 2;
+
+    int m = 5;
+    int n = 6; 
+
+    int[m, n] arr3;
+}

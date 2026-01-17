@@ -1,0 +1,17 @@
+int aa = 2;
+int ab;
+
+float ba = 3.0;
+float bb;
+
+bool ca = true;
+bool cb;
+
+int[2] da = 4;
+int[3] db;
+
+float[4] ea = 5.0;
+float[6] eb;
+
+bool[7] fa = true;
+bool[9] fb;

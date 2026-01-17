@@ -14,12 +14,16 @@ set(SOURCE_FILES
     src/context_analysis/definitions.c
     src/context_analysis/type_checking.c
     src/to_string.c
+    src/context_analysis/init_function.c
+    src/context_analysis/heterogeneous_assignments.c
+    src/context_analysis/homogeneous_assignments.c
 )
 
 set(TEST_FILES
     test/test_interface.c
     test/scanparse_tests.cpp
     test/context_tests.cpp
+    test/codegenprep_tests.cpp
     test/behavior_tests.cpp
     test/generation_tests.cpp
 )
@@ -44,13 +48,13 @@ message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 option(DISABLE_ASAN "Disable address sanitizer" OFF)
 option(BUILD_GRAMMAR_GENERATOR
     "Builds a civicc generator from the Grammar Mutator library of Afl.\
-Note: Afl is not requiered to build the generator."
+Note: Afl is not required to build the generator."
     OFF
 )
-option(DEBUG_SCANPARSE "Prints deubg information from the lexing and parsing to the console." ON)
+option(DEBUG_SCANPARSE "Prints debug information from the lexing and parsing to the console." OFF)
 
 option(CIVICC_ASSEMBLER "The path to the civicc assembler 'civas'" "civas")
-option(CIVICC_VM "The path to the civicc virutal machine 'civvm'" "civvm")
+option(CIVICC_VM "The path to the civicc virtual machine 'civvm'" "civvm")
 
 add_compile_definitions(PROGRAM_CIVAS="${CIVICC_ASSEMBLER}" PROGRAM_CIVVM="${CIVICC_VM}")
 
@@ -65,7 +69,7 @@ include(cmake/afl.cmake)
 
 if(AFL_ENABLED)
     if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-        message(WARNING "Build type 'Debug' is set for Fuzzing. Build type 'Release' is recommand
+        message(WARNING "Build type 'Debug' is set for Fuzzing. Build type 'Release' is recommend
         as we want to fuzz as fast as possible.")
     endif()
 
@@ -129,7 +133,7 @@ add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-strict-prototypes>)
 # Enable address sanitizer
 if(NOT DISABLE_ASAN AND NOT AFL_ENABLED)
     if(APPLE)
-        message(STATUS "Sanitzier: Can not build with Sanitizer on Apple architecture.")
+       message(STATUS "Sanitizer: Can not build with Sanitizer on Apple architecture.")
     else()
         add_compile_options(
             $<$<CONFIG:Debug>:-fsanitize=address,undefined>
@@ -172,6 +176,15 @@ target_include_directories("civicc_context${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
+add_executable("civicc_codegenprep${AFL_EXT}" ${FUZZ_FILES} test/fuzz_slice.cpp)
+target_compile_definitions("civicc_codegenprep${AFL_EXT}"
+    PRIVATE SLICE_TARGET=3)
+target_link_libraries("civicc_codegenprep${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_codegenprep${AFL_EXT}")
+target_include_directories("civicc_codegenprep${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
 if(NOT AFL_ENABLED)
     add_executable(tests ${TEST_FILES}) # No need to apply afl to tests
     target_link_libraries(tests PRIVATE gmock_main civicc_lib)
@@ -194,7 +207,7 @@ add_custom_target(dot
 
 if(BUILD_GRAMMAR_GENERATOR)
     add_custom_target(grammar_generator
-        COMMENT "Dummy target for the grammer generation, the grammar is build when the option 'BUILD_GRAMMAR_GENERATOR' is set."
+        COMMENT "Dummy target for the grammar generation, the grammar is build when the option 'BUILD_GRAMMAR_GENERATOR' is set."
     )
     setup_grammar("grammars/civicc.json")
 endif()
