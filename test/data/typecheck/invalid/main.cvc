@@ -1,3 +1,5 @@
+extern float w;
+
 void ops() {
     bool b = true - false;
     int a;
@@ -61,4 +63,6 @@ void array(float[m,n] param) {
     param[false,1.0] = 1.0; // wrong dim type
     param[0] = 1.0; // To few dimensions
     param = 1.0; // Can not assign to array
+    w[12] = 3.0; // Can not use scalar as array
+    m[m] = 0; // Can not use scalar as array
 }

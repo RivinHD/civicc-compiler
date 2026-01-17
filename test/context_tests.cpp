@@ -6024,5 +6024,7 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("Array 'param' has '2' dimension, but '1' dimensions are used"),
             testing::HasSubstr("Array 'param' can not be assigned a scalar value without providing "
                                "dimension indices"),
-            testing::HasSubstr(" 46 Error")));
+            testing::HasSubstr("Can not use scalar variable 'w' as array variable"),
+            testing::HasSubstr("Can not use scalar variable 'm' as array variable"),
+            testing::HasSubstr(" 48 Error")));
 }
