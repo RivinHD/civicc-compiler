@@ -88,6 +88,468 @@ class ContextTest : public testing::Test
     }
 };
 
+TEST_F(ContextTest, Typecheck_Valid)
+{
+    SetUp("typecheck/valid/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'@fun_ops'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'bool'\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'>'\n"
+                           "┃        ┃        ├─ Binop -- op:'+'\n"
+                           "┃        ┃        │  ├─ Int -- val:'5'\n"
+                           "┃        ┃        │  └─ Int -- val:'3'\n"
+                           "┃        ┃        └─ Int -- val:'7'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'a'\n"
+                           "┃        ┃     └─ Binop -- op:'-'\n"
+                           "┃        ┃        ├─ Int -- val:'5'\n"
+                           "┃        ┃        └─ Monop -- op:'-'\n"
+                           "┃        ┃           └─ Int -- val:'5'\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'!='\n"
+                           "┃        ┃        ├─ Binop -- op:'+'\n"
+                           "┃        ┃        │  ├─ Float -- val:'5.000000'\n"
+                           "┃        ┃        │  └─ Float -- val:'3.000000'\n"
+                           "┃        ┃        └─ Float -- val:'7.000000'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'=='\n"
+                           "┃        ┃        ├─ Binop -- op:'-'\n"
+                           "┃        ┃        │  ├─ Float -- val:'5.000000'\n"
+                           "┃        ┃        │  └─ Float -- val:'3.000000'\n"
+                           "┃        ┃        └─ Float -- val:'7.000000'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'!='\n"
+                           "┃        ┃        ├─ Binop -- op:'+'\n"
+                           "┃        ┃        │  ├─ Int -- val:'5'\n"
+                           "┃        ┃        │  └─ Int -- val:'3'\n"
+                           "┃        ┃        └─ Int -- val:'7'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'=='\n"
+                           "┃        ┃        ├─ Binop -- op:'-'\n"
+                           "┃        ┃        │  ├─ Int -- val:'5'\n"
+                           "┃        ┃        │  └─ Int -- val:'3'\n"
+                           "┃        ┃        └─ Int -- val:'7'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'!='\n"
+                           "┃        ┃        ├─ Bool -- val:'1'\n"
+                           "┃        ┃        └─ Var -- name:'b'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'=='\n"
+                           "┃        ┃        ├─ Bool -- val:'1'\n"
+                           "┃        ┃        └─ Var -- name:'b'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'<'\n"
+                           "┃        ┃        ├─ Binop -- op:'*'\n"
+                           "┃        ┃        │  ├─ Float -- val:'5.000000'\n"
+                           "┃        ┃        │  └─ Float -- val:'3.000000'\n"
+                           "┃        ┃        └─ Binop -- op:'/'\n"
+                           "┃        ┃           ├─ Monop -- op:'-'\n"
+                           "┃        ┃           │  └─ Float -- val:'7.000000'\n"
+                           "┃        ┃           └─ Float -- val:'3.000000'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'<='\n"
+                           "┃        ┃        ├─ Binop -- op:'+'\n"
+                           "┃        ┃        │  ├─ Int -- val:'5'\n"
+                           "┃        ┃        │  └─ Int -- val:'3'\n"
+                           "┃        ┃        └─ Binop -- op:'/'\n"
+                           "┃        ┃           ├─ Int -- val:'7'\n"
+                           "┃        ┃           └─ Int -- val:'2'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'>='\n"
+                           "┃        ┃        ├─ Binop -- op:'*'\n"
+                           "┃        ┃        │  ├─ Int -- val:'5'\n"
+                           "┃        ┃        │  └─ Int -- val:'3'\n"
+                           "┃        ┃        └─ Binop -- op:'*'\n"
+                           "┃        ┃           ├─ Int -- val:'7'\n"
+                           "┃        ┃           └─ Int -- val:'2'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Monop -- op:'!'\n"
+                           "┃        ┃        └─ Var -- name:'b'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Monop -- op:'!'\n"
+                           "┃        ┃        └─ Monop -- op:'!'\n"
+                           "┃        ┃           └─ Monop -- op:'!'\n"
+                           "┃        ┃              └─ Monop -- op:'!'\n"
+                           "┃        ┃                 └─ Binop -- op:'>'\n"
+                           "┃        ┃                    ├─ Int -- val:'5'\n"
+                           "┃        ┃                    └─ Int -- val:'7'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃        ├─ Var -- name:'b'\n"
+                           "┃        ┃        └─ Binop -- op:'*'\n"
+                           "┃        ┃           ├─ Var -- name:'b'\n"
+                           "┃        ┃           └─ Var -- name:'b'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'a'\n"
+                           "┃        ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃        ├─ Binop -- op:'%'\n"
+                           "┃        ┃        │  ├─ Var -- name:'a'\n"
+                           "┃        ┃        │  └─ Var -- name:'a'\n"
+                           "┃        ┃        └─ Monop -- op:'-'\n"
+                           "┃        ┃           └─ Int -- val:'5'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'&&'\n"
+                           "┃        ┃        ├─ Binop -- op:'&&'\n"
+                           "┃        ┃        │  ├─ Var -- name:'b'\n"
+                           "┃        ┃        │  └─ Var -- name:'b'\n"
+                           "┃        ┃        └─ Bool -- val:'1'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Binop -- op:'||'\n"
+                           "┃        ┃        ├─ Binop -- op:'||'\n"
+                           "┃        ┃        │  ├─ Var -- name:'b'\n"
+                           "┃        ┃        │  └─ Var -- name:'b'\n"
+                           "┃        ┃        └─ Bool -- val:'0'\n"
+                           "┃        ┗─ NULL\n"
+                           "┣─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_retint'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ LocalFunDefs\n"
+                           "┃        ┃  └─ FunDef -- has_export:'0'\n"
+                           "┃        ┃     ├─ FunHeader -- type:'float'\n"
+                           "┃        ┃     │  ├─ Var -- name:'@fun_retfloat'\n"
+                           "┃        ┃     │  └─ NULL\n"
+                           "┃        ┃     └─ FunBody\n"
+                           "┃        ┃        ├─ NULL\n"
+                           "┃        ┃        ┢─ LocalFunDefs\n"
+                           "┃        ┃        ┃  └─ FunDef -- has_export:'0'\n"
+                           "┃        ┃        ┃     ├─ FunHeader -- type:'bool'\n"
+                           "┃        ┃        ┃     │  ├─ Var -- name:'@fun_retbool'\n"
+                           "┃        ┃        ┃     │  └─ NULL\n"
+                           "┃        ┃        ┃     └─ FunBody\n"
+                           "┃        ┃        ┃        ├─ NULL\n"
+                           "┃        ┃        ┃        ├─ NULL\n"
+                           "┃        ┃        ┃        ┢─ Statements\n"
+                           "┃        ┃        ┃        ┃  └─ RetStatement\n"
+                           "┃        ┃        ┃        ┃     └─ Bool -- val:'1'\n"
+                           "┃        ┃        ┃        ┗─ NULL\n"
+                           "┃        ┃        ┡─ NULL\n"
+                           "┃        ┃        ┢─ Statements\n"
+                           "┃        ┃        ┃  └─ IfStatement\n"
+                           "┃        ┃        ┃     ├─ Bool -- val:'1'\n"
+                           "┃        ┃        ┃     ┢─ Statements\n"
+                           "┃        ┃        ┃     ┃  └─ RetStatement\n"
+                           "┃        ┃        ┃     ┃     └─ Float -- val:'6.000000'\n"
+                           "┃        ┃        ┃     ┡─ NULL\n"
+                           "┃        ┃        ┃     ┢─ Statements\n"
+                           "┃        ┃        ┃     ┃  └─ RetStatement\n"
+                           "┃        ┃        ┃     ┃     └─ Float -- val:'4.000000'\n"
+                           "┃        ┃        ┃     ┗─ NULL\n"
+                           "┃        ┃        ┗─ NULL\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ IfStatement\n"
+                           "┃        ┃     ├─ Bool -- val:'1'\n"
+                           "┃        ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃  └─ RetStatement\n"
+                           "┃        ┃     ┃     └─ Int -- val:'1'\n"
+                           "┃        ┃     ┡─ NULL\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ RetStatement\n"
+                           "┃        ┃     └─ Int -- val:'5'\n"
+                           "┃        ┗─ NULL\n"
+                           "┣─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'@fun_cast'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'a'\n"
+                           "┃        ┃     └─ Cast -- type:'int'\n"
+                           "┃        ┃        └─ Cast -- type:'bool'\n"
+                           "┃        ┃           └─ Cast -- type:'float'\n"
+                           "┃        ┃              └─ Cast -- type:'int'\n"
+                           "┃        ┃                 └─ Bool -- val:'1'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'bool'\n"
+                           "┃        ┃     ├─ Var -- name:'b'\n"
+                           "┃        ┃     └─ Cast -- type:'bool'\n"
+                           "┃        ┃        └─ Binop -- op:'+'\n"
+                           "┃        ┃           ├─ Binop -- op:'+'\n"
+                           "┃        ┃           │  ├─ Binop -- op:'+'\n"
+                           "┃        ┃           │  │  ├─ Int -- val:'5'\n"
+                           "┃        ┃           │  │  └─ Int -- val:'5'\n"
+                           "┃        ┃           │  └─ Int -- val:'7'\n"
+                           "┃        ┃           └─ Int -- val:'8'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'float'\n"
+                           "┃        ┃     ├─ Var -- name:'f'\n"
+                           "┃        ┃     └─ Cast -- type:'float'\n"
+                           "┃        ┃        └─ Binop -- op:'&&'\n"
+                           "┃        ┃           ├─ Binop -- op:'<'\n"
+                           "┃        ┃           │  ├─ Var -- name:'a'\n"
+                           "┃        ┃           │  └─ Int -- val:'5'\n"
+                           "┃        ┃           └─ Binop -- op:'>'\n"
+                           "┃        ┃              ├─ Int -- val:'10'\n"
+                           "┃        ┃              └─ Var -- name:'a'\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┣─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'0'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'@fun_array'\n"
+                           "┃     │  ┢─ Params -- type:'float'\n"
+                           "┃     │  ┃  └─ ArrayVar\n"
+                           "┃     │  ┃     ┢─ DimensionVars\n"
+                           "┃     │  ┃     ┃  └─ Var -- name:'m'\n"
+                           "┃     │  ┃     ┣─ DimensionVars\n"
+                           "┃     │  ┃     ┃  └─ Var -- name:'n'\n"
+                           "┃     │  ┃     ┡─ NULL\n"
+                           "┃     │  ┃     └─ Var -- name:'param'\n"
+                           "┃     │  ┗─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'float'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input1'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'1.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'2.000000'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'3.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'4.000000'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'5.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'6.000000'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'float'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'5'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input2'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'1.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'2.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'3.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'4.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'5.000000'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'6.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'7.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'8.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'9.000000'\n"
+                           "┃        ┃     ┃  ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  └─ Float -- val:'10.000000'\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'6'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input3'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'4'\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'5'\n"
+                           "┃        ┃     ┣─ ArrayInit\n"
+                           "┃        ┃     ┃  └─ Int -- val:'6'\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'bool'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input4'\n"
+                           "┃        ┃     ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┃  ┃  ┢─ ArrayInit\n"
+                           "┃        ┃     ┃  ┃  ┃  ┃  ┃  └─ Bool -- val:'1'\n"
+                           "┃        ┃     ┃  ┃  ┃  ┃  ┗─ NULL\n"
+                           "┃        ┃     ┃  ┃  ┃  ┗─ NULL\n"
+                           "┃        ┃     ┃  ┃  ┗─ NULL\n"
+                           "┃        ┃     ┃  ┗─ NULL\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'float'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'3'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'2'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input5'\n"
+                           "┃        ┃     └─ Float -- val:'1.000000'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'6'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input6'\n"
+                           "┃        ┃     └─ Int -- val:'2'\n"
+                           "┃        ┣─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'bool'\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'input7'\n"
+                           "┃        ┃     └─ Bool -- val:'1'\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ ArrayAssign\n"
+                           "┃        ┃     ├─ ArrayExpr\n"
+                           "┃        ┃     │  ┢─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'0'\n"
+                           "┃        ┃     │  ┣─ Exprs\n"
+                           "┃        ┃     │  ┃  └─ Int -- val:'1'\n"
+                           "┃        ┃     │  ┡─ NULL\n"
+                           "┃        ┃     │  └─ Var -- name:'param'\n"
+                           "┃        ┃     └─ Float -- val:'1.000000'\n"
+                           "┃        ┗─ NULL\n"
+                           "┗─ NULL\n";
+
+    ASSERT_MLSTREQ(expected, root_string);
+
+    expected = "┌─ 0: Program\n"
+               "├─ @fun_retint: FunHeader -- type:'int' -- Params: (null)\n"
+               "├─ @fun_cast: FunHeader -- type:'void' -- Params: (null)\n"
+               "├─ @fun_ops: FunHeader -- type:'void' -- Params: (null)\n"
+               "├─ @fun_array: FunHeader -- type:'void' -- Params: float (ArrayVar)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_ops' -- parent: '0: Program'\n"
+               "├─ a: VarDec -- type:'int'\n"
+               "├─ b: VarDec -- type:'bool'\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_retint' -- parent: '0: Program'\n"
+               "├─ @fun_retfloat: FunHeader -- type:'float' -- Params: (null)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 2: FunDef '@fun_retfloat' -- parent: '1: FunDef '@fun_retint''\n"
+               "├─ @fun_retbool: FunHeader -- type:'bool' -- Params: (null)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 3: FunDef '@fun_retbool' -- parent: '2: FunDef '@fun_retfloat''\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_cast' -- parent: '0: Program'\n"
+               "├─ a: VarDec -- type:'int'\n"
+               "├─ b: VarDec -- type:'bool'\n"
+               "├─ f: VarDec -- type:'float'\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_array' -- parent: '0: Program'\n"
+               "├─ m: DimensionVars\n"
+               "├─ n: DimensionVars\n"
+               "├─ param: Params -- type:'float'\n"
+               "├─ input1: VarDec -- type:'float'\n"
+               "├─ input2: VarDec -- type:'float'\n"
+               "├─ input3: VarDec -- type:'int'\n"
+               "├─ input4: VarDec -- type:'bool'\n"
+               "├─ input5: VarDec -- type:'float'\n"
+               "├─ input6: VarDec -- type:'int'\n"
+               "├─ input7: VarDec -- type:'bool'\n"
+               "└────────────────────\n";
+
+    ASSERT_MLSTREQ(expected, symbols_string);
+}
+
 TEST_F(ContextTest, NestedFor)
 {
     SetUp("nested_for/main.cvc");
@@ -5376,7 +5838,7 @@ TEST_F(ContextTest, DoubleFundefValid)
     SetUpNoExecute("double/fundef_valid/main.cvc");
     ASSERT_EXIT(
         run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-        testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr("1 Error")));
+        testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr(" 1 Error")));
 }
 
 TEST_F(ContextTest, GlobalDecInt)
@@ -5384,17 +5846,19 @@ TEST_F(ContextTest, GlobalDecInt)
     SetUpNoExecute("globaldec_int/main.cvc");
     ASSERT_EXIT(
         run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-        testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr("2 Error")));
+        testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr(" 2 Error")));
 }
 
 TEST_F(ContextTest, NoVarDecsFor)
 {
     SetUpNoExecute("for/main.cvc");
-    ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("was not declared"),
-                               testing::HasSubstr(
-                                   "'cast expression' has type 'float' but expected type 'int'"),
-                               testing::HasSubstr("14 Error")));
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(
+            testing::HasSubstr("was not declared"),
+            testing::HasSubstr("'cast expression' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("non-void function does not return a value in all control paths."),
+            testing::HasSubstr(" 15 Error")));
 }
 
 TEST_F(ContextTest, DoubleDec)
@@ -5418,7 +5882,7 @@ TEST_F(ContextTest, VarDecInvalid)
     SetUpNoExecute("double/vardec_invalid/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("invalid character"),
-                               testing::HasSubstr("line 7, col 8")));
+                               testing::HasSubstr("line 7, col 9")));
 }
 
 TEST_F(ContextTest, Suite_Basic_Empty)
@@ -5452,10 +5916,9 @@ TEST_F(ContextTest, Suite_Basic_InvalidForLoop)
 TEST_F(ContextTest, Suite_Basic_InvalidReturnType)
 {
     SetUpNoExecute("testsuite_public/basic/check_error/invalid_return_type.cvc");
-    ASSERT_EXIT(
-        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-        testing::AllOf(testing::HasSubstr("'false' has type 'bool' but expected type 'int'"),
-                       testing::HasSubstr("1 Error")));
+    ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+                testing::AllOf(testing::HasSubstr("'true' has type 'bool' but expected type 'int'"),
+                               testing::HasSubstr(" 1 Error")));
 }
 
 TEST_F(ContextTest, Suite_Basic_InvalidReturnVoidFunc)
@@ -5463,8 +5926,8 @@ TEST_F(ContextTest, Suite_Basic_InvalidReturnVoidFunc)
     SetUpNoExecute("testsuite_public/basic/check_error/invalid_return_voidfunc.cvc");
     ASSERT_EXIT(
         run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-        testing::AllOf(testing::HasSubstr("'false' has type 'bool' but expected type 'void'"),
-                       testing::HasSubstr("1 Error")));
+        testing::AllOf(testing::HasSubstr("'true' has type 'bool' but expected type 'void'"),
+                       testing::HasSubstr(" 1 Error")));
 }
 
 TEST_F(ContextTest, Suite_Basic_InvalidStatement)
@@ -5479,7 +5942,7 @@ TEST_F(ContextTest, Suite_Basic_UndefinedVar)
     SetUpNoExecute("testsuite_public/basic/check_error/undefined_var.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("'notdef' was not declared."),
-                               testing::HasSubstr("1 Error")));
+                               testing::HasSubstr(" 1 Error")));
 }
 
 TEST_F(ContextTest, Suite_Basic_UnterminatedComment)
@@ -5497,7 +5960,7 @@ TEST_F(ContextTest, Suite_Arrays_InvalidInit)
         testing::AllOf(
             testing::HasSubstr("Too many dimensions in array initalization."),
             testing::HasSubstr("Array initalization does not match the dimension of the array."),
-            testing::HasSubstr("4 Error")));
+            testing::HasSubstr(" 4 Error")));
 }
 
 TEST_F(ContextTest, Suite_Arrays_ShadowedDimension)
@@ -5505,5 +5968,61 @@ TEST_F(ContextTest, Suite_Arrays_ShadowedDimension)
     SetUpNoExecute("testsuite_public/arrays/check_error/shadowed_dimension.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("'a' already defined at 1:11 - 1:19"),
-                               testing::HasSubstr("1 Error")));
+                               testing::HasSubstr(" 1 Error")));
+}
+
+TEST_F(ContextTest, Typecheck_Invalid)
+{
+    SetUpNoExecute("typecheck/invalid/main.cvc");
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(
+            testing::HasSubstr("The binop operation '-' is not defined on the type 'bool'"),
+            testing::HasSubstr("The binop operation '/' is not defined on the type 'bool'"),
+            testing::HasSubstr("'<' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("The binop operation '<' is not defined on the type 'bool'"),
+            testing::HasSubstr("'>' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("The binop operation '>' is not defined on the type 'bool'"),
+            testing::HasSubstr("'3' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'<=' has type 'bool' but expected type 'float'"),
+            testing::HasSubstr("'false' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("'>=' has type 'bool' but expected type 'float'"),
+            testing::HasSubstr("The binop operation '>=' is not defined on the type 'bool'"),
+            testing::HasSubstr("'3' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'==' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("'3.000000' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("!=' has type 'bool' but expected type 'float'"),
+            testing::HasSubstr("'3' has type 'int' but expected type 'float'"),
+            testing::HasSubstr("'3' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'5.000000' has type 'float' but expected type 'bool'"),
+            testing::HasSubstr("'a' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'3.000000' has type 'float' but expected type 'bool'"),
+            testing::HasSubstr("The monop operation '-' is not defined on the type 'bool'"),
+            testing::HasSubstr("The monop operation '-' is not defined on the type 'bool'"),
+            testing::HasSubstr("'1.000000' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("non-void function does not return a value in all control paths"),
+            testing::HasSubstr("'6.000000' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("'false' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("'1' has type 'int' but expected type 'void'"),
+            testing::HasSubstr("'1.000000' has type 'float' but expected type 'void'"),
+            testing::HasSubstr("'false' has type 'bool' but expected type 'void'"),
+            testing::HasSubstr("Too many dimensions in array initalization"),
+            testing::HasSubstr("Array initalization does not match the dimension of the array"),
+            testing::HasSubstr(
+                "Insufficient dimensions in array initalization, missing '2' further dimensions"),
+            testing::HasSubstr("'1' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'2' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'3' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'4' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'5' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'6' has type 'int' but expected type 'bool'"),
+            testing::HasSubstr("'1.000000' has type 'float' but expected type 'bool'"),
+            testing::HasSubstr("'1' has type 'int' but expected type 'float'"),
+            testing::HasSubstr("Array 'param' has '2' dimension, but '3' dimensions are used"),
+            testing::HasSubstr("'false' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("'1.000000' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("Array 'param' has '2' dimension, but '1' dimensions are used"),
+            testing::HasSubstr("Array 'param' can not be assigned a scalar value without providing "
+                               "dimension indices"),
+            testing::HasSubstr(" 46 Error")));
 }

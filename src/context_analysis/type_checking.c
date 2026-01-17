@@ -16,6 +16,7 @@ static htable_stptr current = NULL;
 static bool anytype = false; // Allows an expression to set the type
 static enum DataType type = DT_NULL;
 static enum DataType rettype = DT_NULL;
+static bool has_return = false;
 
 static void type_check(node_st *node, const char *name, enum DataType expected, enum DataType value)
 {
@@ -84,6 +85,18 @@ static bool check_nesting(unsigned int level, node_st *init)
     return false;
 }
 
+static unsigned int count_dimension_vars(node_st *dimvars)
+{
+    release_assert(NODE_TYPE(dimvars) == NT_DIMENSIONVARS);
+    unsigned int dims_count = 0;
+    while (dimvars != NULL)
+    {
+        dims_count++;
+        dimvars = DIMENSIONVARS_NEXT(dimvars);
+    }
+    return dims_count;
+}
+
 static unsigned int count_exprs(node_st *exprs)
 {
     release_assert(NODE_TYPE(exprs) == NT_EXPRS);
@@ -96,12 +109,13 @@ static unsigned int count_exprs(node_st *exprs)
     return exprs_count;
 }
 
-static bool check_dimensions(node_st *exprs, node_st *array_init)
+static bool check_dimensions(node_st *dims, node_st *array_init)
 {
-    release_assert(NODE_TYPE(exprs) == NT_EXPRS);
+    release_assert(NODE_TYPE(dims) == NT_EXPRS || NODE_TYPE(dims) == NT_ARRAYVAR);
     release_assert(NODE_TYPE(array_init) == NT_ARRAYINIT);
 
-    unsigned int exprs_count = count_exprs(exprs);
+    unsigned int exprs_count =
+        NODE_TYPE(dims) == NT_EXPRS ? count_exprs(dims) : count_dimension_vars(dims);
 
     return check_nesting(exprs_count, array_init);
 }
@@ -116,7 +130,7 @@ node_st *CA_TCbool(node_st *node)
     }
     else
     {
-        char *str = BOOL_VAL(node) ? "false" : "true";
+        char *str = BOOL_VAL(node) ? "true" : "false";
         type_check(node, str, type, DT_bool);
     }
 
@@ -202,7 +216,7 @@ node_st *CA_TCcast(node_st *node)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
-        CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' to type '%s'", has_type);
+        CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' to type '%s'.", has_type);
         free(info.filename);
     }
 
@@ -257,7 +271,7 @@ node_st *CA_TCmonop(node_st *node)
         info.filename = STRcpy(global.input_file);
         char *op_str = monoptype_to_string(MONOP_OP(node));
         char *type_str = datatype_to_string(type);
-        CTIobj(CTI_ERROR, true, info, "The monop operation '%s' is not defined on the type '%s'",
+        CTIobj(CTI_ERROR, true, info, "The monop operation '%s' is not defined on the type '%s'.",
                op_str, type_str);
         free(info.filename);
         free(op_str);
@@ -281,7 +295,7 @@ node_st *CA_TCbinop(node_st *node)
         info.filename = STRcpy(global.input_file);
         op_str = binoptype_to_string(BINOP_OP(node));
         type_str = datatype_to_string(type);
-        CTIobj(CTI_ERROR, true, info, "The binop operation '%s' is not defined on the type '%s'",
+        CTIobj(CTI_ERROR, true, info, "The binop operation '%s' is not defined on the type '%s'.",
                op_str, type_str);
         free(info.filename);
     }
@@ -305,7 +319,7 @@ node_st *CA_TCbinop(node_st *node)
                 op_str = binoptype_to_string(BINOP_OP(node));
                 type_str = datatype_to_string(type);
                 CTIobj(CTI_ERROR, true, info,
-                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       "The binop operation '%s' is not defined on the type '%s'.", op_str,
                        type_str);
                 free(info.filename);
             }
@@ -334,7 +348,7 @@ node_st *CA_TCbinop(node_st *node)
                 op_str = binoptype_to_string(BINOP_OP(node));
                 type_str = datatype_to_string(type);
                 CTIobj(CTI_ERROR, true, info,
-                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       "The binop operation '%s' is not defined on the type '%s'.", op_str,
                        type_str);
                 free(info.filename);
             }
@@ -349,7 +363,7 @@ node_st *CA_TCbinop(node_st *node)
                 parent_type = DT_bool;
             }
             op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, DT_bool, parent_type);
+            type_check(node, op_str, parent_type, DT_bool);
 
             // infer the type from the first argument
             anytype = true;
@@ -360,7 +374,7 @@ node_st *CA_TCbinop(node_st *node)
                 info.filename = STRcpy(global.input_file);
                 type_str = datatype_to_string(type);
                 CTIobj(CTI_ERROR, true, info,
-                       "The binop operation '%s' is not defined on the type '%s'", op_str,
+                       "The binop operation '%s' is not defined on the type '%s'.", op_str,
                        type_str);
                 free(info.filename);
             }
@@ -373,7 +387,7 @@ node_st *CA_TCbinop(node_st *node)
                 parent_type = DT_bool;
             }
             op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, DT_bool, parent_type);
+            type_check(node, op_str, parent_type, DT_bool);
             anytype = true; // Check for constistency of both arguments
             break;
         case BO_and:
@@ -384,7 +398,7 @@ node_st *CA_TCbinop(node_st *node)
                 parent_type = DT_bool;
             }
             op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, DT_bool, parent_type);
+            type_check(node, op_str, parent_type, DT_bool);
             type = DT_bool; // Both arguments should be a bool
             break;
         case BO_NULL:
@@ -419,7 +433,7 @@ node_st *CA_TCretstatement(node_st *node)
         {
             struct ctinfo info = NODE_TO_CTINFO(node);
             info.filename = STRcpy(global.input_file);
-            CTIobj(CTI_ERROR, true, info, "Cannot return 'void' for none-void function");
+            CTIobj(CTI_ERROR, true, info, "Cannot return 'void' for none-void function.");
             free(info.filename);
         }
     }
@@ -427,7 +441,9 @@ node_st *CA_TCretstatement(node_st *node)
     {
         TRAVopt(expr);
     }
+
     type = parent_type;
+    has_return = true;
     return node;
 }
 
@@ -515,33 +531,43 @@ node_st *CA_TCdowhileloop(node_st *node)
 node_st *CA_TCwhileloop(node_st *node)
 {
     enum DataType parent_type = type;
+    bool parent_has_return = has_return;
     type = DT_bool; // while loop should contain bool
     TRAVopt(WHILELOOP_EXPR(node));
     type = parent_type;
     TRAVopt(WHILELOOP_BLOCK(node));
+    has_return = parent_has_return; // While is not guaranteed to be executed
     return node;
 }
 
 node_st *CA_TCifstatement(node_st *node)
 {
     enum DataType parent_type = type;
+    bool parent_has_return = has_return;
     type = DT_bool; // if statement should contain bool
     TRAVopt(IFSTATEMENT_EXPR(node));
     type = parent_type;
     TRAVopt(IFSTATEMENT_BLOCK(node));
+    bool if_has_return = has_return;
+    has_return = false; // Reset for else check
     TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
+
+    // we already have a return or if AND else branch have a return;
+    has_return = parent_has_return | (if_has_return & has_return);
     return node;
 }
 
 node_st *CA_TCforloop(node_st *node)
 {
     enum DataType parent_type = type;
+    bool parent_has_return = has_return;
     type = DT_int; // for loop should only contain integer
     TRAVopt(FORLOOP_COND(node));
     TRAVopt(FORLOOP_ITER(node));
 
     TRAVopt(FORLOOP_ASSIGN(node));
     type = parent_type;
+    has_return = parent_has_return; // For loop is not guaranteed to be executed
     return node;
 }
 
@@ -553,7 +579,30 @@ node_st *CA_TCassign(node_st *node)
         // Missing entry due to error, skip check.
         return node;
     }
+
     release_assert(entry != NULL);
+    release_assert(NODE_TYPE(entry) == NT_VARDEC || NODE_TYPE(entry) == NT_PARAMS ||
+                   NODE_TYPE(entry) == NT_GLOBALDEC);
+
+    node_st *var = NODE_TYPE(entry) == NT_VARDEC
+                       ? VARDEC_VAR(entry)
+                       : (NT_PARAMS ? PARAMS_VAR(entry) : GLOBALDEC_VAR(entry));
+
+    if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
+    {
+        char *name = NODE_TYPE(var) == NT_ARRAYEXPR ? VAR_NAME(ARRAYEXPR_VAR(var))
+                                                    : VAR_NAME(ARRAYVAR_VAR(var));
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
+        CTIobj(CTI_ERROR, true, info,
+               "Array '%s' can not be assigned a scalar value without providing dimension "
+               "indices.",
+               pretty_name);
+        free(info.filename);
+        return node;
+    }
+
     enum DataType parent_type = type;
     type = symbol_to_type(entry);
     TRAVopt(ASSIGN_EXPR(node));
@@ -563,7 +612,7 @@ node_st *CA_TCassign(node_st *node)
 
 node_st *CA_TCarrayassign(node_st *node)
 {
-    char *name = VAR_NAME(ARRAYASSIGN_VAR(node));
+    char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
     node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
     {
@@ -571,12 +620,19 @@ node_st *CA_TCarrayassign(node_st *node)
         return node;
     }
     release_assert(entry != NULL);
-    release_assert(NODE_TYPE(entry) == NT_VARDEC);
-    node_st *var = VARDEC_VAR(entry);
+    release_assert(NODE_TYPE(entry) == NT_VARDEC || NODE_TYPE(entry) == NT_PARAMS ||
+                   NODE_TYPE(entry) == NT_GLOBALDEC);
 
-    release_assert(NODE_TYPE(var) == NT_ARRAYEXPR);
-    unsigned int expected_count = count_exprs(ARRAYEXPR_DIMS(var));
-    unsigned int actual_count = count_exprs(ARRAYASSIGN_VAR(node));
+    node_st *var = NODE_TYPE(entry) == NT_VARDEC
+                       ? VARDEC_VAR(entry)
+                       : (NT_PARAMS ? PARAMS_VAR(entry) : GLOBALDEC_VAR(entry));
+
+    release_assert(NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR);
+    unsigned int expected_count = NODE_TYPE(var) == NT_ARRAYEXPR
+                                      ? count_exprs(ARRAYEXPR_DIMS(var))
+                                      : count_dimension_vars(ARRAYVAR_DIMS(var));
+
+    unsigned int actual_count = count_exprs(ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)));
 
     if (expected_count != actual_count)
     {
@@ -590,8 +646,11 @@ node_st *CA_TCarrayassign(node_st *node)
     }
 
     enum DataType parent_type = type;
+    type = DT_int;
+    TRAVopt(ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)));
+
     type = symbol_to_type(entry);
-    TRAVopt(VARDEC_EXPR(node));
+    TRAVopt(ARRAYASSIGN_EXPR(node));
     type = parent_type;
     return node;
 }
@@ -680,14 +739,27 @@ node_st *CA_TCfundef(node_st *node)
 {
     enum DataType parent_type = type;
     enum DataType parent_rettype = rettype;
+    bool parent_has_return = has_return;
     type = DT_void;
+    has_return = false;
     rettype = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
     current = FUNDEF_SYMBOLS(node);
     TRAVopt(FUNDEF_FUNBODY(node));
+
+    if (!has_return && rettype != DT_void)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        CTIobj(CTI_ERROR, true, info,
+               "non-void function does not return a value in all control paths.");
+        free(info.filename);
+    }
+
     current = HTlookup(current, "@parent");
     release_assert(current != NULL);
     type = parent_type;
     rettype = parent_rettype;
+    has_return = parent_has_return;
     return node;
 }
 
@@ -696,5 +768,6 @@ node_st *CA_TCprogram(node_st *node)
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));
     release_assert(type == DT_NULL);
+    release_assert(has_return == false);
     return node;
 }

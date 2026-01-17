@@ -161,7 +161,7 @@ SEPC ({SEP}|\{)
     if(errno == ERANGE)
     {
         char* filename = STRcpy(global.input_file);
-        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        struct ctinfo info = {global.line, yycolumn - yyleng, 0, yycolumn, filename, NULL};
         CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
         if(filename != NULL)
         {
@@ -196,19 +196,19 @@ SEPC ({SEP}|\{)
 \n.*                       {
                              yycolumn = 1;
                              global.line += 1;
-                             global.col = 0;
+                             global.col = 1;
                              yyless(1);
                            }
 
-[ \t]                      { global.col += yyleng; }
+[ \t]+                      { global.col += yyleng; }
 
-"#".*\n {
+"#"[^\n]*\n {
     // Preprocessor linemarker
     // Reset the line on the linemarkers
     // Also enable use to skip preprocesor stuff if it is disabled
     yycolumn = 1;
-    yylineno = 1;
     global.line = 1;
+    global.col = 1;
     printf("Linemarker: '%s'\n", yytext);
 }
 
@@ -220,17 +220,17 @@ SEPC ({SEP}|\{)
 <MULTI_COMMENT>{
     [^*\n]*         { global.col += yyleng; }
     "*"+[^*\/\n]*   { global.col += yyleng; }
-    \n              { 
-                      yycolumn = 1;
-                      global.line += 1;
-                      global.col = 0; 
+    \n            { 
+                         yycolumn = 1;
+                         global.line += 1;
+                         global.col = 1;
                     }
     "*"+"/"         { BEGIN(INITIAL); }
 }
 %%
 
 static inline void token_action() {
-    yylloc.first_line = yylloc.last_line = yylineno;
+    yylloc.first_line = yylloc.last_line = global.line;
     yylloc.first_column = yycolumn;
     yylloc.last_column = yycolumn + yyleng - 1;
     yycolumn += yyleng;

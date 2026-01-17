@@ -1,0 +1,64 @@
+void ops() {
+    bool b = true - false;
+    int a;
+    float f;
+    b = true / false;
+    
+    // Wrong type
+    a = true < false;
+    a = true > 3;
+    f = 5 <= false;
+    f = false >= 3;
+    a = 5 == 3.0;
+    f = 5.0 != 3;
+
+    b = true && 3 || 5.0 && false;
+    
+    b = !a;
+    b = !3.0;
+
+    b = -false && -true;
+}
+
+int retint() {
+
+    int missing_return(){
+        if(true) {
+            return 1.0;
+        }
+        else if(false){
+            // Missing return
+        }
+
+        // Missing return
+    }
+
+    if (true)
+        return 1;
+    else {
+    }
+
+    // Wrong
+    return 6.0;
+    return false;
+}
+
+
+void ret() {
+    return 1;
+    return 1.0;
+    return false;
+}
+
+void array(float[m,n] param) {
+    float[3] input1 = [[1.0,2.0],[3.0,4.0],[5.0,6.0]]; // To many dimensions
+    float[2, 5, 3, 1] input2 = [[1.0,2.0,3.0,4.0,5.0],[6.0,7.0,8.0,9.0,10.0]]; // To few dimensions
+    bool[6] input3 = [1,2,3,4,5,6]; // wrong type
+    bool[3,2] input5 = 1.0; // wrong type
+
+    param[0,1] = 1; // Wrong type
+    param[0,1,1] = 1.0; // to many dimensions
+    param[false,1.0] = 1.0; // wrong dim type
+    param[0] = 1.0; // To few dimensions
+    param = 1.0; // Can not assign to array
+}

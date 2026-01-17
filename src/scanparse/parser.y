@@ -665,6 +665,7 @@ arrayInit: SQUARE_L arrayInits SQUARE_R
          {
             assertType($2, NT_ARRAYINIT);
             $$ = $2;
+            AddLocToNode($$, &@1, &@3);
          }
          | expr
          {
