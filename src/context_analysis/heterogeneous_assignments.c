@@ -21,7 +21,7 @@ static htable_stptr current = NULL;
  *
  * Structure: array[...] = ... expr ...;
  */
-node_st *CA_AAarrayassign(node_st *node)
+/*node_st *CA_AAarrayassign(node_st *node)
 {
     release_assert(last_fundef);
     node_st *init_fun = deep_lookup(current, global_init_func);
@@ -81,7 +81,7 @@ node_st *CA_AAarrayassign(node_st *node)
     TRAVopt(ARRAYASSIGN_EXPR(node));
 
     return node;
-}
+}*/
 
 /**
  * Extract dimension expressions and substitute constants.
