@@ -30,10 +30,11 @@ help:
 	@echo "  generate_seeds:  Generates seeds for the afl run, these will generate valid civicc programs."
 	@echo "  afl_tooling:  Build the targets: check_tmpfs, afl_build, generate_seeds."
 	@echo "  fuzz_civicc:  Fuzz the complete civcc compiler with afl, with correct and incorrect civicc programs."
-	@echo "  fuzz_civicc_grammer:  Fuzz the complete civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_civicc_grammar:  Fuzz the complete civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_scanparse:  Fuzz the scanner and parser of the civcc compiler with afl, with correct and incorrect civicc programs."
-	@echo "  fuzz_scanparse_grammer:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
-	@echo "  fuzz_context_grammer:  Fuzz the context analysis of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_scanparse_grammar:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_context_grammar:  Fuzz the context analysis of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_codegenprep_grammar:  Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs."
 
 .PHONY: jobs
 jobs:
@@ -73,7 +74,6 @@ afl_build:
 # Directory to use for tmpfs for Fuzzing; override on the make command line:
 #   make TMPFS_DIR=/your/dir 
 TMPFS_DIR ?= /mnt/tmpfs
-SEED_DIR ?= ./afl/seeds
 
 .PHONY: check_tmpfs
 check_tmpfs:
@@ -88,17 +88,21 @@ check_tmpfs:
 	fi
 	@echo "$(TMPFS_DIR) exists and is mounted as tmpfs."
 
+define gen_seeds
+	$(eval $@_grammar = $(1))
+
+	@if [ ! -d "./afl/seeds/${$@_grammar}" ]; then \
+		mkdir -p afl/seeds && mkdir -p afl/trees && ./build-afl/grammar_generator-${$@_grammar} 100 1000 ./afl/seeds/${$@_grammar} ./afl/trees/${$@_grammar}; \
+		echo "Finished seed generation for ${$@_grammar}."; \
+	else \
+		echo "Seed generation skipped for ${$@_grammar}, already exists."; \
+	fi
+endef
 
 .PHONY: generate_seeds
 generate_seeds:
-	@if [ "${SEED_DIR}" != "./afl/seeds" ]; then \
-		echo "Seed generation skipped, using custom seed directory."; \
-	elif [ ! -d "./afl/seeds" ]; then \
-		mkdir -p afl && ./build-afl/grammar_generator-civicc 100 1000 ./afl/seeds ./afl/trees; \
-		echo "Finished seed generation."; \
-	else \
-		echo "Seed generation skipped, already exists."; \
-	fi
+	$(call gen_seeds,civicc)
+	$(call gen_seeds,civiccfixedids)
 
 .PHONY: stop_fuzzer_sessions
 stop_fuzzer_sessions:
@@ -122,81 +126,92 @@ stop_fuzzer_sessions:
 		echo "All fuzzer stopped!"; \
 	fi
 
-# We use the exit code 1 for the grammer space fuzzer which leverages the grammar
+# We use the exit code 1 for the grammar space fuzzer which leverages the grammar
 # To use ASAN with 64-bit Target we use -m none and ensure memory safty by setting the ASAN option
 # soft_rss_limit_mb=256 which return null if we try to allocate more.
 define fuzz_multicore
 	$(eval $@_target = $(1))
-	$(eval $@_dirname = $(2))
-	$(eval $@_afl_extra_args = $(3))
+	$(eval $@_grammar = $(2))
+	$(eval $@_dirname = $(3))
+	$(eval $@_afl_extra_args = $(4))
 
 	@echo "Starting Multi-Core AFL++ on $(FUZZ_CORES) cores."
-	@mkdir -p afl/${$@_dirname}/multi/fuzzer1
-	@cp -r -u afl/trees afl/${$@_dirname}/multi/fuzzer1
-	@mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1"
-	tmux new-session -s fuzzer1 -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so ${$@_afl_extra_args} afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/${$@_dirname}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
+	mkdir -p afl/${$@_dirname}/multi/fuzzer1
+	cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/multi/fuzzer1
+	mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1"
+	tmux new-session -s fuzzer1 -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_grammar} -o ./afl/${$@_dirname}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
 	sleep 5 # Let Master stabelize
 	@for i in $(shell seq 2 $(FUZZ_CORES)); do \
 		mkdir -p afl/${$@_dirname}/multi/fuzzer$$i; \
-		cp -r -u afl/trees afl/${$@_dirname}/multi/fuzzer$$i; \
+		cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/multi/fuzzer$$i; \
 		mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i"; \
-		tmux new-session -s fuzzer$$i -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so ${$@_afl_extra_args} afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/${$@_dirname}/multi -S fuzzer$$i -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer$$i/console_output.txt"; \
+		tmux new-session -s fuzzer$$i -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_grammar} -o ./afl/${$@_dirname}/multi -S fuzzer$$i -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer$$i/console_output.txt"; \
 		sleep 0.1; \
 	done 
 endef
 
 define fuzz_single
 	$(eval $@_target = $(1))
-	$(eval $@_dirname = $(2))
-	$(eval $@_afl_extra_args = $(3))
+	$(eval $@_grammar = $(2))
+	$(eval $@_dirname = $(3))
+	$(eval $@_afl_extra_args = $(4))
 
-	@mkdir -p afl/${$@_dirname}/out/default
-	@cp -r -u afl/trees afl/${$@_dirname}/out/default
-	@mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}"
-	ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_TMPDIR="${TMPFS_DIR}/fuzz_${$@_dirname}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-civicc.so ${$@_afl_extra_args} afl-fuzz -m none -t 5 -i ./afl/seeds -o ./afl/${$@_dirname}/out -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@
+	mkdir -p afl/${$@_dirname}/out/default
+	cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/out/default
+	mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}"
+	ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0 AFL_AUTORESUME=1 AFL_TMPDIR="${TMPFS_DIR}/fuzz_${$@_dirname}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_grammar} -o ./afl/${$@_dirname}/out -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@
 endef
-
 # Fuzz the complete compiler
 .PHONY: fuzz_civicc_multi
 fuzz_civicc_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc,civicc,)
+	$(call fuzz_multicore,civicc,civicc,civicc,)
 
 .PHONY: fuzz_civicc
 fuzz_civicc: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc,civicc,)
+	$(call fuzz_single,civicc,civicc,civicc,)
 
 .PHONY: fuzz_civicc_grammar_multi
 fuzz_civicc_grammar_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_multicore,civicc,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_civicc_grammar
 fuzz_civicc_grammar: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_single,civicc,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse_multi
 fuzz_scanparse_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc_scanparse,civicc_scanparse,)
+	$(call fuzz_multicore,civicc_scanparse,civicc,civicc_scanparse,)
 
 .PHONY: fuzz_scanparse
 fuzz_scanparse: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc_scanparse,civicc_scanparse,)
+	$(call fuzz_single,civicc_scanparse,civicc,civicc_scanparse,)
 
 .PHONY: fuzz_scanparse_grammar_multi
 fuzz_scanparse_grammar_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc_scanparse,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_multicore,civicc_scanparse,civicc,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_scanparse_grammar
 fuzz_scanparse_grammar: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc_scanparse,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_single,civicc_scanparse,civicc,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_context_grammar_multi
 fuzz_context_grammar_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc_context,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_multicore,civicc_context,civicc,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: fuzz_context_grammar
 fuzz_context_grammar: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc_context,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_single,civicc_context,civicc,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+
+# Switch to grammar lib civiccfixedids to be able to generate matching ids and produce more 
+# syntax and context correct civicc programs
+.PHONY: fuzz_codegenprep_grammar_multi
+fuzz_codegenprep_grammar_multi: check_tmpfs generate_seeds
+	$(call fuzz_multicore,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+
+.PHONY: fuzz_codegenprep_grammar
+fuzz_codegenprep_grammar: check_tmpfs generate_seeds
+	$(call fuzz_single,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: dist
 dist:

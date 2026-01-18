@@ -1,0 +1,839 @@
+{
+    "<start>": [
+        [
+            "<program>"
+        ]
+    ],
+    "<program>": [
+        [
+            "<declaration>"
+        ],
+        [
+            "<declaration>",
+            "<program>"
+        ],
+        [
+            "<declaration>",
+            "<declaration>",
+            "<declaration>",
+            "<program>"
+        ]
+    ],
+    "<declaration>": [
+        [
+            "<fundec>"
+        ],
+        [
+            "<fundef>"
+        ],
+        [
+            "<globaldec>"
+        ],
+        [
+            "<globaldef>"
+        ]
+    ],
+    "<fundec>": [
+        [
+            "extern ",
+            "<funheader>",
+            ";\n"
+        ]
+    ],
+    "<fundef>": [
+        [
+            "export ",
+            "<funheader>",
+            " {\n",
+            "<funbody>",
+            "\n}\n"
+        ],
+        [
+            "<funheader>",
+            " {\n",
+            "<funbody>",
+            "\n}\n"
+        ],
+        [
+            "export ",
+            "<funheader>",
+            " {\n",
+            "\n}\n"
+        ],
+        [
+            "<funheader>",
+            " {\n",
+            "\n}\n"
+        ]
+    ],
+    "<funheader>": [
+        [
+            "<rettype>",
+            " ",
+            "<id>",
+            "()"
+        ],
+        [
+            "<rettype>",
+            " ",
+            "<id>",
+            "(",
+            "<params>",
+            ")"
+        ]
+    ],
+    "<rettype>": [
+        [
+            "void"
+        ],
+        [
+            "<basictype>"
+        ]
+    ],
+    "<params>": [
+        [
+            "<param>",
+            ", ",
+            "<params>"
+        ],
+        [
+            "<param>"
+        ]
+    ],
+    "<param>": [
+        [
+            "<basictype>",
+            " ",
+            "<id>"
+        ],
+        [
+            "<basictype>",
+            "[",
+            "<ids>",
+            "] ",
+            "<id>"
+        ]
+    ],
+    "<globaldec>": [
+        [
+            "extern ",
+            "<basictype>",
+            " ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "extern ",
+            "<basictype>",
+            "[",
+            "<ids>",
+            "] ",
+            "<id>",
+            ";\n"
+        ]
+    ],
+    "<globaldef>": [
+        [
+            "export ",
+            "<basictype>",
+            " ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            " ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "export ",
+            "<basictype>",
+            " ",
+            "<id>",
+            " = ",
+            "<expr>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            " ",
+            "<id>",
+            " = ",
+            "<expr>",
+            ";\n"
+        ],
+        [
+            "export ",
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "export ",
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            " = ",
+            "<arrexpr>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            " = ",
+            "<arrexpr>",
+            ";\n"
+        ]
+    ],
+    "<basictype>": [
+        [
+            "int"
+        ],
+        [
+            "bool"
+        ],
+        [
+            "float"
+        ]
+    ],
+    "<funbody>": [
+        [
+            "<vardecs>",
+            "<localfundefs>",
+            "<statementsMany>"
+        ],
+        [
+            "<vardecs>",
+            "<localfundefs>"
+        ],
+        [
+            "<vardecs>",
+            "<statementsMany>"
+        ],
+        [
+            "<localfundefs>",
+            "<statementsMany>"
+        ],
+        [
+            "<vardecs>"
+        ],
+        [
+            "<localfundefs>"
+        ],
+        [
+            "<statementsMany>"
+        ]
+    ],
+    "<localfundefs>": [
+        [
+            "<localfundef>"
+        ],
+        [
+            "<localfundef>",
+            "<localfundefs>"
+        ]
+    ],
+    "<localfundef>": [
+        [
+            "<funheader>",
+            " {\n",
+            "\n}\n"
+        ],
+        [
+            "<funheader>",
+            " {\n",
+            "<funbody>",
+            "\n}\n"
+        ]
+    ],
+    "<vardecs>": [
+        [
+            "<vardec>"
+        ],
+        [
+            "<vardec>",
+            "<vardecs>"
+        ]
+    ],
+    "<statementsMany>": [
+        [
+            "<statements>"
+        ],
+        [
+            "<statements>",
+            "<statements>",
+            "<statements>",
+            "<statements>",
+            "<statements>"
+        ]
+    ],
+    "<statements>": [
+        [
+            "<statement>"
+        ],
+        [
+            "<statement>",
+            "<statements>"
+        ]
+    ],
+    "<vardec>": [
+        [
+            "<basictype>",
+            " ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            " ",
+            "<id>",
+            " = ",
+            "<expr>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            ";\n"
+        ],
+        [
+            "<basictype>",
+            "[",
+            "<exprs>",
+            "] ",
+            "<id>",
+            " = ",
+            "<arrexpr>",
+            ";\n"
+        ]
+    ],
+    "<statement>": [
+        [
+            "<id>",
+            " = ",
+            "<expr>",
+            ";\n"
+        ],
+        [
+            "<id>",
+            "(",
+            "<exprs>",
+            ")",
+            ";\n"
+        ],
+        [
+            "<id>",
+            "()",
+            ";\n"
+        ],
+        [
+            "if (",
+            "<expr>",
+            ")",
+            "<block>"
+        ],
+        [
+            "if (",
+            "<expr>",
+            ")\n",
+            "<block>",
+            " else\n",
+            "<block>"
+        ],
+        [
+            "while (",
+            "<expr>",
+            ")\n",
+            "<block>"
+        ],
+        [
+            "do\n",
+            "<block>",
+            "\nwhile (",
+            "<expr>",
+            ");\n"
+        ],
+        [
+            "for (int ",
+            "<id>",
+            " = ",
+            "<expr>",
+            ", ",
+            "<expr>",
+            ", ",
+            "<expr>",
+            ")\n",
+            "<block>"
+        ],
+        [
+            "for (int ",
+            "<id>",
+            " = ",
+            "<expr>",
+            ", ",
+            "<expr>",
+            ")\n",
+            "<block>"
+        ],
+        [
+            "return ",
+            "<expr>",
+            ";\n"
+        ],
+        [
+            "return;\n"
+        ],
+        [
+            "<id>",
+            "[",
+            "<exprs>",
+            "] = ",
+            "<expr>",
+            ";\n"
+        ]
+    ],
+    "<arrexpr>": [
+        [
+            "<expr>"
+        ],
+        [
+            "[",
+            "<arrexprs>",
+            "]"
+        ]
+    ],
+    "<arrexprs>": [
+        [
+            "<arrexpr>"
+        ],
+        [
+            "<arrexpr>",
+            ", ",
+            "<arrexprs>"
+        ]
+    ],
+    "<exprs>": [
+        [
+            "<expr>"
+        ],
+        [
+            "<expr>",
+            ", ",
+            "<exprs>"
+        ]
+    ],
+    "<block>": [
+        [
+            "{\n",
+            "}\n"
+        ],
+        [
+            "{\n",
+            "<statementsMany>",
+            "}\n"
+        ],
+        [
+            "<statement>"
+        ]
+    ],
+    "<expr>": [
+        [
+            "(",
+            "<expr>",
+            ")"
+        ],
+        [
+            "<expr>",
+            "<binop>",
+            "<expr>"
+        ],
+        [
+            "<monop>",
+            "<expr>"
+        ],
+        [
+            "(",
+            "<basictype>",
+            ")",
+            "<expr>"
+        ],
+        [
+            "<id>",
+            "(",
+            "<exprs>",
+            ")"
+        ],
+        [
+            "<id>",
+            "()"
+        ],
+        [
+            "<id>"
+        ],
+        [
+            "<const>"
+        ],
+        [
+            "<id>",
+            "[",
+            "<exprs>",
+            "]"
+        ]
+    ],
+    "<binop>": [
+        [
+            "+"
+        ],
+        [
+            "-"
+        ],
+        [
+            "*"
+        ],
+        [
+            "/"
+        ],
+        [
+            "%"
+        ],
+        [
+            "=="
+        ],
+        [
+            "!="
+        ],
+        [
+            "<"
+        ],
+        [
+            "<="
+        ],
+        [
+            ">"
+        ],
+        [
+            ">="
+        ],
+        [
+            "&&"
+        ],
+        [
+            "||"
+        ]
+    ],
+    "<monop>": [
+        [
+            "-"
+        ],
+        [
+            "!"
+        ]
+    ],
+    "<const>": [
+        [
+            "<boolconst>"
+        ],
+        [
+            "<intconst>"
+        ],
+        [
+            "<floatconst>"
+        ]
+    ],
+    "<boolconst>": [
+        [
+            "true"
+        ],
+        [
+            "false"
+        ]
+    ],
+    "<intconst>": [
+        [
+            "<numberpositive>"
+        ],
+        [
+            "<number>"
+        ],
+        [
+            "0b",
+            "<digitsbinary>"
+        ],
+        [
+            "0",
+            "<digitsoctal>"
+        ],
+        [
+            "0x",
+            "<digitshex>"
+        ]
+    ],
+    "<floatconst>": [
+        [
+            "<number>",
+            ".",
+            "<number>"
+        ],
+        [
+            "<number>",
+            ".",
+            "<number>",
+            "<floate>",
+            "<prefix>",
+            "<number>"
+        ],
+        [
+            "-",
+            "<number>",
+            ".",
+            "<number>",
+            "<floate>",
+            "<number>"
+        ],
+        [
+            "<number>",
+            ".",
+            "<number>",
+            "<floate>",
+            "<number>"
+        ]
+    ],
+    "<prefix>": [
+        [
+            "-"
+        ],
+        [
+            "+"
+        ]
+    ],
+    "<floate>": [
+        [
+            "e"
+        ],
+        [
+            "E"
+        ]
+    ],
+    "<number>": [
+        [
+            "0"
+        ],
+        [
+            "<numberpositive>"
+        ]
+    ],
+    "<numberpositive>": [
+        [
+            "<digitpositive>",
+            "<digits>"
+        ],
+        [
+            "<digitpositive>"
+        ]
+    ],
+    "<digits>": [
+        [
+            "<digit>",
+            "<digits>"
+        ],
+        [
+            "<digit>"
+        ]
+    ],
+    "<digitsbinary>": [
+        [
+            "<digitbinary>",
+            "<digitsbinary>"
+        ],
+        [
+            "<digitbinary>"
+        ]
+    ],
+    "<digitsoctal>": [
+        [
+            "<digitoctal>",
+            "<digitsoctal>"
+        ],
+        [
+            "<digitoctal>"
+        ]
+    ],
+    "<digitshex>": [
+        [
+            "<digithex>",
+            "<digitshex>"
+        ],
+        [
+            "<digithex>"
+        ]
+    ],
+    "<digit>": [
+        [
+            "0"
+        ],
+        [
+            "<digitpositive>"
+        ]
+    ],
+    "<digitbinary>": [
+        [
+            "0"
+        ],
+        [
+            "1"
+        ]
+    ],
+    "<digitoctal>": [
+        [
+            "0"
+        ],
+        [
+            "<digitoctalpositive>"
+        ]
+    ],
+    "<digithex>": [
+        [
+            "0"
+        ],
+        [
+            "<digithexpositive>"
+        ]
+    ],
+    "<digitoctalpositive>": [
+        [
+            "1"
+        ],
+        [
+            "2"
+        ],
+        [
+            "3"
+        ],
+        [
+            "4"
+        ],
+        [
+            "5"
+        ],
+        [
+            "6"
+        ],
+        [
+            "7"
+        ]
+    ],
+    "<digitpositive>": [
+        [
+            "<digitoctalpositive>"
+        ],
+        [
+            "9"
+        ]
+    ],
+    "<digithexpositive>": [
+        [
+            "<digitpositive>"
+        ],
+        [
+            "A"
+        ],
+        [
+            "a"
+        ],
+        [
+            "B"
+        ],
+        [
+            "b"
+        ],
+        [
+            "C"
+        ],
+        [
+            "c"
+        ],
+        [
+            "D"
+        ],
+        [
+            "d"
+        ],
+        [
+            "E"
+        ],
+        [
+            "e"
+        ],
+        [
+            "F"
+        ],
+        [
+            "f"
+        ]
+    ],
+    "<id>": [
+        [
+            "<idfixed>"
+        ],
+        [
+            "<id>",
+            "<idfixed>"
+        ]
+    ],
+    "<idfixed>": [
+        [
+            "test"
+        ],
+        [
+            "name"
+        ],
+        [
+            "piip"
+        ],
+        [
+            "json"
+        ],
+        [
+            "gram"
+        ],
+        [
+            "fixs"
+        ],
+        [
+            "nine"
+        ],
+        [
+            "comp"
+        ]
+    ],
+    "<ids>": [
+        [
+            "<id>"
+        ],
+        [
+            "<id>",
+            ", ",
+            "<ids>"
+        ]
+    ]
+}

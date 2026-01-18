@@ -26,7 +26,7 @@ extern "C"
 /* this lets the source compile without afl-clang-fast/lto */
 #ifndef __AFL_COMPILER
 size_t fuzz_len;
-const ssize_t fuzz_buf_capacity = 1024000;
+const size_t fuzz_buf_capacity = 1024000;
 unsigned char fuzz_buf[fuzz_buf_capacity];
 #define __AFL_FUZZ_TESTCASE_LEN fuzz_len
 #define __AFL_FUZZ_TESTCASE_BUF fuzz_buf
@@ -95,9 +95,10 @@ int main(int argc, char *argv[])
     while (__AFL_LOOP(10000))
     {
         size_t len = __AFL_FUZZ_TESTCASE_LEN;
+        release_assert(len <= UINT32_MAX);
+        release_assert(len <= 1024 * 1024 * 1024); // Ensure less than one GiB
         src = (char *)realloc(src, len);
         std::memcpy(src, buf, len);
-        release_assert(len <= UINT32_MAX);
 #if SLICE_TARGET == 1
         node_st *root = run_scan_parse_buf(filepath, src, (uint32_t)len);
 #elif SLICE_TARGET == 2

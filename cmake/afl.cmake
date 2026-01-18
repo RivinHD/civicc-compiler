@@ -60,6 +60,7 @@ function(setup_grammar GRAMMAR_FILE)
     message(STATUS "Search grammer lib: '${GRAMMAR_LIB_FILENAME}'")
     find_file(GRAMMAR_LIB "${GRAMMAR_LIB_FILENAME}"
         PATHS "${GRAMMAR_MUTATOR_SOURCE_DIR}"
+        NO_CACHE
     )
     message(STATUS "Found grammer lib at: '${GRAMMAR_LIB}'")
 
@@ -67,6 +68,7 @@ function(setup_grammar GRAMMAR_FILE)
     message(STATUS "Search grammer generator: '${GRAMMAR_GEN_FILENAME}'")
     find_file(GRAMMAR_GEN "${GRAMMAR_GEN_FILENAME}"
         PATHS "${GRAMMAR_MUTATOR_SOURCE_DIR}"
+        NO_CACHE
     )
     message(STATUS "Found grammer generator at: '${GRAMMAR_GEN}'")
 
@@ -96,6 +98,7 @@ if(AFL_ENABLED)
     else()
         unset(AFL_EXT)
         setup_grammar("grammars/civicc.json")
+        setup_grammar("grammars/civiccfixedids.json")
     endif()
 endif()
 
