@@ -72,7 +72,8 @@ int main(int argc, char *argv[])
     file.clear();
     file.seekg(0, std::ios::beg);
 
-    if (fuzz_buf_capacity < size)
+    release_assert(size >= 0);
+    if (fuzz_buf_capacity < (size_t)size)
     {
         std::cerr << "The file exceeds the capacity of the buffer." << std::endl;
         file.close();
@@ -85,7 +86,7 @@ int main(int argc, char *argv[])
         file.close();
         return 1;
     }
-    release_assert(size >= 0);
+
     fuzz_len = (size_t)size;
     file.close();
 #else
