@@ -6,8 +6,6 @@
 #include "ccngen/enum.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
-#include "src/phase_driver.c"
-#include "to_string.h"
 #include <ccn/phase_driver.h>
 #include <stddef.h>
 
@@ -56,8 +54,8 @@ node_st *run_context_analysis(const char *filepath)
 node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32_t buffer_length)
 {
     node_st *node = run_context_analysis_buf(filepath, buffer, buffer_length);
-    node =
-        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGENPREPARATION), CCN_ROOT_TYPE, node, true);
+    node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGENPREPARATION), CCN_ROOT_TYPE, node,
+                             true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     CTIabortOnError();
     return node;

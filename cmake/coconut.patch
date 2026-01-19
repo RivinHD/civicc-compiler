@@ -1,0 +1,678 @@
+diff --git a/copra/ccn/phase_driver.h b/copra/ccn/phase_driver.h
+index f6e3006..036bc55 100644
+--- a/copra/ccn/phase_driver.h
++++ b/copra/ccn/phase_driver.h
+@@ -1,8 +1,9 @@
+ #pragma once
+ 
++#include "ccn/action_types.h"
++#include "ccngen/ast.h"
+ #include <stdbool.h>
+ #include <stddef.h>
+-#include "ccngen/ast.h"
+ 
+ enum pd_verbosity {
+     PD_V_QUIET = 0,
+@@ -11,6 +12,30 @@ enum pd_verbosity {
+     PD_V_HIGH = 3,
+ };
+ 
++struct phase_driver {
++    size_t level;
++    size_t action_id;
++    size_t cycle_iter;
++    size_t max_cycles;
++    size_t breakpoint_id;
++    enum pd_verbosity verbosity;
++    bool fixed_point;
++    bool action_error;
++    bool phase_error;
++    bool tree_check;
++    struct ccn_phase *current_phase;
++    char *breakpoint;
++};
++
++extern struct phase_driver phase_driver;
++
++void resetPhaseDriver();
++struct ccn_node *CCNdispatchAction(struct ccn_action *action,
++                                   enum ccn_nodetype root_type,
++                                   struct ccn_node *node, bool is_root);
++struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name,
++                            struct ccn_node *node);
++
+ void CCNrun(node_st *node);
+ void CCNcycleNotify();
+ size_t CCNgetCurrentActionId();
+diff --git a/copra/src/phase_driver.c b/copra/src/phase_driver.c
+index 656eb35..5d14126 100644
+--- a/copra/src/phase_driver.c
++++ b/copra/src/phase_driver.c
+@@ -9,27 +9,11 @@
+ 
+ #include "ccn/action_types.h"
+ #include "ccn/dynamic_core.h"
++#include "ccn/phase_driver.h"
+ #include "ccngen/action_handling.h"
+ #include "palm/ctinfo.h"
+-#include "ccn/phase_driver.h"
+-
+-
+-struct phase_driver {
+-    size_t level;
+-    size_t action_id;
+-    size_t cycle_iter;
+-    size_t max_cycles;
+-    size_t breakpoint_id;
+-    enum pd_verbosity verbosity;
+-    bool fixed_point;
+-    bool action_error;
+-    bool phase_error;
+-    bool tree_check;
+-    struct ccn_phase *current_phase;
+-    char *breakpoint;
+-};
+ 
+-static struct phase_driver phase_driver = {
++struct phase_driver phase_driver = {
+     .level = 0,
+     .action_id = 0,
+     .cycle_iter = 0,
+@@ -44,8 +28,7 @@ static struct phase_driver phase_driver = {
+     .breakpoint = NULL,
+ };
+ 
+-static void resetPhaseDriver()
+-{
++void resetPhaseDriver() {
+     phase_driver.level = 0;
+     phase_driver.action_id = 0;
+     phase_driver.cycle_iter = 0;
+@@ -55,17 +38,17 @@ static void resetPhaseDriver()
+     phase_driver.phase_error = false;
+ }
+ 
+-static struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name, struct ccn_node *node);
+-
+ extern void BreakpointHandler(node_st *node);
+ 
+-struct ccn_node *CCNdispatchAction(struct ccn_action *action, enum ccn_nodetype root_type, struct ccn_node *node,
+-                          bool is_root) {
++struct ccn_node *CCNdispatchAction(struct ccn_action *action,
++                                   enum ccn_nodetype root_type,
++                                   struct ccn_node *node, bool is_root) {
+     phase_driver.action_id++;
+     // Needed to break after a phase with action ids.
+     size_t start_id = phase_driver.action_id;
+ 
+-    if (action->type == CCN_ACTION_PHASE && phase_driver.verbosity > PD_V_QUIET) {
++    if (action->type == CCN_ACTION_PHASE &&
++        phase_driver.verbosity > PD_V_QUIET) {
+         fprintf(stderr, ">> %s\n", action->name);
+     } else {
+         if (phase_driver.verbosity > PD_V_SMALL) {
+@@ -111,11 +94,13 @@ struct ccn_node *CCNdispatchAction(struct ccn_action *action, enum ccn_nodetype
+             exit(0);
+         }
+     }
+-    if (phase_driver.breakpoint_id > 0 && phase_driver.breakpoint_id == start_id) {
++    if (phase_driver.breakpoint_id > 0 &&
++        phase_driver.breakpoint_id == start_id) {
+         BreakpointHandler(node);
+         exit(0);
+     }
+-    if (action->type == CCN_ACTION_PHASE && phase_driver.verbosity > PD_V_QUIET) {
++    if (action->type == CCN_ACTION_PHASE &&
++        phase_driver.verbosity > PD_V_QUIET) {
+         fprintf(stderr, "<< %s\n", action->name);
+     }
+ 
+@@ -141,8 +126,7 @@ static void SkipPhase(struct ccn_phase *phase) {
+     }
+ }
+ 
+-char *Checkbreakpoint(char *name)
+-{
++char *Checkbreakpoint(char *name) {
+     size_t len = STRlen(name);
+     for (size_t i = 0; i < len; i++) {
+         if (phase_driver.breakpoint[i] == '\0') {
+@@ -167,10 +151,14 @@ char *Checkbreakpoint(char *name)
+     return NULL;
+ }
+ 
+-struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name, struct ccn_node *node) {
++struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name,
++                            struct ccn_node *node) {
+     if (phase->gate_func && !phase->gate_func()) {
+         if (phase_driver.verbosity >= PD_V_HIGH) {
+-            fprintf(stderr, "[coconut] Skipping phase %s because gate function returned false.\n", phase_name);
++            fprintf(stderr,
++                    "[coconut] Skipping phase %s because gate function "
++                    "returned false.\n",
++                    phase_name);
+         }
+         SkipPhase(phase);
+         return node;
+@@ -204,7 +192,8 @@ struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name, struct cc
+             action_id = phase->action_table[action_counter];
+         }
+         phase_driver.cycle_iter++;
+-    } while(cycle && phase_driver.cycle_iter < phase_driver.max_cycles && !(phase_driver.fixed_point));
++    } while (cycle && phase_driver.cycle_iter < phase_driver.max_cycles &&
++             !(phase_driver.fixed_point));
+ 
+     if (phase_driver.phase_error) {
+         if (phase_driver.verbosity > PD_V_QUIET) {
+@@ -226,90 +215,63 @@ struct ccn_node *StartPhase(struct ccn_phase *phase, char *phase_name, struct cc
+ /**
+  * Notify CoCoNut that a fixed point is not reached in current cycle.
+  */
+-void CCNcycleNotify()
+-{
+-    phase_driver.fixed_point = false;
+-}
++void CCNcycleNotify() { phase_driver.fixed_point = false; }
+ 
+ /**
+  * Signal an action error. CoCoNut will call CTIabortCompilation
+  * after the action this error was signalled in.
+  */
+-void CCNerrorAction()
+-{
+-    phase_driver.action_error = true;
+-}
++void CCNerrorAction() { phase_driver.action_error = true; }
+ 
+ /**
+  * Signal an phase error. As a result, CoCoNut will call CTIabortCompilation
+  * at the end of the phase this error was signalled in.
+  */
+-void CCNerrorPhase()
+-{
+-    phase_driver.phase_error = true;
+-}
++void CCNerrorPhase() { phase_driver.phase_error = true; }
+ 
+ /**
+  * Set the maximum number of cycles for a cycle. Can be changed at runtime.
+  * @param cycle_count the maximum number of cycles.
+  */
+-void CCNsetCycles(size_t cycle_count)
+-{
+-    phase_driver.max_cycles = cycle_count;
+-}
++void CCNsetCycles(size_t cycle_count) { phase_driver.max_cycles = cycle_count; }
+ 
+ /**
+  * Set a breakpoint at which CoCoNut will stop and call the handler:
+  * *BreakpointHandler*.
+  * @param breakpoint The breakpoint in format: <phase>.<phase>.<action>
+  */
+-void CCNsetBreakpoint(char *breakpoint)
+-{
++void CCNsetBreakpoint(char *breakpoint) {
+     phase_driver.breakpoint = breakpoint;
+ }
+ 
+-void CCNsetBreakpointWithID(size_t id)
+-{
+-    phase_driver.breakpoint_id = id;
+-}
++void CCNsetBreakpointWithID(size_t id) { phase_driver.breakpoint_id = id; }
+ 
+ /**
+  * Set the verbosity level of CoCoNut.
+  * @param type the type of verbosity.
+  */
+-void CCNsetVerbosity(enum pd_verbosity type)
+-{
+-    phase_driver.verbosity = type;
+-}
++void CCNsetVerbosity(enum pd_verbosity type) { phase_driver.verbosity = type; }
+ 
+ /**
+  * Enable or disable consistency checking your tree.
+  * @param enable when true, consistency checking is performed.
+  */
+-void CCNsetTreeCheck(bool enable)
+-{
+-    phase_driver.tree_check = enable;
+-}
++void CCNsetTreeCheck(bool enable) { phase_driver.tree_check = enable; }
+ 
+ /**
+  * Perform an invocation of your compiler.
+  * @param node the root of the tree. Will call the free traversal at the end.
+  */
+-void CCNrun(struct ccn_node *node)
+-{
++void CCNrun(struct ccn_node *node) {
+     resetPhaseDriver();
+-    node = CCNdispatchAction(CCNgetActionFromID(CCN_ROOT_ACTION), CCN_ROOT_TYPE, node, false);
++    node = CCNdispatchAction(CCNgetActionFromID(CCN_ROOT_ACTION), CCN_ROOT_TYPE,
++                             node, false);
+     TRAVstart(node, TRAV_free);
+ }
+ 
+-size_t CCNgetCurrentActionId()
+-{
+-    return phase_driver.action_id;
+-}
++size_t CCNgetCurrentActionId() { return phase_driver.action_id; }
+ 
+-static
+-size_t ShowTree(struct ccn_action *curr, size_t id, int indent)
+-{
++static size_t ShowTree(struct ccn_action *curr, size_t id, int indent) {
+     if (id > 1) {
+         for (int i = 0; i < indent; i++) {
+             printf("\t");
+@@ -325,7 +287,8 @@ size_t ShowTree(struct ccn_action *curr, size_t id, int indent)
+     struct ccn_phase *phase = &curr->phase;
+     indent++;
+     while (phase->action_table[index] != CCNAC_ID_NULL) {
+-        id = ShowTree(CCNgetActionFromID(phase->action_table[index]), id, indent);
++        id = ShowTree(CCNgetActionFromID(phase->action_table[index]), id,
++                      indent);
+         index++;
+     }
+     printf("\n");
+@@ -336,7 +299,4 @@ size_t ShowTree(struct ccn_action *curr, size_t id, int indent)
+ /**
+  * Gives a structured representation of your compiler structure.
+  */
+-void CCNshowTree()
+-{
+-    ShowTree(CCNgetActionFromID(CCN_ROOT_ACTION), 1, -1);
+-}
++void CCNshowTree() { ShowTree(CCNgetActionFromID(CCN_ROOT_ACTION), 1, -1); }
+diff --git a/palm/include/palm/ctinfo.h b/palm/include/palm/ctinfo.h
+index 1f5f9c6..ac6b839 100644
+--- a/palm/include/palm/ctinfo.h
++++ b/palm/include/palm/ctinfo.h
+@@ -62,6 +62,15 @@ enum cti_type {
+     CTI_ERROR,
+ 
+ };
++/**
++ * Increase error or warning count based on type.
++ */
++void HandleCtiCall(enum cti_type type);
++
++/**
++ * Returns the static defined string header of the type.
++ */
++char *GetMessageHeader(enum cti_type type);
+ 
+ /**
+  * Installs interrupt handlers
+diff --git a/palm/src/ctinfo.c b/palm/src/ctinfo.c
+index 6812dff..3257095 100644
+--- a/palm/src/ctinfo.c
++++ b/palm/src/ctinfo.c
+@@ -40,8 +40,7 @@ static int warnings = 0;
+  *
+  ******************************************************************************/
+ 
+-static void ProcessMessage(char *buffer, int line_length)
+-{
++static void ProcessMessage(char *buffer, int line_length) {
+     int index, column, last_space;
+     index = 0;
+     last_space = 0;
+@@ -87,8 +86,7 @@ static void ProcessMessage(char *buffer, int line_length)
+  *
+  ******************************************************************************/
+ 
+-static void Format2Buffer(const char *format, va_list arg_p)
+-{
++static void Format2Buffer(const char *format, va_list arg_p) {
+     int len;
+     va_list arg_p_copy;
+ 
+@@ -99,8 +97,8 @@ static void Format2Buffer(const char *format, va_list arg_p)
+     if (len < 0) {
+         DBUG_ASSERT((message_buffer_size == 0), "message buffer corruption");
+         /*
+-     * Output error due to non-existing message buffer
+-     */
++         * Output error due to non-existing message buffer
++         */
+ 
+         len = 120;
+ 
+@@ -108,7 +106,8 @@ static void Format2Buffer(const char *format, va_list arg_p)
+         message_buffer_size = len + 2;
+ 
+         va_copy(arg_p_copy, arg_p);
+-        len = vsnprintf(message_buffer, message_buffer_size, format, arg_p_copy);
++        len =
++            vsnprintf(message_buffer, message_buffer_size, format, arg_p_copy);
+         va_end(arg_p_copy);
+         DBUG_ASSERT((len >= 0), "message buffer corruption");
+     }
+@@ -121,7 +120,8 @@ static void Format2Buffer(const char *format, va_list arg_p)
+         message_buffer_size = len + 2;
+ 
+         va_copy(arg_p_copy, arg_p);
+-        len = vsnprintf(message_buffer, message_buffer_size, format, arg_p_copy);
++        len =
++            vsnprintf(message_buffer, message_buffer_size, format, arg_p_copy);
+         va_end(arg_p_copy);
+ 
+         DBUG_ASSERT((len < message_buffer_size), "message buffer corruption");
+@@ -144,13 +144,12 @@ static void Format2Buffer(const char *format, va_list arg_p)
+  *
+  ******************************************************************************/
+ 
+-char *CTIgetErrorMessageVA(int line, const char *format, va_list arg_p)
+-{
++char *CTIgetErrorMessageVA(int line, const char *format, va_list arg_p) {
+     char *first_line, *res;
+ 
+     Format2Buffer(format, arg_p);
+     ProcessMessage(message_buffer,
+-        message_line_length - strlen(error_message_header));
++                   message_line_length - strlen(error_message_header));
+ 
+     first_line = STRfmt("line %d @", line);
+     res = STRcat(first_line, message_buffer);
+@@ -159,10 +158,9 @@ char *CTIgetErrorMessageVA(int line, const char *format, va_list arg_p)
+     return res;
+ }
+ 
+-//TODO: make this inline with message length.
++// TODO: make this inline with message length.
+ 
+-static void PrintLocation(struct ctinfo *info)
+-{
++static void PrintLocation(struct ctinfo *info) {
+     if (info->line != NULL) {
+         // We push 4 spaces to take the ' |> ' into account.
+         fprintf(stderr, " |> %s\n    ", info->line);
+@@ -185,36 +183,38 @@ static void PrintLocation(struct ctinfo *info)
+     }
+ }
+ 
+-static void PrintLine(struct ctinfo *info)
+-{
++static void PrintLine(struct ctinfo *info) {
+     fprintf(stderr, " --> %s:%d\n", info->filename, info->first_line);
+ }
+ 
+-static void PrintLineCol(struct ctinfo *info)
+-{
+-    fprintf(stderr, " --> %s:%d:%d\n", info->filename, info->first_line, info->first_column);
++static void PrintLineCol(struct ctinfo *info) {
++    fprintf(stderr, " --> %s:%d:%d\n", info->filename, info->first_line,
++            info->first_column);
+     PrintLocation(info);
+ }
+ 
+-static void PrintRange(struct ctinfo *info)
+-{
++static void PrintRange(struct ctinfo *info) {
+     if (info->last_line == 0 || info->first_line == info->last_line) {
+-        fprintf(stderr, " --> %s:%d.%d-%d\n", info->filename, info->first_line, info->first_column, info->last_column);
++        fprintf(stderr, " --> %s:%d.%d-%d\n", info->filename, info->first_line,
++                info->first_column, info->last_column);
+     } else {
+-        fprintf(stderr, " --> %s:%d.%d-%d.%d\n", info->filename, info->first_line, info->first_column, info->last_line, info->last_column);
++        fprintf(stderr, " --> %s:%d.%d-%d.%d\n", info->filename,
++                info->first_line, info->first_column, info->last_line,
++                info->last_column);
+     }
+     PrintLocation(info);
+ }
+ 
+-static void PrintInfo(struct ctinfo *info)
+-{
++static void PrintInfo(struct ctinfo *info) {
+     if (!info) {
+         return;
+     }
+ 
+     if (info->first_line > 0 && info->first_column <= 0) {
+         PrintLine(info);
+-    } else if (info->last_column <= 0 || ((info->last_line <= 0 || info->first_line == info->last_line) && info->first_column == info->last_column)) {
++    } else if (info->last_column <= 0 ||
++               ((info->last_line <= 0 || info->first_line == info->last_line) &&
++                info->first_column == info->last_column)) {
+         PrintLineCol(info);
+     } else if (info->last_column > 0) {
+         PrintRange(info);
+@@ -239,8 +239,8 @@ static void PrintInfo(struct ctinfo *info)
+  *
+  ******************************************************************************/
+ 
+-static void PrintMessage(char *header, const char *format, va_list arg_p, bool newline, struct ctinfo *info)
+-{
++static void PrintMessage(char *header, const char *format, va_list arg_p,
++                         bool newline, struct ctinfo *info) {
+     char *line;
+     bool first_line = true;
+ 
+@@ -272,9 +272,7 @@ static void PrintMessage(char *header, const char *format, va_list arg_p, bool n
+  *
+  ******************************************************************************/
+ 
+-static void CleanUp()
+-{
+-}
++static void CleanUp() {}
+ 
+ /** <!--********************************************************************-->
+  *
+@@ -284,21 +282,16 @@ static void CleanUp()
+  *
+  ******************************************************************************/
+ 
+-static void AbortCompilation()
+-{
++static void AbortCompilation() {
+     fprintf(stderr, "\n*** Compilation failed ***\n");
+-    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n",
+-        errors, warnings);
++    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n", errors, warnings);
+ 
+     CleanUp();
+ 
+     exit(1);
+ }
+ 
+-void CTIabortCompilation()
+-{
+-    AbortCompilation();
+-}
++void CTIabortCompilation() { AbortCompilation(); }
+ 
+ /** <!--********************************************************************-->
+  *
+@@ -318,11 +311,9 @@ void CTIabortCompilation()
+  *
+  ******************************************************************************/
+ 
+-static void InternalCompilerErrorBreak(int sig)
+-{
+-    fprintf(stderr,
+-        "\n\n"
+-        "OOOPS your program crashed the compiler 8-((\n\n");
++static void InternalCompilerErrorBreak(int sig) {
++    fprintf(stderr, "\n\n"
++                    "OOOPS your program crashed the compiler 8-((\n\n");
+ 
+     CleanUp();
+ 
+@@ -345,8 +336,7 @@ static void InternalCompilerErrorBreak(int sig)
+  *
+  ******************************************************************************/
+ 
+-static void UserForcedBreak(int sig)
+-{
++static void UserForcedBreak(int sig) {
+     CleanUp();
+     exit(0);
+ }
+@@ -359,14 +349,12 @@ static void UserForcedBreak(int sig)
+  *
+  ******************************************************************************/
+ 
+-void CTIinstallInterruptHandlers(void)
+-{
++void CTIinstallInterruptHandlers(void) {
+     signal(SIGSEGV, InternalCompilerErrorBreak); /* Segmentation Fault */
+-    signal(SIGBUS, InternalCompilerErrorBreak); /* Bus Error */
+-    signal(SIGINT, UserForcedBreak); /* Interrupt (Control-C) */
++    signal(SIGBUS, InternalCompilerErrorBreak);  /* Bus Error */
++    signal(SIGINT, UserForcedBreak);             /* Interrupt (Control-C) */
+ }
+ 
+-
+ /** <!--********************************************************************-->
+  *
+  * @fn int CTIgetErrorMessageLineLength( void)
+@@ -377,8 +365,7 @@ void CTIinstallInterruptHandlers(void)
+  *
+  ******************************************************************************/
+ 
+-int CTIgetErrorMessageLineLength(void)
+-{
++int CTIgetErrorMessageLineLength(void) {
+     return message_line_length - strlen(error_message_header);
+ }
+ 
+@@ -390,8 +377,7 @@ int CTIgetErrorMessageLineLength(void)
+  *
+  ******************************************************************************/
+ 
+-void CTIabortOnError(void)
+-{
++void CTIabortOnError(void) {
+     if (errors > 0) {
+         AbortCompilation();
+     }
+@@ -400,14 +386,7 @@ void CTIabortOnError(void)
+ /**
+  * @return The number of errors currently produced.
+  */
+-int CTIgetErrors()
+-{
+-    return errors;
+-}
+-
+-
+-
+-
++int CTIgetErrors() { return errors; }
+ 
+ /** <!--********************************************************************-->
+  *
+@@ -419,19 +398,14 @@ int CTIgetErrors()
+  *
+  ******************************************************************************/
+ 
+-int CTIgetWarnMessageLineLength()
+-{
++int CTIgetWarnMessageLineLength() {
+     return message_line_length - strlen(warn_message_header);
+ }
+ 
+ /**
+  * @return The number of warnings currently produced.
+  */
+-int CTIgetWarnings()
+-{
+-    return warnings;
+-}
+-
++int CTIgetWarnings() { return warnings; }
+ 
+ /** <!--********************************************************************-->
+  *
+@@ -451,22 +425,19 @@ int CTIgetWarnings()
+  *
+  ******************************************************************************/
+ 
+-void CTIabortOutOfMemory(unsigned int request)
+-{
++void CTIabortOutOfMemory(unsigned int request) {
+     fprintf(stderr,
+-        "\n"
+-        "%sOut of memory:\n"
+-        "%s %u bytes requested\n",
+-        abort_message_header,
+-        abort_message_header, request);
++            "\n"
++            "%sOut of memory:\n"
++            "%s %u bytes requested\n",
++            abort_message_header, abort_message_header, request);
+ 
+     errors++;
+ 
+     AbortCompilation();
+ }
+ 
+-static void HandleCtiCall(enum cti_type type)
+-{
++void HandleCtiCall(enum cti_type type) {
+     if (type == CTI_ERROR) {
+         errors++;
+     } else if (type == CTI_WARN) {
+@@ -474,8 +445,7 @@ static void HandleCtiCall(enum cti_type type)
+     }
+ }
+ 
+-static char *GetMessageHeader(enum cti_type type)
+-{
++char *GetMessageHeader(enum cti_type type) {
+     switch (type) {
+     case CTI_WARN:
+         return warn_message_header;
+@@ -497,15 +467,20 @@ static char *GetMessageHeader(enum cti_type type)
+  * @param format printf style format string
+  * @param ... variable args.
+  */
+-void CTI(enum cti_type type, bool newline, const char *format, ...)
+-{
++void CTI(enum cti_type type, bool newline, const char *format, ...) {
+     char *message_header = GetMessageHeader(type);
+     HandleCtiCall(type);
+     va_list arg_p;
+ 
+     va_start(arg_p, format);
+ 
++#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+     PrintMessage(message_header, format, arg_p, newline, NULL);
++#else
++    (void)message_header;
++    (void)newline;
++    (void)arg_p;
++#endif
+ 
+     va_end(arg_p);
+ }
+@@ -514,15 +489,21 @@ void CTI(enum cti_type type, bool newline, const char *format, ...)
+  * See @CTI
+  * @param obj an object of type struct ctinfo with extra information.
+  */
+-void CTIobj(enum cti_type type, bool newline, struct ctinfo obj, const char *format, ...)
+-{
++void CTIobj(enum cti_type type, bool newline, struct ctinfo obj,
++            const char *format, ...) {
+     char *message_header = GetMessageHeader(type);
+     HandleCtiCall(type);
+     va_list arg_p;
+ 
+     va_start(arg_p, format);
+ 
++#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+     PrintMessage(message_header, format, arg_p, newline, &obj);
++#else
++    (void)message_header;
++    (void)newline;
++    (void)arg_p;
++#endif
+ 
+     va_end(arg_p);
+ }
