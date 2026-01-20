@@ -139,6 +139,7 @@ node_st *CA_TCbool(node_st *node)
 {
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = DT_bool;
         anytype = false;
         return node;
@@ -156,6 +157,7 @@ node_st *CA_TCfloat(node_st *node)
 {
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = DT_float;
         anytype = false;
         return node;
@@ -174,6 +176,7 @@ node_st *CA_TCint(node_st *node)
 {
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = DT_int;
         anytype = false;
     }
@@ -194,6 +197,11 @@ node_st *CA_TCvar(node_st *node)
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
+        if (anytype)
+        {
+            type = DT_NULL;
+            anytype = false;
+        }
         return node;
     }
     release_assert(entry != NULL);
@@ -201,6 +209,7 @@ node_st *CA_TCvar(node_st *node)
 
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = has_type;
         anytype = false;
     }
@@ -219,6 +228,7 @@ node_st *CA_TCcast(node_st *node)
 
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = has_type;
         anytype = false;
     }
@@ -232,7 +242,7 @@ node_st *CA_TCcast(node_st *node)
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
         char *type_str = datatype_to_string(has_type);
-        CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' to type '%s'.", type_str);
+        CTIobj(CTI_ERROR, true, info, "Cannot cast into type 'void' from type '%s'.", type_str);
         free(info.filename);
         free(type_str);
     }
@@ -260,16 +270,21 @@ node_st *CA_TCarrayexpr(node_st *node)
 node_st *CA_TCmonop(node_st *node)
 {
     enum DataType parent_type = type;
+    bool was_infered = false;
 
     if (anytype)
     {
         // infer the type from the first argument
+        release_assert(type == DT_NULL);
         TRAVopt(MONOP_LEFT(node));
         parent_type = type;
+        was_infered = true;
+        release_assert(anytype == false);
 
         if (type == DT_NULL && CTIgetErrors() > 0)
         {
             // Missing entry due to error, skip check.
+            type = parent_type;
             return node;
         }
     }
@@ -302,7 +317,10 @@ node_st *CA_TCmonop(node_st *node)
         free(type_str);
     }
 
-    TRAVopt(MONOP_LEFT(node));
+    if (!was_infered)
+    {
+        TRAVopt(MONOP_LEFT(node));
+    }
     type = parent_type;
     return node;
 }
@@ -311,6 +329,7 @@ node_st *CA_TCbinop(node_st *node)
 {
     enum DataType parent_type = type;
     char *op_str = NULL;
+    bool was_infered = false;
 
     if (type == DT_void)
     {
@@ -318,23 +337,87 @@ node_st *CA_TCbinop(node_st *node)
     }
     else
     {
+        // Infer binop type
         switch (BINOP_OP(node))
         {
+        case BO_add:
         case BO_sub:
         case BO_div:
+        case BO_mul:
+        case BO_mod:
             if (anytype)
             {
                 // infer the type from the first argument
+                release_assert(type == DT_NULL);
                 TRAVopt(BINOP_LEFT(node));
                 parent_type = type;
+                was_infered = true;
+                release_assert(anytype == false);
 
                 if (type == DT_NULL && CTIgetErrors() > 0)
                 {
                     // Missing entry due to error, skip check.
+                    type = parent_type;
                     return node;
                 }
             }
+            break;
+        case BO_lt:
+        case BO_le:
+        case BO_gt:
+        case BO_ge:
+        case BO_eq:
+        case BO_ne:
+            // Always yield a boolean
+            if (anytype)
+            {
+                release_assert(type == DT_NULL);
+                parent_type = DT_bool;
+                anytype = false;
+            }
 
+            op_str = binoptype_to_string(BINOP_OP(node));
+            type_check(node, op_str, parent_type, DT_bool);
+            free(op_str);
+
+            // infer the type from the first argument
+            anytype = true;
+            type = DT_NULL;
+            TRAVopt(BINOP_LEFT(node));
+            was_infered = true;
+            release_assert(anytype == false);
+
+            if (type == DT_NULL && CTIgetErrors() > 0)
+            {
+                // Missing entry due to error, skip check.
+                type = parent_type;
+                return node;
+            }
+            break;
+        case BO_and:
+        case BO_or:
+            // Always yield a boolean
+            if (anytype)
+            {
+                release_assert(type == DT_NULL);
+                parent_type = DT_bool;
+                anytype = false;
+            }
+
+            op_str = binoptype_to_string(BINOP_OP(node));
+            type_check(node, op_str, parent_type, DT_bool);
+            free(op_str);
+            break;
+        case BO_NULL:
+            release_assert(false);
+            break;
+        }
+
+        // Check valid bintop types
+        switch (BINOP_OP(node))
+        {
+        case BO_sub:
+        case BO_div:
             if ((type != DT_int) & (type != DT_float))
             {
                 binop_not_defined_on_type(node, type);
@@ -342,37 +425,12 @@ node_st *CA_TCbinop(node_st *node)
             break;
         case BO_add:
         case BO_mul:
-            if (anytype)
-            {
-                // infer the type from the first argument
-                TRAVopt(BINOP_LEFT(node));
-                parent_type = type;
-
-                if (type == DT_NULL && CTIgetErrors() > 0)
-                {
-                    // Missing entry due to error, skip check.
-                    return node;
-                }
-            }
-
             if ((type != DT_int) & (type != DT_float) & (type != DT_bool))
             {
                 binop_not_defined_on_type(node, type);
             }
             break;
         case BO_mod:
-            if (anytype)
-            {
-                // infer the type from the first argument
-                TRAVopt(BINOP_LEFT(node));
-                parent_type = type;
-
-                if (type == DT_NULL && CTIgetErrors() > 0)
-                {
-                    // Missing entry due to error, skip check.
-                    return node;
-                }
-            }
             if (type != DT_int)
             {
                 binop_not_defined_on_type(node, type);
@@ -382,24 +440,6 @@ node_st *CA_TCbinop(node_st *node)
         case BO_le:
         case BO_gt:
         case BO_ge:
-            // Always yield a boolean
-            if (anytype)
-            {
-                parent_type = DT_bool;
-            }
-            op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, parent_type, DT_bool);
-            free(op_str);
-
-            // infer the type from the first argument
-            anytype = true;
-            TRAVopt(BINOP_LEFT(node));
-            if (type == DT_NULL && CTIgetErrors() > 0)
-            {
-                // Missing entry due to error, skip check.
-                return node;
-            }
-
             if ((type != DT_int) & (type != DT_float))
             {
                 binop_not_defined_on_type(node, type);
@@ -407,41 +447,13 @@ node_st *CA_TCbinop(node_st *node)
             break;
         case BO_eq:
         case BO_ne:
-            // Always yield a boolean
-            if (anytype)
-            {
-                parent_type = DT_bool;
-            }
-            op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, parent_type, DT_bool);
-
-            // infer the type from the first argument
-            anytype = true;
-            TRAVopt(BINOP_LEFT(node));
-            free(op_str);
-
-            if (type == DT_NULL && CTIgetErrors() > 0)
-            {
-                // Missing entry due to error, skip check.
-                return node;
-            }
-
             if ((type != DT_int) & (type != DT_float) & (type != DT_bool))
             {
                 binop_not_defined_on_type(node, type);
-                return node;
             }
             break;
         case BO_and:
         case BO_or:
-            // Always yield a boolean
-            if (anytype)
-            {
-                parent_type = DT_bool;
-            }
-            op_str = binoptype_to_string(BINOP_OP(node));
-            type_check(node, op_str, parent_type, DT_bool);
-            free(op_str);
             type = DT_bool; // Both arguments should be a bool
             break;
         case BO_NULL:
@@ -450,8 +462,12 @@ node_st *CA_TCbinop(node_st *node)
         }
     }
 
-    TRAVopt(BINOP_LEFT(node));
+    if (!was_infered)
+    {
+        TRAVopt(BINOP_LEFT(node));
+    }
     TRAVopt(BINOP_RIGHT(node));
+
     type = parent_type;
     return node;
 }
@@ -483,18 +499,26 @@ node_st *CA_TCretstatement(node_st *node)
 
 node_st *CA_TCproccall(node_st *node)
 {
+    char *str = node_to_string(node);
+    free(str);
     node_st *var = PROCCALL_VAR(node);
     char *name = VAR_NAME(var);
     node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
+        if (anytype)
+        {
+            type = DT_NULL;
+            anytype = false;
+        }
         return node;
     }
     release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     if (anytype)
     {
+        release_assert(type == DT_NULL);
         type = has_type;
         anytype = false;
     }
