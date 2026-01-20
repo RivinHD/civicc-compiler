@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <float.h>
 
+#include "release_assert.h"
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "parser.h"
@@ -33,7 +34,7 @@ static inline void token_action();
 int yycolumn = 1;
 #define YY_USER_ACTION token_action();
 
-static inline void convert_int(int base);
+static inline void convert_int(int base, int start_offset);
 
 %}
 
@@ -174,22 +175,22 @@ SEPC ({SEP}|\{)
 }
 
 [1-9][0-9]*                     { 
-    convert_int(10);
+    convert_int(10, 0);
     FILTER( NUMCONST);
 }
 
 "0"[0-7]*                     { 
-    convert_int(8);
+    convert_int(8, 0);
     FILTER( NUMCONST);
 }
 
 "0x"[0-9a-fA-F]+                     { 
-    convert_int(16);
+    convert_int(16, 2);
     FILTER( NUMCONST);
 }
 
 "0b"[0-1]+                     { 
-    convert_int(2);
+    convert_int(2, 2);
     FILTER( NUMCONST);
 }
 
@@ -236,9 +237,10 @@ static inline void token_action() {
     yycolumn += yyleng;
 }
 
-static inline void convert_int(int base) 
+static inline void convert_int(int base, int start_offset) 
 {
-    long value = strtol(yytext, NULL, base);
+    release_assert(start_offset <= yyleng);
+    long value = strtol(yytext + start_offset, NULL, base);
 
     if(value > INT_MAX || value < INT_MIN)
     {
