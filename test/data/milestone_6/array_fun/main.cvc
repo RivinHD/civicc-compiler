@@ -7,7 +7,7 @@ void fun(int[k] arr)
     int m = 5;
     int n = 6; 
 
-    int[m, n] arr3;
+    int[m + n, n] arr3;
 }
 
 void fukk(int[k] arr)

@@ -2,6 +2,7 @@
 
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
+#include "user_types.h"
 
 char *datatype_to_string(enum DataType type);
 char *monoptype_to_string(enum MonOpType type);

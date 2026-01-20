@@ -8,7 +8,6 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 static node_st *program_decls = NULL;
 static node_st *last_fundef = NULL;
@@ -35,7 +34,7 @@ node_st *CA_AAarrayexpr(node_st *node)
             node_st *cur_expr = EXPRS_EXPR(exprs);
             release_assert(cur_expr != NULL);
 
-            if (NODE_TYPE(cur_expr) == NT_INT)
+            if (NODE_TYPE(cur_expr) == NT_INT || NODE_TYPE(cur_expr) == NT_VAR)
             {
                 exprs = EXPRS_NEXT(exprs);
                 continue;
