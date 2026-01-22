@@ -1,0 +1,10 @@
+
+void fun_one(int[a,b] e)
+{
+    fun_two(e);
+}
+
+void fun_two(int[c,d] f)
+{
+    int g = 2;
+}

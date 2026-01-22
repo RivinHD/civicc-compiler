@@ -134,6 +134,16 @@ phase CodeGenPreparation
                 VarDec
             }
         };
+        traversal ParameterPassing {
+            uid = CGP_PP,
+            nodes = {
+                Program,
+
+                // Nodes to update
+                FunDef,
+                ProcCall
+            }
+        };
     }
 };
 
