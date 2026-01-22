@@ -1,0 +1,19 @@
+int m;
+int n;
+int [m,n] a;
+extern int [m1,n2] b;
+
+void test(float [k,l,n,r] c) 
+{
+    int [k,l,n,r] d = 5;
+
+    for (int ik=0, k) {
+        for (int il=0, l) {
+            for (int in=0, n) {
+                for (int ir=0, r) {
+                    d[ik,il,in,ir] = c[ik,il,in,ir] + a[in,ir] * b[in,ir];
+                }
+            }
+        }
+    }
+}

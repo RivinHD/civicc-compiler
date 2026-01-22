@@ -142,6 +142,7 @@ phase CodeGenPreparation
                 Cast
             }
         };
+<<<<<<< HEAD
         traversal ParameterPassing {
             uid = CGP_PP,
             nodes = {
@@ -150,8 +151,7 @@ phase CodeGenPreparation
                 // Nodes to update
                 FunDef,
                 ProcCall
-            }
-        };
+=======
         traversal DimensionReduction {
             uid = CGP_DR,
             nodes = {
@@ -161,6 +161,7 @@ phase CodeGenPreparation
 
                 // Nodes to update
                 ArrayExpr
+>>>>>>> milestone-11
             }
         };
     }

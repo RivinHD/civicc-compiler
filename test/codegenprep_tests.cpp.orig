@@ -1465,6 +1465,7 @@ TEST_F(CodeGenPrepTest, BooleanCast)
     ASSERT_MLSTREQ(expected, symbols_string);
 }
 
+<<<<<<< HEAD
 TEST_F(CodeGenPrepTest, ArrayProccall)
 {
     SetUp("milestone_8/arr_proccall/main.cvc");
@@ -1537,33 +1538,7 @@ TEST_F(CodeGenPrepTest, ArrayProccall)
                            "┃        ├─ NULL\n"
                            "┃        └─ NULL\n"
                            "┗─ NULL\n";
-
-    ASSERT_MLSTREQ(expected, root_string);
-
-    expected = "┌─ 0: Program\n"
-               "├─ __init: FunDef -- has_export:'0'\n"
-               "├─ @fun_fun_one: FunHeader -- type:'void' -- Params: int (Var -- name:'b'), int "
-               "(Var -- name:'a'), int (ArrayVar)\n"
-               "├─ @fun_fun_two: FunHeader -- type:'void' -- Params: int (Var -- name:'d'), int "
-               "(Var -- name:'c'), int (ArrayVar)\n"
-               "└────────────────────\n"
-               "\n"
-               "┌─ 1: FunDef '@fun_fun_one' -- parent: '0: Program'\n"
-               "├─ a: DimensionVars\n"
-               "├─ b: DimensionVars\n"
-               "├─ e: Params -- type:'int'\n"
-               "└────────────────────\n"
-               "\n"
-               "┌─ 1: FunDef '@fun_fun_two' -- parent: '0: Program'\n"
-               "├─ c: DimensionVars\n"
-               "├─ d: DimensionVars\n"
-               "├─ f: Params -- type:'int'\n"
-               "├─ g: VarDec -- type:'int'\n"
-               "└────────────────────\n";
-
-    ASSERT_MLSTREQ(expected, symbols_string);
-}
-
+=======
 TEST_F(CodeGenPrepTest, DimensionReduction)
 {
     SetUp("milestone_11/main.cvc");
@@ -1605,15 +1580,7 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
         "┃  └─ FunDef -- has_export:'0'\n"
         "┃     ├─ FunHeader -- type:'void'\n"
         "┃     │  ├─ Var -- name:'@fun_test'\n"
-        "┃     │  ┢─ Params -- type:'int'\n"
-        "┃     │  ┃  └─ Var -- name:'r'\n"
-        "┃     │  ┣─ Params -- type:'int'\n"
-        "┃     │  ┃  └─ Var -- name:'n'\n"
-        "┃     │  ┣─ Params -- type:'int'\n"
-        "┃     │  ┃  └─ Var -- name:'l'\n"
-        "┃     │  ┣─ Params -- type:'int'\n"
-        "┃     │  ┃  └─ Var -- name:'k'\n"
-        "┃     │  ┣─ Params -- type:'float'\n"
+        "┃     │  ┢─ Params -- type:'float'\n"
         "┃     │  ┃  └─ ArrayVar\n"
         "┃     │  ┃     ┢─ DimensionVars\n"
         "┃     │  ┃     ┃  └─ Var -- name:'k'\n"
@@ -1817,10 +1784,31 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
         "┃        ┃        ┗─ NULL\n"
         "┃        ┗─ NULL\n"
         "┗─ NULL\n";
+>>>>>>> milestone-11
 
     ASSERT_MLSTREQ(expected, root_string);
 
     expected = "┌─ 0: Program\n"
+<<<<<<< HEAD
+               "├─ __init: FunDef -- has_export:'0'\n"
+               "├─ @fun_fun_one: FunHeader -- type:'void' -- Params: int (Var -- name:'b'), int "
+               "(Var -- name:'a'), int (ArrayVar)\n"
+               "├─ @fun_fun_two: FunHeader -- type:'void' -- Params: int (Var -- name:'d'), int "
+               "(Var -- name:'c'), int (ArrayVar)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_fun_one' -- parent: '0: Program'\n"
+               "├─ a: DimensionVars\n"
+               "├─ b: DimensionVars\n"
+               "├─ e: Params -- type:'int'\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_fun_two' -- parent: '0: Program'\n"
+               "├─ c: DimensionVars\n"
+               "├─ d: DimensionVars\n"
+               "├─ f: Params -- type:'int'\n"
+               "├─ g: VarDec -- type:'int'\n"
+=======
                "├─ a: VarDec -- type:'int'\n"
                "├─ b: GlobalDec -- type:'int'\n"
                "├─ m: VarDec -- type:'int'\n"
@@ -1828,8 +1816,7 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
                "├─ __init: FunDef -- has_export:'0'\n"
                "├─ m1: DimensionVars\n"
                "├─ n2: DimensionVars\n"
-               "├─ @fun_test: FunHeader -- type:'void' -- Params: int (Var -- name:'r'), int (Var "
-               "-- name:'n'), int (Var -- name:'l'), int (Var -- name:'k'), float (ArrayVar)\n"
+               "├─ @fun_test: FunHeader -- type:'void' -- Params: float (ArrayVar)\n"
                "└────────────────────\n"
                "\n"
                "┌─ 1: FunDef '@fun_test' -- parent: '0: Program'\n"
@@ -1843,10 +1830,12 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
                "├─ @for1_il: VarDec -- type:'int'\n"
                "├─ @for2_in: VarDec -- type:'int'\n"
                "├─ @for3_ir: VarDec -- type:'int'\n"
+>>>>>>> milestone-11
                "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);
 }
+<<<<<<< HEAD
 
 TEST_F(CodeGenPrepTest, ArrTwoArrParams)
 {
@@ -2207,3 +2196,5 @@ TEST_F(CodeGenPrepTest, DoubleArrParams)
         run_code_gen_preparation(input_filepath.c_str()), testing::ExitedWithCode(1),
         testing::AllOf(testing::HasSubstr("already defined"), testing::HasSubstr("3 Error")));
 }
+=======
+>>>>>>> milestone-11
