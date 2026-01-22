@@ -1,11 +1,9 @@
 #include "ccngen/ast.h"
-#include "ccngen/trav.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "palm/ctinfo.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>

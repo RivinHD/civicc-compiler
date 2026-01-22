@@ -1,5 +1,4 @@
 #include "ccngen/ast.h"
-#include "context_analysis/definitions.h"
 #include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
@@ -14,7 +13,7 @@ static node_st *first_decls = NULL;
 static node_st *last_fundef = NULL;
 static uint32_t loop_counter = 0;
 
-node_st *CA_HAvardec(node_st *node)
+node_st *CGP_HAvardec(node_st *node)
 {
     node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
 
@@ -107,7 +106,7 @@ node_st *CA_HAvardec(node_st *node)
     return node;
 }
 
-node_st *CA_HAfunbody(node_st *node)
+node_st *CGP_HAfunbody(node_st *node)
 {
     TRAVopt(FUNBODY_VARDECS(node));
     TRAVopt(FUNBODY_LOCALFUNDEFS(node));
@@ -125,7 +124,7 @@ node_st *CA_HAfunbody(node_st *node)
 /**
  * Position to append nodes to.
  */
-node_st *CA_HAfundef(node_st *node)
+node_st *CGP_HAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
     last_fundef = node;
@@ -140,7 +139,7 @@ node_st *CA_HAfundef(node_st *node)
 /**
  * For symbol table.
  */
-node_st *CA_HAprogram(node_st *node)
+node_st *CGP_HAprogram(node_st *node)
 {
     htable_stptr symbols = PROGRAM_SYMBOLS(node);
     first_decls = PROGRAM_DECLS(node);

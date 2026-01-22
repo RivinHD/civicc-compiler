@@ -1,12 +1,11 @@
 #pragma once
 
 #include "ccngen/enum.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include <ccngen/ast.h>
 #include <limits.h>
 #include <stdbool.h>

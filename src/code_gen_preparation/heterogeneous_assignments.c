@@ -1,9 +1,8 @@
 #include "ccngen/ast.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
@@ -20,7 +19,7 @@ static node_st *last_vardecs = NULL;
  *
  * Structure: array[ ... expr ... ] var;
  */
-node_st *CA_AAarrayexpr(node_st *node)
+node_st *CGP_AAarrayexpr(node_st *node)
 {
     release_assert(last_fundef);
 
@@ -93,7 +92,7 @@ node_st *CA_AAarrayexpr(node_st *node)
     return node;
 }
 
-node_st *CA_AAvardecs(node_st *node)
+node_st *CGP_AAvardecs(node_st *node)
 {
     TRAVopt(VARDECS_VARDEC(node));
     last_vardecs = node;
@@ -102,7 +101,7 @@ node_st *CA_AAvardecs(node_st *node)
     return node;
 }
 
-node_st *CA_AAfunbody(node_st *node)
+node_st *CGP_AAfunbody(node_st *node)
 {
     // Do not remove otherwise the changes are not applied.
     TRAVopt(FUNBODY_VARDECS(node));
@@ -115,7 +114,7 @@ node_st *CA_AAfunbody(node_st *node)
 /**
  * For symbol table.
  */
-node_st *CA_AAfundef(node_st *node)
+node_st *CGP_AAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
     last_vardecs = NULL;
@@ -151,7 +150,7 @@ node_st *CA_AAfundef(node_st *node)
 /**
  * For symbol table.
  */
-node_st *CA_AAprogram(node_st *node)
+node_st *CGP_AAprogram(node_st *node)
 {
     current = PROGRAM_SYMBOLS(node);
     program_decls = PROGRAM_DECLS(node);

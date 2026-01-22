@@ -1,10 +1,9 @@
 #include "ccngen/ast.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
 #include "stdio.h"
-#include "to_string.h"
 
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
@@ -72,7 +71,7 @@ void init_index_calculation(node_st *node)
     }
 }
 
-node_st *CA_IFglobaldef(node_st *node)
+node_st *CGP_IFglobaldef(node_st *node)
 {
     node_st *cur_vardec = GLOBALDEF_VARDEC(node);
 
@@ -126,7 +125,7 @@ node_st *CA_IFglobaldef(node_st *node)
     return node;
 }
 
-node_st *CA_IFprogram(node_st *node)
+node_st *CGP_IFprogram(node_st *node)
 {
     node_st *last_decls = PROGRAM_DECLS(node);
     release_assert(last_decls);

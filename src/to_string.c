@@ -1,7 +1,7 @@
 #include "to_string.h"
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
