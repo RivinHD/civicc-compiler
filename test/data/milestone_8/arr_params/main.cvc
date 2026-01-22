@@ -1,0 +1,5 @@
+
+void fun(int[m, n] arr)
+{
+    int a = 1 + 2;
+}

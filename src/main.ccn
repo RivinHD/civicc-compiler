@@ -141,6 +141,16 @@ phase CodeGenPreparation
                 Cast
             }
         };
+        traversal ParameterPassing {
+            uid = CGP_PP,
+            nodes = {
+                Program,
+
+                // Nodes to update
+                FunDef,
+                ProcCall
+            }
+        };
     }
 };
 

@@ -1,0 +1,5 @@
+
+void fun(int[a,b] arr1, int[c,d] arr2)
+{
+    int i = 1;
+}

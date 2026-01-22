@@ -1,0 +1,11 @@
+
+void fun_one(int[a,b] arr1, int[c,d] arr2)
+{
+    int i = 1;
+}
+
+
+void fun_two(int[e,f] arr3, int[g,h] arr4)
+{
+    fun_one( arr3, arr4 );
+}

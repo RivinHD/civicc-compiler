@@ -1,0 +1,10 @@
+
+void fun(int[a,b] arr1, int[c,d] arr2)
+{
+    fun2(arr1, arr1);
+}
+
+void fun2(int[e,f] arr3, int[g,h] arr4)
+{
+    int i = 1;
+}
