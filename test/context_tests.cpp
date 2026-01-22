@@ -5999,6 +5999,7 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("'3.000000' has type 'float' but expected type 'bool'"),
             testing::HasSubstr("The monop operation '-' is not defined on the type 'bool'"),
             testing::HasSubstr("The monop operation '-' is not defined on the type 'bool'"),
+            testing::HasSubstr("Cannot cast from type 'void' into type 'bool'."),
             testing::HasSubstr("'1.000000' has type 'float' but expected type 'int'"),
             testing::HasSubstr("non-void function does not return a value in all control paths"),
             testing::HasSubstr("'6.000000' has type 'float' but expected type 'int'"),
@@ -6026,5 +6027,5 @@ TEST_F(ContextTest, Typecheck_Invalid)
                                "dimension indices"),
             testing::HasSubstr("Can not use scalar variable 'w' as array variable"),
             testing::HasSubstr("Can not use scalar variable 'm' as array variable"),
-            testing::HasSubstr(" 48 Error")));
+            testing::HasSubstr(" 49 Error")));
 }

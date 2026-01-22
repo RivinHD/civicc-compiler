@@ -1,0 +1,17 @@
+bool a1 = true;
+bool a2 = false;
+bool a3 = true;
+bool a = a1 && a2 && a3;
+
+void test() {
+    bool b = false;
+    int c = 1 + 2 * (int)(a || b + b * a);
+    if (a && (b || !a))
+    {
+        return;
+    }
+
+    while(((a && a) && a) && a || b || b || b && a) {
+        return;
+    }
+}

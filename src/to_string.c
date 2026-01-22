@@ -1,7 +1,7 @@
 #include "to_string.h"
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
@@ -150,6 +150,7 @@ bool has_child_next(node_st *node, node_st **child_next)
     case NT_FUNDEF:
     case NT_FUNDEC:
     case NT_PROGRAM:
+    case NT_TERNARY:
         return false;
 
     default:
@@ -312,6 +313,9 @@ char *get_node_name(node_st *node)
             break;
         case NT_PROGRAM:
             node_string = STRcpy("Program");
+            break;
+        case NT_TERNARY:
+            node_string = STRcpy("Ternary");
             break;
         case NT_NULL:
         case _NT_SIZE:

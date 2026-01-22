@@ -103,14 +103,14 @@ phase CodeGenPreparation
 {
     actions {
         traversal InitFunction {
-            uid = CA_IF,
+            uid = CGP_IF,
             nodes = {
                 Program,
                 GlobalDef
             }
         };
         traversal HeterogeneousAssignments {
-            uid = CA_AA,
+            uid = CGP_AA,
             nodes = {
                 // Symbol Table - Array Assign
                 Program,
@@ -123,7 +123,7 @@ phase CodeGenPreparation
             }
         };
         traversal HomogeneousAssignments {
-            uid = CA_HA,
+            uid = CGP_HA,
             nodes = {
                 // For __init function
                 Program,
@@ -132,6 +132,13 @@ phase CodeGenPreparation
                 // Nodes to update
                 Funbody,
                 VarDec
+            }
+        };
+        traversal ToTernary {
+            uid = CGP_TT,
+            nodes = {
+                Binop,
+                Cast
             }
         };
         traversal ParameterPassing {
@@ -187,7 +194,7 @@ enum DataType {
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
+nodeset Expr = {Ternary, Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
 nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
 nodeset VarOptArrayVar = {Var, ArrayVar};
@@ -326,6 +333,14 @@ node Binop {
     }
 };
 
+node Ternary {
+    children {
+        Expr pred { constructor, mandatory },
+        Expr ptrue { constructor, mandatory },
+        Expr pfalse { constructor, mandatory }
+    }
+};
+
 node Monop {
     children {
         Expr left { constructor, mandatory }
@@ -406,7 +421,8 @@ node Cast {
     },
 
     attributes {
-        DataType type { constructor } // mandatory
+        DataType type { constructor }, // mandatory
+        DataType fromtype // defined by type checking
     }
 };
 

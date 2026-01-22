@@ -1,5 +1,5 @@
 #include "ccngen/ast.h"
-#include "context_analysis/definitions.h"
+#include "definitions.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/hash_table.h"

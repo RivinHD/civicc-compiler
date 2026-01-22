@@ -479,3 +479,13 @@ node_st *PRTbool(node_st *node)
     printf("%s", bool_str);
     return node;
 }
+
+node_st *PRTternary(node_st *node)
+{
+    TRAVpred(node);
+    printf("?");
+    TRAVptrue(node);
+    printf(":");
+    TRAVpfalse(node);
+    return node;
+}

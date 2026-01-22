@@ -20,6 +20,8 @@ void ops() {
     b = !3.0;
 
     b = -false && -true;
+
+    b = (bool)ops();
 }
 
 int retint() {

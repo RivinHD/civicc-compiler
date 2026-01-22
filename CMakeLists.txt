@@ -11,12 +11,13 @@ set(SOURCE_FILES
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c
     src/context_analysis/extract_for_iterator.c
-    src/context_analysis/definitions.c
     src/context_analysis/type_checking.c
+    src/definitions.c
     src/to_string.c
-    src/context_analysis/init_function.c
-    src/context_analysis/heterogeneous_assignments.c
-    src/context_analysis/homogeneous_assignments.c
+    src/code_gen_preparation/init_function.c
+    src/code_gen_preparation/heterogeneous_assignments.c
+    src/code_gen_preparation/homogeneous_assignments.c
+    src/code_gen_preparation/to_ternary.c
     src/code_gen_preparation/parameter_passing.c
 )
 
