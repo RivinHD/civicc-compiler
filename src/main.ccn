@@ -5,6 +5,7 @@ start phase RootPhase {
         pass SPdoScanParse;
         ContextAnalysis;
         Optimization;
+        CodeGenPreparation;
         Print;
         FreeSymbols;
     }
@@ -139,6 +140,17 @@ phase CodeGenPreparation
             nodes = {
                 Binop,
                 Cast
+            }
+        };
+        traversal DimensionReduction {
+            uid = CGP_DR,
+            nodes = {
+                // Symbol Table - Array Assign
+                Program,
+                FunDef,
+
+                // Nodes to update
+                ArrayExpr
             }
         };
     }

@@ -18,6 +18,7 @@ set(SOURCE_FILES
     src/code_gen_preparation/heterogeneous_assignments.c
     src/code_gen_preparation/homogeneous_assignments.c
     src/code_gen_preparation/to_ternary.c
+    src/code_gen_preparation/dimension_reduction.c
 )
 
 set(TEST_FILES
