@@ -17,7 +17,7 @@ set(SOURCE_FILES
     src/code_gen_preparation/init_function.c
     src/code_gen_preparation/heterogeneous_assignments.c
     src/code_gen_preparation/homogeneous_assignments.c
-    src/code_gen_preparation/short_circuit.c
+    src/code_gen_preparation/to_ternary.c
 )
 
 set(TEST_FILES

@@ -1,0 +1,13 @@
+void test(){
+    int a = (int)false;
+    int b = (int)0.0;
+    int c = (int)0; 
+
+    float d = (float)true;
+    float e = (float)3.0;
+    float f = (float)3;
+    
+    bool g = (bool)false;
+    bool h = (bool)10.0;
+    bool j = (bool)10;
+}

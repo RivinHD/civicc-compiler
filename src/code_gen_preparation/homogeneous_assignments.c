@@ -112,12 +112,6 @@ node_st *CGP_HAfunbody(node_st *node)
     TRAVopt(FUNBODY_LOCALFUNDEFS(node));
     TRAVopt(FUNBODY_STMTS(node));
 
-    char *strn = get_node_name(node);
-    char *str = node_to_string(node);
-    printf("%s\n%s\n", strn, str);
-    free(str);
-    free(strn);
-
     return node;
 }
 

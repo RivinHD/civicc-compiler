@@ -210,7 +210,7 @@ SEPC ({SEP}|\{)
     yycolumn = 1;
     global.line = 1;
     global.col = 1;
-    printf("Linemarker: '%s'\n", yytext);
+    scanparse_fprintf(stdout, "Linemarker: '%s'\n", yytext);
 }
 
 . {                             

@@ -237,20 +237,20 @@ node_st *CA_TCcast(node_st *node)
         type_check(node, "cast expression", type, has_type);
     }
 
+    enum DataType parent_type = type;
+    type = DT_NULL;
+    anytype = true;
+    TRAVopt(CAST_EXPR(node));
     if (type == DT_void)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
         info.filename = STRcpy(global.input_file);
         char *type_str = datatype_to_string(has_type);
-        CTIobj(CTI_ERROR, true, info, "Cannot cast into type 'void' from type '%s'.", type_str);
+        CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' into type '%s'.", type_str);
         free(info.filename);
         free(type_str);
     }
-
-    enum DataType parent_type = type;
-    type = DT_NULL;
-    anytype = true;
-    TRAVopt(CAST_EXPR(node));
+    CAST_FROMTYPE(node) = type;
     anytype = false;
     type = parent_type;
     return node;
