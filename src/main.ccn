@@ -434,7 +434,7 @@ node Cast {
 
     attributes {
         DataType type { constructor }, // mandatory
-        DataType fromtype // defined by type checking
+        DataType fromtype { constructor } // defined by type checking
     }
 };
 

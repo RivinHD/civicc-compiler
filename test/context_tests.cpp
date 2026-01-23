@@ -5858,7 +5858,7 @@ TEST_F(ContextTest, NoVarDecsFor)
             testing::HasSubstr("was not declared"),
             testing::HasSubstr("'cast expression' has type 'float' but expected type 'int'"),
             testing::HasSubstr("non-void function does not return a value in all control paths."),
-            testing::HasSubstr(" 15 Error")));
+            testing::HasSubstr(" 16 Error")));
 }
 
 TEST_F(ContextTest, DoubleDec)

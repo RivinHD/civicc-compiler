@@ -474,6 +474,7 @@ node_st *CA_TCbinop(node_st *node)
 
 node_st *CA_TCretstatement(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     enum DataType parent_type = type;
     type = rettype;
     node_st *expr = RETSTATEMENT_EXPR(node);
@@ -494,6 +495,7 @@ node_st *CA_TCretstatement(node_st *node)
 
     type = parent_type;
     has_return = true;
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
@@ -573,33 +575,37 @@ node_st *CA_TCproccall(node_st *node)
                exprs_count);
         free(info.filename);
     }
-
     return node;
 }
 node_st *CA_TCdowhileloop(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     enum DataType parent_type = type;
     type = DT_bool; // while loop should contain bool
     TRAVopt(DOWHILELOOP_EXPR(node));
     type = parent_type;
     TRAVopt(DOWHILELOOP_BLOCK(node));
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
 node_st *CA_TCwhileloop(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     enum DataType parent_type = type;
     bool parent_has_return = has_return;
     type = DT_bool; // while loop should contain bool
     TRAVopt(WHILELOOP_EXPR(node));
     type = parent_type;
     TRAVopt(WHILELOOP_BLOCK(node));
-    has_return = parent_has_return; // While is not guaranteed to be executed
+    has_return = parent_has_return;   // While is not guaranteed to be executed
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
 node_st *CA_TCifstatement(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     enum DataType parent_type = type;
     bool parent_has_return = has_return;
     type = DT_bool; // if statement should contain bool
@@ -612,25 +618,29 @@ node_st *CA_TCifstatement(node_st *node)
 
     // we already have a return or if AND else branch have a return;
     has_return = parent_has_return | (if_has_return & has_return);
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
 node_st *CA_TCforloop(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     enum DataType parent_type = type;
     bool parent_has_return = has_return;
     type = DT_int; // for loop should only contain integer
     TRAVopt(FORLOOP_COND(node));
     TRAVopt(FORLOOP_ITER(node));
-
     TRAVopt(FORLOOP_ASSIGN(node));
     type = parent_type;
-    has_return = parent_has_return; // For loop is not guaranteed to be executed
+    TRAVopt(FORLOOP_BLOCK(node));
+    has_return = parent_has_return;   // For loop is not guaranteed to be executed
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
 node_st *CA_TCassign(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     node_st *entry = deep_lookup(current, VAR_NAME(ASSIGN_VAR(node)));
     if (entry == NULL && CTIgetErrors() > 0)
     {
@@ -680,11 +690,13 @@ node_st *CA_TCassign(node_st *node)
     type = symbol_to_type(entry);
     TRAVopt(ASSIGN_EXPR(node));
     type = parent_type;
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
 node_st *CA_TCarrayassign(node_st *node)
 {
+    release_assert(anytype == false); // no anytype in statement
     char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
     node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
@@ -751,6 +763,7 @@ node_st *CA_TCarrayassign(node_st *node)
     type = symbol_to_type(entry);
     TRAVopt(ARRAYASSIGN_EXPR(node));
     type = parent_type;
+    release_assert(anytype == false); // no anytype in statement
     return node;
 }
 
@@ -765,24 +778,28 @@ node_st *CA_TCarrayvar(node_st *node)
 
 node_st *CA_TCglobaldec(node_st *node)
 {
+    // Global dec are extern, we can not check them
     return node;
 }
 
 node_st *CA_TCvardec(node_st *node)
 {
+    enum DataType parent_type = type;
+    type = VARDEC_TYPE(node);
+
     node_st *var = VARDEC_VAR(node);
+    TRAVopt(var);
+
     char *name = NODE_TYPE(var) == NT_ARRAYEXPR ? VAR_NAME(ARRAYEXPR_VAR(var)) : VAR_NAME(var);
     enum ccn_nodetype var_type = NODE_TYPE(var);
     node_st *expr = VARDEC_EXPR(node);
     if (expr == NULL)
     {
+        type = parent_type;
         return node; // Nothing to check
     }
+
     enum ccn_nodetype expr_type = NODE_TYPE(expr);
-
-    enum DataType parent_type = type;
-    type = VARDEC_TYPE(node);
-
     if (var_type == NT_VAR)
     {
         if (expr_type == NT_ARRAYINIT)
@@ -826,6 +843,7 @@ node_st *CA_TCvardec(node_st *node)
 }
 node_st *CA_TCfundec(node_st *node)
 {
+    // Fundec are extern, we can not check them
     return node;
 }
 
@@ -838,6 +856,7 @@ node_st *CA_TCfundef(node_st *node)
     has_return = false;
     rettype = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
     current = FUNDEF_SYMBOLS(node);
+    // FUNHEADER does not need to be type checked
     TRAVopt(FUNDEF_FUNBODY(node));
 
     if (!has_return && rettype != DT_void)
@@ -862,6 +881,8 @@ node_st *CA_TCprogram(node_st *node)
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));
     release_assert(type == DT_NULL);
+    release_assert(rettype == DT_NULL);
     release_assert(has_return == false);
+    release_assert(anytype == false);
     return node;
 }

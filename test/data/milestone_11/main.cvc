@@ -3,7 +3,7 @@ int n;
 int [m,n] a;
 extern int [m1,n2] b;
 
-void test(float [k,l,n,r] c) 
+void test(int [k,l,n,r] c) 
 {
     int [k,l,n,r] d = 5;
 

@@ -13,6 +13,14 @@ static htable_stptr current = NULL;
 
 node_st *CGP_PPproccall(node_st *node)
 {
+    char *procall_name = VAR_NAME(PROCCALL_VAR(node));
+    if (STReq(procall_name, alloc_func))
+    {
+        // builtin function @alloc is called
+        TRAVchildren(node);
+        return node;
+    }
+
     node_st *proccall_exprs = PROCCALL_EXPRS(node);
     while (proccall_exprs != NULL)
     {
@@ -34,6 +42,7 @@ node_st *CGP_PPproccall(node_st *node)
         else if (NODE_TYPE(cur_expr) == NT_VAR)
         {
             node_st *entry = deep_lookup(current, VAR_NAME(cur_expr));
+            release_assert(entry != NULL);
             node_st *cur_var = PARAMS_VAR(entry);
 
             if (NODE_TYPE(cur_var) == NT_ARRAYVAR)
@@ -106,8 +115,6 @@ node_st *CGP_PPfundef(node_st *node)
 
 node_st *CGP_PPprogram(node_st *node)
 {
-    current = PROGRAM_SYMBOLS(node);
-
     TRAVopt(PROGRAM_DECLS(node));
 
     return node;

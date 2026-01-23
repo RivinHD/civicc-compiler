@@ -932,7 +932,7 @@ expr_monopcast: BRACKET_L expr BRACKET_R
           | BRACKET_L basicType BRACKET_R expr_monopcast
           {
               assertSetType($4, NS_EXPR);
-              $$ = ASTcast($4, $2);
+              $$ = ASTcast($4, $2, DT_NULL);
               AddLocToNode($$, &@1, &@4);
           }
           | var BRACKET_L exprs BRACKET_R
