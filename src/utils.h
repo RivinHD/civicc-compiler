@@ -149,6 +149,27 @@ static inline enum DataType symbol_to_type(node_st *entry)
     }
 }
 
+/// Extracts the var from an entry in the symbol table.
+/// Function entries are not supported.
+static node_st *get_var_from_symbol(node_st *entry)
+{
+    release_assert(entry != NULL);
+    switch (NODE_TYPE(entry))
+    {
+    case NT_VARDEC:
+        return VARDEC_VAR(entry);
+    case NT_PARAMS:
+        return PARAMS_VAR(entry);
+    case NT_GLOBALDEC:
+        return GLOBALDEC_VAR(entry);
+    case NT_DIMENSIONVARS:
+        return DIMENSIONVARS_DIM(entry);
+    default:
+        release_assert(false);
+        break;
+    }
+}
+
 // Converts the compiler extended names into the old user defined name for the error output.
 // No new memory is allocated.
 static inline const char *get_pretty_name(const char *name)

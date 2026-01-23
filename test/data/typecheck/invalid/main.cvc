@@ -54,6 +54,9 @@ void ret() {
     return false;
 }
 
+void test(float a) {
+}
+
 void array(float[m,n] param) {
     float[3] input1 = [[1.0,2.0],[3.0,4.0],[5.0,6.0]]; // To many dimensions
     float[2, 5, 3, 1] input2 = [[1.0,2.0,3.0,4.0,5.0],[6.0,7.0,8.0,9.0,10.0]]; // To few dimensions
@@ -67,4 +70,15 @@ void array(float[m,n] param) {
     param = 1.0; // Can not assign to array
     w[12] = 3.0; // Can not use scalar as array
     m[m] = 0; // Can not use scalar as array
+    
+    m = m[3] // Can  not use scalar as array
+    + param[1] // To few dimensions
+    + param[1,2,3] // To many dimensions
+    + param; // Can not use array as scalar
+
+    array(m); // Expected array as argument
+    array(input1); // Expected array with more dimension
+    array(input2); // Expected array with less dimension
+    
+    test(param); // Expected scalar not array
 }

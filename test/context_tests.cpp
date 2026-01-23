@@ -500,6 +500,12 @@ TEST_F(ContextTest, Typecheck_Valid)
                            "┃        ┃     │  ┡─ NULL\n"
                            "┃        ┃     │  └─ Var -- name:'param'\n"
                            "┃        ┃     └─ Float -- val:'1.000000'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ ProcCall\n"
+                           "┃        ┃     ├─ Var -- name:'@fun_array'\n"
+                           "┃        ┃     ┢─ Exprs\n"
+                           "┃        ┃     ┃  └─ Var -- name:'param'\n"
+                           "┃        ┃     ┗─ NULL\n"
                            "┃        ┗─ NULL\n"
                            "┗─ NULL\n";
 
@@ -6027,5 +6033,14 @@ TEST_F(ContextTest, Typecheck_Invalid)
                                "dimension indices"),
             testing::HasSubstr("Can not use scalar variable 'w' as array variable"),
             testing::HasSubstr("Can not use scalar variable 'm' as array variable"),
-            testing::HasSubstr(" 49 Error")));
+            testing::HasSubstr("Scalar 'm' can not be accessed with an array expression"),
+            testing::HasSubstr("Array 'param' has '2' dimension, but '1' dimensions are used"),
+            testing::HasSubstr("'param' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("Array 'param' has '2' dimension, but '3' dimensions are used"),
+            testing::HasSubstr("Array 'param' can only be accessed with dimension indicies"),
+            testing::HasSubstr("Expected array for argument 'param', but got scalar 'm'"),
+            testing::HasSubstr("Array 'input1' has '1' dimension, but '2' dimensions are used"),
+            testing::HasSubstr("Array 'input2' has '4' dimension, but '2' dimensions are used"),
+            testing::HasSubstr("Array 'param' can only be accessed with dimension indicies"),
+            testing::HasSubstr(" 60 Error")));
 }

@@ -17,6 +17,7 @@ node_st *CGP_DRarrayexpr(node_st *node)
     node_st *expr = ARRAYEXPR_DIMS(node);
     node_st *start_expr = EXPRS_EXPR(expr);
     node_st *entry = deep_lookup(current, VAR_NAME(ARRAYEXPR_VAR(node)));
+    release_assert(entry != NULL);
     node_st *arrdef = NULL;
     switch (NODE_TYPE(entry))
     {

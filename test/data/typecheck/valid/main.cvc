@@ -62,4 +62,6 @@ void array(float[m,n] param) {
     bool[1,1,1,1,1] input7 = true;
 
     param[0,1] = 1.0;
+
+    array(param);
 }

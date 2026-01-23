@@ -135,6 +135,32 @@ static bool check_dimensions(node_st *dims, node_st *array_init)
     return check_nesting(exprs_count, array_init);
 }
 
+static void arrexpr_dimension_check(node_st *node, const char *name, node_st *expected,
+                                    node_st *value)
+{
+    release_assert(NODE_TYPE(expected) == NT_ARRAYEXPR || NODE_TYPE(expected) == NT_ARRAYVAR);
+    release_assert(NODE_TYPE(value) == NT_ARRAYEXPR || NODE_TYPE(value) == NT_ARRAYVAR);
+
+    unsigned int expected_count = NODE_TYPE(expected) == NT_ARRAYEXPR
+                                      ? count_exprs(ARRAYEXPR_DIMS(expected))
+                                      : count_dimension_vars(ARRAYVAR_DIMS(expected));
+
+    unsigned int actual_count = NODE_TYPE(value) == NT_ARRAYEXPR
+                                    ? count_exprs(ARRAYEXPR_DIMS(value))
+                                    : count_dimension_vars(ARRAYVAR_DIMS(value));
+
+    if (expected_count != actual_count)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
+        CTIobj(CTI_ERROR, true, info,
+               "Array '%s' has '%d' dimension, but '%d' dimensions are used.", pretty_name,
+               expected_count, actual_count);
+        free(info.filename);
+    }
+}
+
 node_st *CA_TCbool(node_st *node)
 {
     if (anytype)
@@ -205,8 +231,20 @@ node_st *CA_TCvar(node_st *node)
         return node;
     }
     release_assert(entry != NULL);
-    enum DataType has_type = symbol_to_type(entry);
 
+    node_st *var = get_var_from_symbol(entry);
+    release_assert(var != NULL);
+    if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
+        CTIobj(CTI_ERROR, true, info, "Array '%s' can only be accessed with dimension indicies.",
+               pretty_name);
+        free(info.filename);
+    }
+
+    enum DataType has_type = symbol_to_type(entry);
     if (anytype)
     {
         release_assert(type == DT_NULL);
@@ -258,7 +296,49 @@ node_st *CA_TCcast(node_st *node)
 
 node_st *CA_TCarrayexpr(node_st *node)
 {
-    TRAVopt(ARRAYEXPR_VAR(node));
+    node_st *var = ARRAYEXPR_VAR(node);
+    char *name = VAR_NAME(var);
+    node_st *entry = deep_lookup(current, name);
+    if (entry == NULL && CTIgetErrors() > 0)
+    {
+        // Missing entry due to error, skip check.
+        if (anytype)
+        {
+            type = DT_NULL;
+            anytype = false;
+        }
+        return node;
+    }
+    release_assert(entry != NULL);
+
+    node_st *defvar = get_var_from_symbol(entry);
+
+    if (NODE_TYPE(defvar) != NT_ARRAYEXPR && NODE_TYPE(defvar) != NT_ARRAYVAR)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
+        CTIobj(CTI_ERROR, true, info, "Scalar '%s' can not be accessed with an array expression.",
+               pretty_name);
+        free(info.filename);
+    }
+    else
+    {
+        arrexpr_dimension_check(node, name, defvar, node);
+    }
+
+    // VAR is checked here, do not traverse. We can differentiate arrays with scalar this way.
+    enum DataType has_type = symbol_to_type(entry);
+    if (anytype)
+    {
+        release_assert(type == DT_NULL);
+        type = has_type;
+        anytype = false;
+    }
+    else
+    {
+        type_check(node, name, type, has_type);
+    }
 
     // Check all dimension need to be of type int
     enum DataType parent_type = type;
@@ -543,10 +623,56 @@ node_st *CA_TCproccall(node_st *node)
     {
         while (exprs != NULL && params != NULL)
         {
-            enum DataType parent_type = type;
-            type = PARAMS_TYPE(params);
-            TRAVopt(EXPRS_EXPR(exprs));
-            type = parent_type;
+            node_st *paramvar = PARAMS_VAR(params);
+            node_st *expr = EXPRS_EXPR(exprs);
+            if (NODE_TYPE(paramvar) == NT_ARRAYVAR)
+            {
+                if (NODE_TYPE(expr) == NT_VAR)
+                {
+                    node_st *exprentry = deep_lookup(current, VAR_NAME(expr));
+                    if (exprentry == NULL && CTIgetErrors() > 0)
+                    {
+                        // Missing entry due to error, skip check.
+                        params_count++;
+                        exprs_count++;
+                        params = PARAMS_NEXT(params);
+                        exprs = EXPRS_NEXT(exprs);
+                        continue;
+                    }
+                    release_assert(entry != NULL);
+
+                    node_st *exprvar = get_var_from_symbol(exprentry);
+                    if (NODE_TYPE(exprvar) == NT_ARRAYVAR || NODE_TYPE(exprvar) == NT_ARRAYEXPR)
+                    {
+                        arrexpr_dimension_check(expr, VAR_NAME(expr), exprvar, paramvar);
+                    }
+                    else
+                    {
+                        struct ctinfo info = NODE_TO_CTINFO(expr);
+                        info.filename = STRcpy(global.input_file);
+                        CTIobj(CTI_ERROR, true, info,
+                               "Expected array for argument '%s', but got scalar '%s'.",
+                               VAR_NAME(ARRAYVAR_VAR(paramvar)), VAR_NAME(expr));
+                        free(info.filename);
+                    }
+                }
+                else
+                {
+                    struct ctinfo info = NODE_TO_CTINFO(expr);
+                    info.filename = STRcpy(global.input_file);
+                    CTIobj(CTI_ERROR, true, info,
+                           "Expected array for argument '%s', but got scalar expression.",
+                           VAR_NAME(ARRAYVAR_VAR(paramvar)));
+                    free(info.filename);
+                }
+            }
+            else
+            {
+                enum DataType parent_type = type;
+                type = PARAMS_TYPE(params);
+                TRAVopt(expr);
+                type = parent_type;
+            }
 
             params_count++;
             exprs_count++;
@@ -650,25 +776,7 @@ node_st *CA_TCassign(node_st *node)
 
     release_assert(entry != NULL);
 
-    node_st *var = NULL;
-    switch (NODE_TYPE(entry))
-    {
-    case NT_VARDEC:
-        var = VARDEC_VAR(entry);
-        break;
-    case NT_PARAMS:
-        var = PARAMS_VAR(entry);
-        break;
-    case NT_GLOBALDEC:
-        var = GLOBALDEC_VAR(entry);
-        break;
-    case NT_DIMENSIONVARS:
-        var = DIMENSIONVARS_DIM(entry);
-        break;
-    default:
-        release_assert(false);
-        break;
-    }
+    node_st *var = get_var_from_symbol(entry);
     release_assert(var != NULL);
 
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
@@ -706,25 +814,7 @@ node_st *CA_TCarrayassign(node_st *node)
     }
     release_assert(entry != NULL);
 
-    node_st *var = NULL;
-    switch (NODE_TYPE(entry))
-    {
-    case NT_VARDEC:
-        var = VARDEC_VAR(entry);
-        break;
-    case NT_PARAMS:
-        var = PARAMS_VAR(entry);
-        break;
-    case NT_GLOBALDEC:
-        var = GLOBALDEC_VAR(entry);
-        break;
-    case NT_DIMENSIONVARS:
-        var = DIMENSIONVARS_DIM(entry);
-        break;
-    default:
-        release_assert(false);
-        break;
-    }
+    node_st *var = get_var_from_symbol(entry);
     release_assert(var != NULL);
 
     if (NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_DIMENSIONVARS)
@@ -739,22 +829,7 @@ node_st *CA_TCarrayassign(node_st *node)
     }
 
     release_assert(NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR);
-    unsigned int expected_count = NODE_TYPE(var) == NT_ARRAYEXPR
-                                      ? count_exprs(ARRAYEXPR_DIMS(var))
-                                      : count_dimension_vars(ARRAYVAR_DIMS(var));
-
-    unsigned int actual_count = count_exprs(ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)));
-
-    if (expected_count != actual_count)
-    {
-        struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
-        const char *pretty_name = get_pretty_name(name);
-        CTIobj(CTI_ERROR, true, info,
-               "Array '%s' has '%d' dimension, but '%d' dimensions are used.", pretty_name,
-               expected_count, actual_count);
-        free(info.filename);
-    }
+    arrexpr_dimension_check(node, name, var, ARRAYASSIGN_VAR(node));
 
     enum DataType parent_type = type;
     type = DT_int;
@@ -769,8 +844,8 @@ node_st *CA_TCarrayassign(node_st *node)
 
 node_st *CA_TCarrayvar(node_st *node)
 {
-    // Skip traversal of ARRAYVAR_DIMS as they are implicitly defined by the compiler and not the
-    // use and are always of type int
+    // Skip traversal of ARRAYVAR_DIMS as they are implicitly defined by the compiler and not
+    // the use and are always of type int
 
     TRAVopt(ARRAYVAR_VAR(node));
     return node;
