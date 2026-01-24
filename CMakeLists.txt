@@ -20,6 +20,7 @@ set(SOURCE_FILES
     src/code_gen_preparation/to_ternary.c
     src/code_gen_preparation/parameter_passing.c
     src/code_gen_preparation/dimension_reduction.c
+    src/code_gen/code_gen.c
 )
 
 set(TEST_FILES

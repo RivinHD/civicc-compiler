@@ -50,6 +50,7 @@ node_st *CGP_AAarrayexpr(node_st *node)
                 // Step 1: Create temp globalDef (without expr)
                 node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, DT_int);
                 node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
+                HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
 
                 // Step 2: Append to before the current globalDef (decls)
                 node_st *temp_decls = ASTdeclarations(temp_globaldef, program_decls);
@@ -64,6 +65,7 @@ node_st *CGP_AAarrayexpr(node_st *node)
             {
                 // Step 1: Create temp varDec
                 node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), cur_expr, DT_int);
+                HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
 
                 // Step 2: Append above of the current
                 if (last_vardecs == NULL)

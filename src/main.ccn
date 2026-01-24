@@ -6,7 +6,7 @@ start phase RootPhase {
         ContextAnalysis;
         Optimization;
         CodeGenPreparation;
-        Print;
+        CodeGenOut;
         FreeSymbols;
     }
 };
@@ -162,6 +162,14 @@ phase CodeGenPreparation
                 // Nodes to update
                 ArrayExpr
             }
+        };
+    }
+};
+
+phase CodeGenOut {
+    actions {
+        traversal CodeGen {
+            uid = CG_CG
         };
     }
 };

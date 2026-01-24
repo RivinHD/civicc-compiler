@@ -13,6 +13,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef DEBUG_SCANPARSE
 #define scanparse_fprintf(stream, ...)                                                             \
@@ -125,6 +126,31 @@ static inline node_st *deep_lookup(htable_stptr htable, const char *name)
         entry = HTlookup(htable, (void *)name);
     }
 
+    return entry;
+}
+
+/// Recursive lookup into the symbol table and in all parent symbol table for the given name.
+/// Also defines the level at which the index was found. 
+// The (negated/negative level) - 1 indicates that is in global scope i.e. out_level = -level - 1
+static inline node_st *deep_lookup_level(htable_stptr htable, const char *name, int* out_level)
+{
+    int level = 0;
+    node_st *entry = HTlookup(htable, (void *)name);
+    while (entry == NULL)
+    {
+        htable_stptr parent = HTlookup(htable, htable_parent_name);
+        if (parent == NULL)
+        {
+            break;
+        }
+
+        htable = parent;
+        entry = HTlookup(htable, (void *)name);
+        level++;
+    }
+
+    htable_stptr parent = HTlookup(htable, htable_parent_name);
+    *out_level = (parent == NULL) ? -level - 1: level;
     return entry;
 }
 

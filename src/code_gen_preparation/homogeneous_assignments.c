@@ -10,6 +10,7 @@
 
 static node_st *first_decls = NULL;
 static node_st *last_fundef = NULL;
+static htable_stptr current = NULL;
 static uint32_t loop_counter = 0;
 
 node_st *CGP_HAvardec(node_st *node)
@@ -55,6 +56,7 @@ node_st *CGP_HAvardec(node_st *node)
             node_st *loop_expression = ASTvar(STRfmt("@loop_expr%d", loop_counter));
             node_st *expr_assign = ASTassign(CCNcopy(loop_expression), expr);
             node_st *new_vardec = ASTvardec(loop_expression, NULL, VARDEC_TYPE(node));
+            HTinsert(current, VAR_NAME(VARDEC_VAR(new_vardec)), new_vardec);
 
             // Step 3.1: Create for Loop
             node_st *loop_var = ASTvar(STRfmt("@loop_var%d", loop_counter));
@@ -67,6 +69,7 @@ node_st *CGP_HAvardec(node_st *node)
             node_st *loop_stmts = ASTstatements(loop_block_assign, NULL);
             node_st *loop = ASTforloop(loop_assign, CCNcopy(alloc_expr), NULL, loop_stmts);
             node_st *new_loop_vardec = ASTvardec(CCNcopy(loop_var), NULL, DT_int);
+            HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
             node_st *funbody = FUNDEF_FUNBODY(last_fundef);
             node_st *new_loop_vardecs = ASTvardecs(new_loop_vardec, FUNBODY_VARDECS(funbody));
             FUNBODY_VARDECS(funbody) = new_loop_vardecs;
@@ -120,11 +123,19 @@ node_st *CGP_HAfunbody(node_st *node)
 node_st *CGP_HAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
+
+    current = FUNDEF_SYMBOLS(node);
+    release_assert(current != NULL);
+
     last_fundef = node;
     loop_counter = 0;
 
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
+
+    current = HTlookup(current, htable_parent_name);
+    release_assert(current != NULL);
+
     last_fundef = parent_fundef;
     return node;
 }
@@ -135,6 +146,7 @@ node_st *CGP_HAfundef(node_st *node)
 node_st *CGP_HAprogram(node_st *node)
 {
     htable_stptr symbols = PROGRAM_SYMBOLS(node);
+    current = symbols;
     first_decls = PROGRAM_DECLS(node);
 
     // Global arrays unpack assignment into the __init function

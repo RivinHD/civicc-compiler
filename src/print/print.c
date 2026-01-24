@@ -159,14 +159,6 @@ node_st *PRTlocalfundefs(node_st *node)
     return node;
 }
 
-node_st *PRTlocalfundef(node_st *node)
-{
-    TRAVfunHeader(node);
-    printf("\n");
-    TRAVfunBody(node);
-    return node;
-}
-
 node_st *PRTstatements(node_st *node)
 {
     TRAVstmt(node);
@@ -335,14 +327,6 @@ node_st *PRTifstatement(node_st *node)
     return node;
 }
 
-node_st *PRTelsestatement(node_st *node)
-{
-    printf("{\n");
-    TRAVblock(node);
-    printf("\n}");
-    return node;
-}
-
 node_st *PRTwhileloop(node_st *node)
 {
     printf("while (");
@@ -398,12 +382,6 @@ node_st *PRTcast(node_st *node)
     printDataType(CAST_TYPE(node));
     printf(")");
     TRAVexpr(node);
-    return node;
-}
-
-node_st *PRTvoid(node_st *node)
-{
-    printf("void");
     return node;
 }
 

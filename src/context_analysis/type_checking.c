@@ -582,8 +582,6 @@ node_st *CA_TCretstatement(node_st *node)
 
 node_st *CA_TCproccall(node_st *node)
 {
-    char *str = node_to_string(node);
-    free(str);
     node_st *var = PROCCALL_VAR(node);
     char *name = VAR_NAME(var);
     node_st *entry = deep_lookup(current, name);
