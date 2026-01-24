@@ -1,4 +1,5 @@
 #include "globals.h"
+#include <stdio.h>
 
 struct globals global;
 
@@ -17,4 +18,5 @@ void GLBinitializeGlobals()
     global.output_buf_len = 0;
     global.output_buf = NULL;
     global.output_file = NULL;
+    global.default_out_stream = stdout;
 }

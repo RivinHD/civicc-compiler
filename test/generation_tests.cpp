@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include <filesystem>
 #include <iostream>
+#include <stdint.h>
 #include <string>
 
 extern "C"
@@ -19,7 +20,7 @@ class GenerationTest : public testing::Test
     std::string input_filepath;
     std::string err_output;
     std::string std_output;
-    const int output_buffer_size = 16 * 1024;
+    const uint32_t output_buffer_size = 16 * 1024 * 1024;
     // We do not want to put large memory allocation on the stack, also we want to use the benefits
     // of ASan.
     char *output_buffer = nullptr;

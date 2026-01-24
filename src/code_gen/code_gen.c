@@ -1,6 +1,7 @@
 #include "ccngen/ast.h"
 #include "ccngen/enum.h"
 #include "definitions.h"
+#include "global/globals.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
@@ -9,6 +10,7 @@
 #include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -25,33 +27,57 @@ uint32_t idx_counter = 0;
 uint32_t fun_import_counter = 0;
 uint32_t var_import_counter = 0;
 uint32_t constant_counter = 0;
+FILE *out_file = NULL;
 
 /**
  * Helper functions.
  */
+static void out(const char *restrict format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (global.output_buf == NULL)
+    {
+        release_assert(out_file != NULL);
+        vfprintf(out_file, format, args);
+    }
+    else
+    {
+        vsnprintf(global.output_buf, global.output_buf_len, format, args);
+    }
+#else
+    (void)format;
+    (void)args;
+#endif /* ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+
+    va_end(args);
+}
+
 static void inst0(const char *inst)
 {
-    fprintf(stdout, "    %s\n", inst);
+    out("    %s\n", inst);
 }
 
 static void inst1(const char *inst, ptrdiff_t index1)
 {
-    fprintf(stdout, "    %s %td\n", inst, index1);
+    out("    %s %td\n", inst, index1);
 }
 
 static void inst2(const char *inst, ptrdiff_t index1, ptrdiff_t index2)
 {
-    fprintf(stdout, "    %s %td %td\n", inst, index1, index2);
+    out("    %s %td %td\n", inst, index1, index2);
 }
 
 static void instL(const char *inst, const char *label)
 {
-    fprintf(stdout, "    %s %s\n", inst, label);
+    out("    %s %s\n", inst, label);
 }
 
 static void label(const char *label)
 {
-    fprintf(stdout, "%s:\n", label);
+    out("%s:\n", label);
 }
 
 static char *function_signature(node_st *funheader)
@@ -88,21 +114,21 @@ static char *function_signature(node_st *funheader)
 static void exportfun(node_st *funheader, const char *label)
 {
     char *output = function_signature(funheader);
-    fprintf(stdout, ".exportfun %s %s", output, label);
+    out(".exportfun %s %s", output, label);
     free(output);
 }
 
 static void importfun(node_st *funheader)
 {
     char *output = function_signature(funheader);
-    fprintf(stdout, ".importfun %s", output);
+    out(".importfun %s", output);
     free(output);
 }
 
 static void exportvar(const char *name, int32_t index)
 {
     release_assert(index >= 0);
-    fprintf(stdout, ".exportvar \"%s\" %d", name, index);
+    out(".exportvar \"%s\" %d", name, index);
 }
 
 static void importvar(const char *name, node_st *entry)
@@ -111,11 +137,11 @@ static void importvar(const char *name, node_st *entry)
     node_st *var = get_var_from_symbol(entry);
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
-        fprintf(stdout, ".importvar \"%s\" %s[]", name, str_type);
+        out(".importvar \"%s\" %s[]", name, str_type);
     }
     else
     {
-        fprintf(stdout, ".importvar \"%s\" %s", name, str_type);
+        out(".importvar \"%s\" %s", name, str_type);
     }
     free(str_type);
 }
@@ -133,14 +159,14 @@ static char *float_to_str(double value)
 static void consti(int value)
 {
     char *str = int_to_str(value);
-    fprintf(stdout, ".const int %s", str);
+    out(".const int %s", str);
     free(str);
 }
 
 static void constf(double value)
 {
     char *str = float_to_str(value);
-    fprintf(stdout, ".const float %s", str);
+    out(".const float %s", str);
     free(str);
 }
 
@@ -148,11 +174,11 @@ static void constb(bool value)
 {
     if (value)
     {
-        fprintf(stdout, ".const float true");
+        out(".const float true");
     }
     else
     {
-        fprintf(stdout, ".const float false");
+        out(".const float false");
     }
 }
 
@@ -162,11 +188,11 @@ static void globalvar(node_st *entry)
     node_st *var = get_var_from_symbol(entry);
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
-        fprintf(stdout, ".global %s[]", str_type);
+        out(".global %s[]", str_type);
     }
     else
     {
-        fprintf(stdout, ".global %s", str_type);
+        out(".global %s", str_type);
     }
     free(str_type);
 }
@@ -196,6 +222,23 @@ static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
  */
 node_st *CG_CGprogram(node_st *node)
 {
+    FILE *fd = NULL;
+    if (global.output_buf == NULL && global.output_file != NULL)
+    {
+        fd = fopen(global.output_file, "w");
+        out_file = fd;
+        if (out_file == NULL)
+        {
+            CTI(CTI_ERROR, true, "Cannot write to file '%s'.", global.output_file);
+            CTIabortOnError();
+        }
+    }
+    else
+    {
+        release_assert(global.default_out_stream != NULL);
+        out_file = global.default_out_stream;
+    }
+
     import_table = HTnew_String(2 << 8);
     constant_table = HTnew_String(2 << 8);
     htable_stptr table = HTnew_String(2 << 8);
@@ -206,6 +249,12 @@ node_st *CG_CGprogram(node_st *node)
     HTdelete(table);
     HTdelete(import_table);
     HTdelete(constant_table);
+
+    if (fd != NULL)
+    {
+        fclose(fd);
+    }
+
     return node;
 }
 
@@ -295,8 +344,9 @@ node_st *CG_CGparams(node_st *node)
 node_st *CG_CGfunbody(node_st *node)
 {
     uint32_t vardec_count = 0;
-    node_st * vardecs = FUNBODY_VARDECS(node);
-    while(vardecs != NULL) {
+    node_st *vardecs = FUNBODY_VARDECS(node);
+    while (vardecs != NULL)
+    {
         vardec_count++;
         vardecs = VARDECS_NEXT(vardecs);
     }

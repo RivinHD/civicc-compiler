@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 struct globals
 {
@@ -19,6 +20,7 @@ struct globals
     int verbose;
     uint32_t input_buf_len;
     uint32_t output_buf_len;
+    FILE *default_out_stream;
 };
 
 extern struct globals global;

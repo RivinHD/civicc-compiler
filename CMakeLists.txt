@@ -189,6 +189,15 @@ target_include_directories("civicc_codegenprep${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
+add_executable("civicc_codegen${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
+target_compile_definitions("civicc_codegen${AFL_EXT}"
+    PRIVATE SLICE_TARGET=4)
+target_link_libraries("civicc_codegen${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_codegen${AFL_EXT}")
+target_include_directories("civicc_codegen${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
 if(NOT AFL_ENABLED)
     add_executable(tests ${TEST_FILES}) # No need to apply afl to tests
     target_link_libraries(tests PRIVATE gmock_main civicc_lib)

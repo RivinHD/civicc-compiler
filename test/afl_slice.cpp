@@ -106,6 +106,8 @@ int main(int argc, char *argv[])
         node_st *root = run_context_analysis_buf(filepath, src, (uint32_t)len);
 #elif SLICE_TARGET == 3
         node_st *root = run_code_gen_preparation_buf(filepath, src, (uint32_t)len);
+#elif SLICE_TARGET == 4
+        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0);
 #else
         static_assert(false, "No valid slice target given to preprocessor");
 #endif

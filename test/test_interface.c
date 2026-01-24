@@ -74,7 +74,7 @@ node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint3
     global.output_file = output_filepath;
     global.output_buf = out_buffer;
     global.output_buf_len = out_buffer_length;
-    // node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_...), CCN_ROOT_TYPE, node, true);
+    node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGEN), CCN_ROOT_TYPE, node, true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }
@@ -87,18 +87,17 @@ node_st *run_code_generation_file(const char *input_filepath, const char *output
 node_st *run_code_generation(const char *input_filepath, char *out_buffer,
                              uint32_t out_buffer_length)
 {
-    return run_code_generation_buf(input_filepath, NULL, 0, "internal buffer", out_buffer,
-                                   out_buffer_length);
+    return run_code_generation_buf(input_filepath, NULL, 0, NULL, out_buffer, out_buffer_length);
 }
 
 node_st *run_code_generation_node(node_st *node, char *out_buffer, uint32_t out_buffer_length)
 {
     GLBinitializeGlobals();
-    global.output_file = "internal buffer";
+    global.output_file = NULL;
     global.output_buf = out_buffer;
     global.output_buf_len = out_buffer_length;
     resetPhaseDriver();
-    // node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_...), NODE_TYPE(node), node, false);
+    node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGEN), NODE_TYPE(node), node, false);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     return node;
 }

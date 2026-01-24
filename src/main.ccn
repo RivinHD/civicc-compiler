@@ -6,7 +6,7 @@ start phase RootPhase {
         ContextAnalysis;
         Optimization;
         CodeGenPreparation;
-        CodeGenOut;
+        CodeGen;
         FreeSymbols;
     }
 };
@@ -166,9 +166,9 @@ phase CodeGenPreparation
     }
 };
 
-phase CodeGenOut {
+phase CodeGen {
     actions {
-        traversal CodeGen {
+        traversal CodeGeneration {
             uid = CG_CG
         };
     }
