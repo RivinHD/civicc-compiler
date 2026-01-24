@@ -3,7 +3,6 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
@@ -28,7 +27,7 @@ node_st *CGP_HAvardec(node_st *node)
         dim = EXPRS_NEXT(dim);
         while (dim != NULL)
         {
-            alloc_expr = ASTbinop(alloc_expr, CCNcopy(EXPRS_EXPR(dim)), BO_mul);
+            alloc_expr = ASTbinop(alloc_expr, CCNcopy(EXPRS_EXPR(dim)), BO_mul, DT_int);
             dim = EXPRS_NEXT(dim);
         }
 

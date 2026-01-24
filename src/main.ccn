@@ -341,7 +341,8 @@ node Binop {
     },
 
     attributes {
-        BinOpType op { constructor }  // mandatory not possible, but required for construction
+        BinOpType op { constructor },  // mandatory not possible, but required for construction
+        DataType argtype { constructor } // type of the children
     }
 };
 

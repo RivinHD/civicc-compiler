@@ -47,8 +47,8 @@ node_st *CGP_DRarrayexpr(node_st *node)
         node_st *dim = ARRAYVAR_DIMS(arrdef);
         while (expr != NULL && dim != NULL)
         {
-            start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(DIMENSIONVARS_DIM(dim)), BO_mul),
-                                  EXPRS_EXPR(expr), BO_add);
+            start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(DIMENSIONVARS_DIM(dim)), BO_mul, DT_int),
+                                  EXPRS_EXPR(expr), BO_add, DT_int);
             EXPRS_EXPR(expr) = NULL;
             expr = EXPRS_NEXT(expr);
             dim = DIMENSIONVARS_NEXT(dim);
@@ -63,8 +63,8 @@ node_st *CGP_DRarrayexpr(node_st *node)
         node_st *dim = ARRAYEXPR_DIMS(arrdef);
         while (expr != NULL && dim != NULL)
         {
-            start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(EXPRS_EXPR(dim)), BO_mul),
-                                  EXPRS_EXPR(expr), BO_add);
+            start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(EXPRS_EXPR(dim)), BO_mul, DT_int),
+                                  EXPRS_EXPR(expr), BO_add, DT_int);
             EXPRS_EXPR(expr) = NULL;
             expr = EXPRS_NEXT(expr);
             dim = EXPRS_NEXT(dim);

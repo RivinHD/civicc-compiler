@@ -70,12 +70,12 @@ node_st *CGP_TTcast(node_st *node)
             new_node = CAST_EXPR(node);
             break;
         case DT_int:
-            new_node = ASTternary(ASTbinop(CAST_EXPR(node), ASTint(0), BO_ne), ASTbool(true),
-                                  ASTbool(false));
+            new_node = ASTternary(ASTbinop(CAST_EXPR(node), ASTint(0), BO_ne, DT_int),
+                                  ASTbool(true), ASTbool(false));
             break;
         case DT_float:
-            new_node = ASTternary(ASTbinop(CAST_EXPR(node), ASTfloat(0.0), BO_ne), ASTbool(true),
-                                  ASTbool(false));
+            new_node = ASTternary(ASTbinop(CAST_EXPR(node), ASTfloat(0.0), BO_ne, DT_float),
+                                  ASTbool(true), ASTbool(false));
             break;
         }
         break;

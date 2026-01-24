@@ -741,28 +741,28 @@ expr_binop: expr_binop_OR
           {
             assertSetType($1, NS_EXPR);
             assertSetType($3, NS_EXPR);
-            $$ = ASTbinop($1, $3, BO_or);
+            $$ = ASTbinop($1, $3, BO_or, DT_NULL);
             AddLocToNode($$, &@1, &@3);
           }
           | expr_binop OR expr_monopcast 
           {
             assertSetType($1, NS_EXPR);
             assertSetType($3, NS_EXPR);
-            $$ = ASTbinop($1, $3, BO_or);
+            $$ = ASTbinop($1, $3, BO_or, DT_NULL);
             AddLocToNode($$, &@1, &@3);
           }
           | expr_monopcast OR expr_binop_OR
           {
             assertSetType($1, NS_EXPR);
             assertSetType($3, NS_EXPR);
-            $$ = ASTbinop($1, $3, BO_or);
+            $$ = ASTbinop($1, $3, BO_or, DT_NULL);
             AddLocToNode($$, &@1, &@3);
           }
           | expr_monopcast OR expr_monopcast
           {
             assertSetType($1, NS_EXPR);
             assertSetType($3, NS_EXPR);
-            $$ = ASTbinop($1, $3, BO_or);
+            $$ = ASTbinop($1, $3, BO_or, DT_NULL);
             AddLocToNode($$, &@1, &@3);
           };
 
@@ -775,28 +775,28 @@ expr_binop_OR: expr_binop_AND
              {
                 assertSetType($1, NS_EXPR);
                 assertSetType($3, NS_EXPR);
-                $$ = ASTbinop($1, $3, BO_and);
+                $$ = ASTbinop($1, $3, BO_and, DT_NULL);
                 AddLocToNode($$, &@1, &@3);
              }
              | expr_binop_OR AND expr_monopcast 
              {
                 assertSetType($1, NS_EXPR);
                 assertSetType($3, NS_EXPR);
-                $$ = ASTbinop($1, $3, BO_and);
+                $$ = ASTbinop($1, $3, BO_and, DT_NULL);
                 AddLocToNode($$, &@1, &@3);
              }
              | expr_monopcast AND expr_binop_AND
              {
                 assertSetType($1, NS_EXPR);
                 assertSetType($3, NS_EXPR);
-                $$ = ASTbinop($1, $3, BO_and);
+                $$ = ASTbinop($1, $3, BO_and, DT_NULL);
                 AddLocToNode($$, &@1, &@3);
              }
              | expr_monopcast AND expr_monopcast
              {
                 assertSetType($1, NS_EXPR);
                 assertSetType($3, NS_EXPR);
-                $$ = ASTbinop($1, $3, BO_and);
+                $$ = ASTbinop($1, $3, BO_and, DT_NULL);
                 AddLocToNode($$, &@1, &@3);
              };
 
@@ -809,28 +809,28 @@ expr_binop_AND: expr_binop_EQNE
               {
                   assertSetType($1, NS_EXPR);
                   assertSetType($3, NS_EXPR);
-                  $$ = ASTbinop($1, $3, $2);
+                  $$ = ASTbinop($1, $3, $2, DT_NULL);
                   AddLocToNode($$, &@1, &@3);
               }
               | expr_binop_AND binop_EQNE expr_monopcast 
               {
                   assertSetType($1, NS_EXPR);
                   assertSetType($3, NS_EXPR);
-                  $$ = ASTbinop($1, $3, $2);
+                  $$ = ASTbinop($1, $3, $2, DT_NULL);
                   AddLocToNode($$, &@1, &@3);
               }
               | expr_monopcast binop_EQNE expr_binop_EQNE
               {
                   assertSetType($1, NS_EXPR);
                   assertSetType($3, NS_EXPR);
-                  $$ = ASTbinop($1, $3, $2);
+                  $$ = ASTbinop($1, $3, $2, DT_NULL);
                   AddLocToNode($$, &@1, &@3);
               }
               | expr_monopcast binop_EQNE expr_monopcast
               {
                   assertSetType($1, NS_EXPR);
                   assertSetType($3, NS_EXPR);
-                  $$ = ASTbinop($1, $3, $2);
+                  $$ = ASTbinop($1, $3, $2, DT_NULL);
                   AddLocToNode($$, &@1, &@3);
               };
 
@@ -843,28 +843,28 @@ expr_binop_EQNE: expr_binop_LTLEGTGE
                {
                     assertSetType($1, NS_EXPR);
                     assertSetType($3, NS_EXPR);
-                    $$ = ASTbinop($1, $3, $2);
+                    $$ = ASTbinop($1, $3, $2, DT_NULL);
                     AddLocToNode($$, &@1, &@3);
                }
                | expr_binop_EQNE binop_LTLEGTGE expr_monopcast 
                {
                     assertSetType($1, NS_EXPR);
                     assertSetType($3, NS_EXPR);
-                    $$ = ASTbinop($1, $3, $2);
+                    $$ = ASTbinop($1, $3, $2, DT_NULL);
                     AddLocToNode($$, &@1, &@3);
                }
                | expr_monopcast binop_LTLEGTGE expr_binop_LTLEGTGE
                {
                     assertSetType($1, NS_EXPR);
                     assertSetType($3, NS_EXPR);
-                    $$ = ASTbinop($1, $3, $2);
+                    $$ = ASTbinop($1, $3, $2, DT_NULL);
                     AddLocToNode($$, &@1, &@3);
                }
                | expr_monopcast binop_LTLEGTGE expr_monopcast
                {
                     assertSetType($1, NS_EXPR);
                     assertSetType($3, NS_EXPR);
-                    $$ = ASTbinop($1, $3, $2);
+                    $$ = ASTbinop($1, $3, $2, DT_NULL);
                     AddLocToNode($$, &@1, &@3);
                };
 
@@ -877,28 +877,28 @@ expr_binop_LTLEGTGE: expr_binop_PLUSMINUS
                    {
                       assertSetType($1, NS_EXPR);
                       assertSetType($3, NS_EXPR);
-                      $$ = ASTbinop($1, $3, $2);
+                      $$ = ASTbinop($1, $3, $2, DT_NULL);
                       AddLocToNode($$, &@1, &@3);
                    }
                    | expr_binop_LTLEGTGE binop_PLUSMINUS expr_monopcast 
                    {
                       assertSetType($1, NS_EXPR);
                       assertSetType($3, NS_EXPR);
-                      $$ = ASTbinop($1, $3, $2);
+                      $$ = ASTbinop($1, $3, $2, DT_NULL);
                       AddLocToNode($$, &@1, &@3);
                    }
                    | expr_monopcast binop_PLUSMINUS expr_binop_PLUSMINUS
                    {
                       assertSetType($1, NS_EXPR);
                       assertSetType($3, NS_EXPR);
-                      $$ = ASTbinop($1, $3, $2);
+                      $$ = ASTbinop($1, $3, $2, DT_NULL);
                       AddLocToNode($$, &@1, &@3);
                    }
                    | expr_monopcast binop_PLUSMINUS expr_monopcast
                    {
                       assertSetType($1, NS_EXPR);
                       assertSetType($3, NS_EXPR);
-                      $$ = ASTbinop($1, $3, $2);
+                      $$ = ASTbinop($1, $3, $2, DT_NULL);
                       AddLocToNode($$, &@1, &@3);
                    };
 
@@ -907,14 +907,14 @@ expr_binop_PLUSMINUS: expr_monopcast binop_STARSLASHPERCENT expr_monopcast
                     {
                         assertSetType($1, NS_EXPR);
                         assertSetType($3, NS_EXPR);
-                        $$ = ASTbinop($1, $3, $2);
+                        $$ = ASTbinop($1, $3, $2, DT_NULL);
                         AddLocToNode($$, &@1, &@3);
                     }
                     | expr_binop_PLUSMINUS binop_STARSLASHPERCENT expr_monopcast
                     {
                         assertSetType($1, NS_EXPR);
                         assertSetType($3, NS_EXPR);
-                        $$ = ASTbinop($1, $3, $2);
+                        $$ = ASTbinop($1, $3, $2, DT_NULL);
                         AddLocToNode($$, &@1, &@3);
                     };
 

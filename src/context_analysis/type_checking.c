@@ -542,6 +542,7 @@ node_st *CA_TCbinop(node_st *node)
         }
     }
 
+    BINOP_ARGTYPE(node) = type;
     if (!was_infered)
     {
         TRAVopt(BINOP_LEFT(node));
