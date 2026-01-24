@@ -3,7 +3,6 @@
 #include "palm/str.h"
 #include "release_assert.h"
 #include "stdio.h"
-#include "to_string.h"
 #include "utils.h"
 
 #include <ccn/dynamic_core.h>
@@ -90,18 +89,8 @@ node_st *CGP_DRarrayexpr(node_st *node)
 node_st *CGP_DRfundef(node_st *node)
 {
     htable_stptr parent_current = current;
-    bool is_init_function =
-        STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), global_init_func);
-
-    if (is_init_function)
-    {
-        release_assert(FUNDEF_SYMBOLS(node) == NULL);
-    }
-    else
-    {
-        current = FUNDEF_SYMBOLS(node);
-        release_assert(current != NULL);
-    }
+    current = FUNDEF_SYMBOLS(node);
+    release_assert(current != NULL);
 
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));

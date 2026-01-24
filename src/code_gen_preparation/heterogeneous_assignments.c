@@ -118,18 +118,9 @@ node_st *CGP_AAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
     last_vardecs = NULL;
-    bool is_init_function =
-        STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), global_init_func);
 
-    if (is_init_function)
-    {
-        release_assert(FUNDEF_SYMBOLS(node) == NULL);
-    }
-    else
-    {
-        current = FUNDEF_SYMBOLS(node);
-        release_assert(current != NULL);
-    }
+    current = FUNDEF_SYMBOLS(node);
+    release_assert(current != NULL);
 
     last_fundef = node;
     temp_counter = 0;
@@ -137,10 +128,7 @@ node_st *CGP_AAfundef(node_st *node)
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
 
-    if (!is_init_function)
-    {
-        current = HTlookup(current, htable_parent_name);
-    }
+    current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
     last_fundef = parent_fundef;
 

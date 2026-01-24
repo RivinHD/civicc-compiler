@@ -68,14 +68,17 @@ node_st *CA_FHfundec(node_st *node)
         }
 
         char *new_name = STRfmt("@fun_%s", name);
-        HTinsert(current, new_name, funheader);
+        HTinsert(current, new_name, node);
 
         VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
         free(name);
     }
     else
     {
-        error_already_defined(node, entry, name);
+        release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
+        node_st *funheader =
+            NODE_TYPE(entry) == NT_FUNDEF ? FUNDEF_FUNHEADER(entry) : FUNDEC_FUNHEADER(entry);
+        error_already_defined(node, funheader, name);
     }
 
     return node;
@@ -108,11 +111,14 @@ node_st *CA_FHfundef(node_st *node)
             main_candidate = node;
         }
 
-        HTinsert(current, new_name, funheader);
+        HTinsert(current, new_name, node);
     }
     else
     {
-        error_already_defined(node, entry, name);
+        release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
+        node_st *funheader =
+            NODE_TYPE(entry) == NT_FUNDEF ? FUNDEF_FUNHEADER(entry) : FUNDEC_FUNHEADER(entry);
+        error_already_defined(node, funheader, name);
     }
 
     VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;

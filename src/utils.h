@@ -137,8 +137,10 @@ static inline enum DataType symbol_to_type(node_st *entry)
         return VARDEC_TYPE(entry);
     case NT_GLOBALDEC:
         return GLOBALDEC_TYPE(entry);
-    case NT_FUNHEADER:
-        return FUNHEADER_TYPE(entry);
+    case NT_FUNDEF:
+        return FUNHEADER_TYPE(FUNDEF_FUNHEADER(entry));
+    case NT_FUNDEC:
+        return FUNHEADER_TYPE(FUNDEC_FUNHEADER(entry));
     case NT_PARAMS:
         return PARAMS_TYPE(entry);
     case NT_DIMENSIONVARS:

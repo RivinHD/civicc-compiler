@@ -139,6 +139,9 @@ node_st *CGP_IFprogram(node_st *node)
     node_st *funheader = ASTfunheader(ASTvar(STRcpy(global_init_func)), NULL, DT_void);
     node_st *funbody = ASTfunbody(NULL, NULL, NULL);
     init_fun = ASTfundef(funheader, funbody, false);
+    FUNDEF_SYMBOLS(init_fun) = HTnew_String(2 << 8);
+    htable_stptr symbols = FUNDEF_SYMBOLS(init_fun);
+    HTinsert(symbols, htable_parent_name, PROGRAM_SYMBOLS(node));
 
     HTinsert(PROGRAM_SYMBOLS(node), global_init_func, init_fun);
 

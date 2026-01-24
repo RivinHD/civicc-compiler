@@ -614,11 +614,13 @@ node_st *CA_TCproccall(node_st *node)
         }
     }
 
-    release_assert(NODE_TYPE(entry) == NT_FUNHEADER);
+    release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
+    node_st *funheader =
+        NODE_TYPE(entry) == NT_FUNDEF ? FUNDEF_FUNHEADER(entry) : FUNDEC_FUNHEADER(entry);
     unsigned int exprs_count = 0;
     unsigned int params_count = 0;
     node_st *exprs = PROCCALL_EXPRS(node);
-    node_st *params = FUNHEADER_PARAMS(entry);
+    node_st *params = FUNHEADER_PARAMS(funheader);
     if (exprs != NULL)
     {
         while (exprs != NULL && params != NULL)

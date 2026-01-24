@@ -67,17 +67,8 @@ node_st *CGP_PPproccall(node_st *node)
 node_st *CGP_PPfundef(node_st *node)
 {
     // Set current symbol table
-    bool is_init_function =
-        STReq(VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), global_init_func);
-    if (is_init_function)
-    {
-        release_assert(FUNDEF_SYMBOLS(node) == NULL);
-    }
-    else
-    {
-        current = FUNDEF_SYMBOLS(node);
-        release_assert(current != NULL);
-    }
+    current = FUNDEF_SYMBOLS(node);
+    release_assert(current != NULL);
 
     node_st *cur_funheader = FUNDEF_FUNHEADER(node);
     node_st *cur_params = FUNHEADER_PARAMS(cur_funheader);
@@ -105,10 +96,7 @@ node_st *CGP_PPfundef(node_st *node)
     TRAVopt(FUNDEF_FUNBODY(node));
 
     // reset symbol table
-    if (!is_init_function)
-    {
-        current = HTlookup(current, htable_parent_name);
-    }
+    current = HTlookup(current, htable_parent_name);
 
     return node;
 }

@@ -497,7 +497,7 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
         {
             // Getter functions to extract htable elements
             char *key = HTiterKey(iter);
-            void *value = HTiterValue(iter);
+            node_st *value = HTiterValue(iter);
 
             if (STReq(key, htable_parent_name))
             {
@@ -507,15 +507,19 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
             else
             {
                 char *text = NULL;
-                char *node_name = get_node_name((node_st *)value);
-                if (NODE_TYPE((node_st *)value) == NT_FUNHEADER)
+                char *node_name = NULL;
+                if (NODE_TYPE(value) == NT_FUNDEF || NODE_TYPE(value) == NT_FUNDEC)
                 {
-                    char *params = _funheader_params_to_oneliner_string((node_st *)value);
+                    node_st *funheader = NODE_TYPE(value) == NT_FUNDEF ? FUNDEF_FUNHEADER(value)
+                                                                       : FUNDEC_FUNHEADER(value);
+                    node_name = get_node_name(funheader);
+                    char *params = _funheader_params_to_oneliner_string(funheader);
                     text = STRfmt("├─ %s: %s -- Params: %s\n", key, node_name, params);
                     free(params);
                 }
                 else
                 {
+                    node_name = get_node_name(value);
                     text = STRfmt("├─ %s: %s\n", key, node_name);
                 }
                 free(node_name);
