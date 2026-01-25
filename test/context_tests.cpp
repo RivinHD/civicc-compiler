@@ -6042,5 +6042,7 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("Array 'input1' has '1' dimension, but '2' dimensions are used"),
             testing::HasSubstr("Array 'input2' has '4' dimension, but '2' dimensions are used"),
             testing::HasSubstr("Array 'param' can only be accessed with dimension indicies"),
-            testing::HasSubstr(" 60 Error")));
+            testing::HasSubstr("'0.000000' has type 'float' but expected type 'int'"),
+            testing::HasSubstr("error: Assignment to for loop iterator 'i' is illegal"),
+            testing::HasSubstr(" 62 Error")));
 }

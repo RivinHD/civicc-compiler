@@ -82,3 +82,12 @@ void array(float[m,n] param) {
     
     test(param); // Expected scalar not array
 }
+
+void forinvalid() {
+    int i = 0;
+    for(int i = 0.0, 50) // Wrong type
+    {
+        i = 20; // Illegal assignment
+    }
+    i = 30;
+}

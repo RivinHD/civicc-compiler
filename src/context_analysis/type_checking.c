@@ -757,7 +757,7 @@ node_st *CA_TCforloop(node_st *node)
     type = DT_int; // for loop should only contain integer
     TRAVopt(FORLOOP_COND(node));
     TRAVopt(FORLOOP_ITER(node));
-    TRAVopt(FORLOOP_ASSIGN(node));
+    TRAVopt(ASSIGN_EXPR(FORLOOP_ASSIGN(node))); // No need to check the assign var
     type = parent_type;
     TRAVopt(FORLOOP_BLOCK(node));
     has_return = parent_has_return;   // For loop is not guaranteed to be executed
@@ -790,6 +790,18 @@ node_st *CA_TCassign(node_st *node)
         CTIobj(CTI_ERROR, true, info,
                "Array '%s' can not be assigned a scalar value without providing dimension "
                "indices.",
+               pretty_name);
+        free(info.filename);
+        return node;
+    }
+
+    const char *name = VAR_NAME(ASSIGN_VAR(node));
+    if (STRprefix("@for", name))
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        info.filename = STRcpy(global.input_file);
+        const char *pretty_name = get_pretty_name(name);
+        CTIobj(CTI_ERROR, true, info, "Assignment to for loop iterator '%s' is illegal.",
                pretty_name);
         free(info.filename);
         return node;

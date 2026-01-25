@@ -130,9 +130,9 @@ static inline node_st *deep_lookup(htable_stptr htable, const char *name)
 }
 
 /// Recursive lookup into the symbol table and in all parent symbol table for the given name.
-/// Also defines the level at which the index was found. 
+/// Also defines the level at which the index was found.
 // The (negated/negative level) - 1 indicates that is in global scope i.e. out_level = -level - 1
-static inline node_st *deep_lookup_level(htable_stptr htable, const char *name, int* out_level)
+static inline node_st *deep_lookup_level(htable_stptr htable, const char *name, int *out_level)
 {
     int level = 0;
     node_st *entry = HTlookup(htable, (void *)name);
@@ -150,7 +150,7 @@ static inline node_st *deep_lookup_level(htable_stptr htable, const char *name, 
     }
 
     htable_stptr parent = HTlookup(htable, htable_parent_name);
-    *out_level = (parent == NULL) ? -level - 1: level;
+    *out_level = (parent == NULL) ? -level - 1 : level;
     return entry;
 }
 
@@ -213,6 +213,7 @@ static inline const char *get_pretty_name(const char *name)
         {
             start++;
         }
+        start++; // Consume the '_' too
 
         release_assert(name[start] != '\0');
         return name + start;

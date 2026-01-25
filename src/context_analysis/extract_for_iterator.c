@@ -1,6 +1,7 @@
 #include "ccngen/ast.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>

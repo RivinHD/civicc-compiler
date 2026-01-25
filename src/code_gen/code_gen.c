@@ -40,8 +40,10 @@ static void out(const char *restrict format, ...)
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if (global.output_buf == NULL)
     {
-        release_assert(out_file != NULL);
-        vfprintf(out_file, format, args);
+        if (out_file != NULL)
+        {
+            vfprintf(out_file, format, args);
+        }
     }
     else
     {
@@ -217,6 +219,9 @@ static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
     return (ptrdiff_t)entry;
 }
 
+// TODO loads must happen before the instruction i.e. Traverse childs before generating the iload
+// i.e. add childs onto the stack before the inst of the current node gets added
+
 /**
  * CodeGen Nodes
  */
@@ -235,7 +240,6 @@ node_st *CG_CGprogram(node_st *node)
     }
     else
     {
-        release_assert(global.default_out_stream != NULL);
         out_file = global.default_out_stream;
     }
 
@@ -822,6 +826,8 @@ node_st *CG_CGvardec(node_st *node)
 
 node_st *CG_CGproccall(node_st *node)
 {
+    // TODO edge case procall to type == DT_void we must omit the return value which is placed
+    // ontop of the stack by using the '<t>pop' instruction
     node_st *var = PROCCALL_VAR(node);
     char *name = VAR_NAME(var);
 
@@ -907,6 +913,15 @@ node_st *CG_CGdowhileloop(node_st *node)
 
 node_st *CG_CGforloop(node_st *node)
 {
+    node_st *iter = FORLOOP_ITER(node);
+    if (iter != NULL && NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 0)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(iter);
+        info.filename = STRcpy(global.input_file);
+        CTIobj(CTI_WARN, true, info, "Step is '0' and may lead to undefined behaviour.");
+        free(info.filename);
+    }
+
     enum DataType parent_type = type;
     type = DT_int;
     TRAVopt(FORLOOP_COND(node));
