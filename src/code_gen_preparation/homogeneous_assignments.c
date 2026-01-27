@@ -20,6 +20,7 @@ node_st *CGP_HAvardec(node_st *node)
     node_st *temp_var = VARDEC_VAR(node);
     if (NODE_TYPE(temp_var) == NT_ARRAYEXPR)
     {
+        node_st *funbody = FUNDEF_FUNBODY(last_fundef);
         node_st *expr = VARDEC_EXPR(node);
 
         // Step 0: Count iteration length
@@ -32,10 +33,18 @@ node_st *CGP_HAvardec(node_st *node)
             dim = EXPRS_NEXT(dim);
         }
 
+        // Step 0: Create temp dimension size var
+        node_st *dims_var = ASTvar(STRfmt("@loop_dims%d", loop_counter));
+        node_st *dims_vardec = ASTvardec(dims_var, NULL, DT_int);
+        HTinsert(current, VAR_NAME(VARDEC_VAR(dims_vardec)), dims_vardec);
+        node_st *dims_new_vardecs = ASTvardecs(dims_vardec, FUNBODY_VARDECS(funbody));
+        FUNBODY_VARDECS(funbody) = dims_new_vardecs;
+        node_st *dims_assign = ASTassign(CCNcopy(dims_var), alloc_expr);
+
         // Step 1: Create allocation statement
         release_assert(cur_funbody != NULL);
         node_st *alloc_var = ASTvar(STRcpy(alloc_func));
-        node_st *alloc_exprs = ASTexprs(alloc_expr, NULL);
+        node_st *alloc_exprs = ASTexprs(CCNcopy(dims_var), NULL);
         node_st *alloc_proccall = ASTproccall(alloc_var, alloc_exprs);
         node_st *alloc_stmt = ASTassign(CCNcopy(ARRAYEXPR_VAR(temp_var)), alloc_proccall);
 
@@ -67,10 +76,9 @@ node_st *CGP_HAvardec(node_st *node)
             node_st *loop_block_assign =
                 ASTarrayassign(loop_array_assign, CCNcopy(loop_expression));
             node_st *loop_stmts = ASTstatements(loop_block_assign, NULL);
-            node_st *loop = ASTforloop(loop_assign, CCNcopy(alloc_expr), NULL, loop_stmts);
+            node_st *loop = ASTforloop(loop_assign, CCNcopy(dims_var), NULL, loop_stmts);
             node_st *new_loop_vardec = ASTvardec(CCNcopy(loop_var), NULL, DT_int);
             HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
-            node_st *funbody = FUNDEF_FUNBODY(last_fundef);
             node_st *new_loop_vardecs = ASTvardecs(new_loop_vardec, FUNBODY_VARDECS(funbody));
             FUNBODY_VARDECS(funbody) = new_loop_vardecs;
 
@@ -78,16 +86,18 @@ node_st *CGP_HAvardec(node_st *node)
             node_st *assign_loop_stmts = ASTstatements(loop, stmts);
             node_st *new_temp_stmts = ASTstatements(expr_assign, assign_loop_stmts);
             alloc_stmts = ASTstatements(alloc_stmt, new_temp_stmts);
+            alloc_stmts = ASTstatements(dims_assign, alloc_stmts);
 
             node_st *new_vardecs = ASTvardecs(new_vardec, FUNBODY_VARDECS(funbody));
             FUNBODY_VARDECS(funbody) = new_vardecs;
-
-            loop_counter++;
         }
         else
         {
             alloc_stmts = ASTstatements(alloc_stmt, stmts);
+            alloc_stmts = ASTstatements(dims_assign, alloc_stmts);
         }
+
+        loop_counter++;
         release_assert(alloc_stmts != NULL);
         if (last_stmts != NULL)
         {

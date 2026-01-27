@@ -13,6 +13,40 @@ static node_st *last_fundef = NULL;
 static uint32_t temp_counter = 0;
 static htable_stptr current = NULL;
 static node_st *last_vardecs = NULL;
+static node_st *current_statements = NULL;
+
+node_st *new_temp_assign(enum DataType type, node_st *expr)
+{
+    node_st *temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
+    node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, type);
+    HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+    node_st *tmp_assign = ASTassign(CCNcopy(temp_var), expr);
+
+    release_assert(last_fundef != NULL);
+    node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
+    if (last_vardecs == NULL)
+    {
+        node_st *temp_vardecs = ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
+        FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
+        last_vardecs = temp_vardecs;
+    }
+    else
+    {
+        node_st *temp_vardecs = ASTvardecs(temp_vardec, VARDECS_NEXT(last_vardecs));
+        VARDECS_NEXT(last_vardecs) = temp_vardecs;
+        last_vardecs = temp_vardecs;
+    }
+
+    release_assert(current_statements != NULL);
+    node_st *curr_stmt = STATEMENTS_STMT(current_statements);
+    node_st *next_stmt = STATEMENTS_NEXT(current_statements);
+    STATEMENTS_STMT(current_statements) = tmp_assign;
+    node_st *next_stmts = ASTstatements(curr_stmt, next_stmt);
+    STATEMENTS_NEXT(current_statements) = next_stmts;
+    current_statements = next_stmts;
+
+    return temp_var;
+}
 
 /**
  * Extract dimension expressions and substitute constants.
@@ -42,12 +76,13 @@ node_st *CGP_AAarrayexpr(node_st *node)
             // If nested expr, traverse next
             TRAVopt(cur_expr);
 
-            node_st *temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
+            node_st *temp_var = NULL;
             release_assert(temp_counter != UINT32_MAX);
             // currently in global def (init fun)
             if (STReq(global_init_func, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(last_fundef)))))
             {
                 // Step 1: Create temp globalDef (without expr)
+                temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
                 node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, DT_int);
                 node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
                 HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
@@ -63,22 +98,33 @@ node_st *CGP_AAarrayexpr(node_st *node)
             }
             else
             {
-                // Step 1: Create temp varDec
-                node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), cur_expr, DT_int);
-                HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
-
-                // Step 2: Append above of the current
-                if (last_vardecs == NULL)
+                if (current_statements == NULL)
                 {
-                    node_st *temp_vardecs = ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
-                    FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
-                    last_vardecs = temp_vardecs;
+                    // Inside Vardec
+                    // Step 1: Create temp varDec
+                    temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
+                    node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), cur_expr, DT_int);
+                    HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+
+                    // Step 2: Append above of the current
+                    if (last_vardecs == NULL)
+                    {
+                        node_st *temp_vardecs =
+                            ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
+                        FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
+                        last_vardecs = temp_vardecs;
+                    }
+                    else
+                    {
+                        node_st *temp_vardecs = ASTvardecs(temp_vardec, VARDECS_NEXT(last_vardecs));
+                        VARDECS_NEXT(last_vardecs) = temp_vardecs;
+                        last_vardecs = temp_vardecs;
+                    }
                 }
                 else
                 {
-                    node_st *temp_vardecs = ASTvardecs(temp_vardec, VARDECS_NEXT(last_vardecs));
-                    VARDECS_NEXT(last_vardecs) = temp_vardecs;
-                    last_vardecs = temp_vardecs;
+                    // Inside assignment
+                    temp_var = new_temp_assign(DT_int, cur_expr);
                 }
             }
 
@@ -92,6 +138,45 @@ node_st *CGP_AAarrayexpr(node_st *node)
     TRAVopt(ARRAYEXPR_VAR(node));
 
     return node;
+}
+
+node_st *CGP_AAforloop(node_st *node)
+{
+
+    TRAVopt(FORLOOP_ASSIGN(node));
+    TRAVopt(FORLOOP_COND(node));
+    TRAVopt(FORLOOP_ITER(node));
+
+    node_st *assign = FORLOOP_ASSIGN(node);
+    if (NODE_TYPE(ASSIGN_EXPR(assign)) != NT_INT)
+    {
+        node_st *var = new_temp_assign(DT_int, ASSIGN_EXPR(assign));
+        ASSIGN_EXPR(assign) = var;
+    }
+
+    if (NODE_TYPE(FORLOOP_COND(node)) != NT_INT)
+    {
+        node_st *var = new_temp_assign(DT_int, FORLOOP_COND(node));
+        FORLOOP_COND(node) = var;
+    }
+
+    if (FORLOOP_ITER(node) != NULL && NODE_TYPE(FORLOOP_ITER(node)) != NT_INT)
+    {
+        node_st *var = new_temp_assign(DT_int, FORLOOP_ITER(node));
+        FORLOOP_ITER(node) = var;
+    }
+
+    TRAVopt(FORLOOP_BLOCK(node));
+    return node;
+}
+
+node_st *CGP_AAstatements(node_st *node)
+{
+    current_statements = node;
+    TRAVopt(STATEMENTS_STMT(current_statements));
+    TRAVopt(STATEMENTS_NEXT(current_statements));
+
+    return current_statements;
 }
 
 node_st *CGP_AAvardecs(node_st *node)

@@ -123,7 +123,9 @@ phase CodeGenPreparation
                 // Nodes to update
                 Funbody,
                 ArrayExpr,
-                VarDecs
+                VarDecs,
+                ForLoop,
+                Statements
             }
         };
         traversal HomogeneousAssignments {
@@ -452,8 +454,7 @@ node Cast {
 
 node Var {
     attributes {
-        string name { constructor, mandatory },
-        Link decl
+        string name { constructor, mandatory }
     }
 };
 

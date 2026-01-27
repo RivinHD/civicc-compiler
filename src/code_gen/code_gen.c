@@ -15,19 +15,24 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-htable_stptr current = NULL;
-htable_stptr idx_table = NULL;
-htable_stptr import_table = NULL;
-htable_stptr constant_table = NULL;
-enum DataType type = DT_NULL;
-node_st *fundef = NULL;
-uint32_t idx_counter = 0;
-uint32_t fun_import_counter = 0;
-uint32_t var_import_counter = 0;
-uint32_t constant_counter = 0;
-FILE *out_file = NULL;
+static htable_stptr current = NULL;
+static htable_stptr idx_table = NULL;
+static htable_stptr import_table = NULL;
+static htable_stptr constant_table = NULL;
+static enum DataType type = DT_NULL;
+static node_st *fundef = NULL;
+static uint32_t idx_counter = 0;
+static uint32_t fun_import_counter = 0;
+static uint32_t var_import_counter = 0;
+static uint32_t constant_counter = 0;
+static FILE *out_file = NULL;
+static uint32_t if_counter = 0;
+static uint32_t loop_counter = 0;
+static bool is_expr = true;
+static bool is_arrayexpr_store = false;
 
 /**
  * Helper functions.
@@ -75,6 +80,11 @@ static void inst2(const char *inst, ptrdiff_t index1, ptrdiff_t index2)
 static void instL(const char *inst, const char *label)
 {
     out("    %s %s\n", inst, label);
+}
+
+static void instjsr(uint32_t count, const char *label)
+{
+    out("    jsr %d %s\n", count, label);
 }
 
 static void label(const char *label)
@@ -127,7 +137,7 @@ static void importfun(node_st *funheader)
     free(output);
 }
 
-static void exportvar(const char *name, int32_t index)
+static void exportvar(const char *name, ptrdiff_t index)
 {
     release_assert(index >= 0);
     out(".exportvar \"%s\" %d", name, index);
@@ -201,7 +211,7 @@ static void globalvar(node_st *entry)
 
 static void IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
 {
-    HTinsert(table, key, (void *)index);
+    HTinsert(table, key, (void *)(index + 1));
 }
 
 static ptrdiff_t IDXlookup(htable_stptr table, char *key)
@@ -209,18 +219,15 @@ static ptrdiff_t IDXlookup(htable_stptr table, char *key)
 
     void *entry = HTlookup(table, key);
     release_assert(entry != NULL);
-    return (ptrdiff_t)entry;
+    return (ptrdiff_t)entry - 1;
 }
 
 static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
 {
     void *entry = deep_lookup(table, key);
     release_assert(entry != NULL);
-    return (ptrdiff_t)entry;
+    return (ptrdiff_t)entry - 1;
 }
-
-// TODO loads must happen before the instruction i.e. Traverse childs before generating the iload
-// i.e. add childs onto the stack before the inst of the current node gets added
 
 /**
  * CodeGen Nodes
@@ -247,7 +254,6 @@ node_st *CG_CGprogram(node_st *node)
     constant_table = HTnew_String(2 << 8);
     htable_stptr table = HTnew_String(2 << 8);
     idx_table = table;
-    HTinsert(idx_table, "VARname", (void *)1);
     current = PROGRAM_SYMBOLS(node);
     TRAVchildren(node);
     HTdelete(table);
@@ -272,8 +278,6 @@ node_st *CG_CGfundec(node_st *node)
 {
     IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), fun_import_counter++);
     importfun(FUNDEC_FUNHEADER(node));
-
-    TRAVchildren(node);
     return node;
 }
 
@@ -299,7 +303,10 @@ node_st *CG_CGfundef(node_st *node)
 
     label(fun_name);
 
+    bool parent_is_expr = is_expr;
+    is_expr = false;
     TRAVopt(FUNDEF_FUNHEADER(node));
+    is_expr = parent_is_expr;
     TRAVopt(FUNDEF_FUNBODY(node));
 
     HTdelete(table);
@@ -311,12 +318,10 @@ node_st *CG_CGfundef(node_st *node)
 
 node_st *CG_CGglobaldec(node_st *node)
 {
-    char *globaldec_name = VAR_NAME(GLOBALDEC_VAR(node));
+    node_st *var = GLOBALDEC_VAR(node);
+    char *globaldec_name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
     IDXinsert(import_table, globaldec_name, var_import_counter++);
     importvar(globaldec_name, node);
-
-    // Type not checkable because it is an extern var
-    TRAVchildren(node);
     return node;
 }
 
@@ -326,6 +331,14 @@ node_st *CG_CGglobaldef(node_st *node)
 
     // Type & Indextable is set by VarDec
     TRAVchildren(node);
+
+    if (GLOBALDEF_HAS_EXPORT(node) == true)
+    {
+        node_st *var = GLOBALDEF_VARDEC(node);
+        char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+        ptrdiff_t idx = IDXlookup(idx_table, name);
+        exportvar(name, idx);
+    }
     return node;
 }
 
@@ -341,7 +354,10 @@ node_st *CG_CGparams(node_st *node)
     release_assert(NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_ARRAYVAR);
     char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
     IDXinsert(idx_table, name, idx_counter++);
+    bool parent_is_expr = is_expr;
+    is_expr = false;
     TRAVchildren(node);
+    is_expr = parent_is_expr;
     return node;
 }
 
@@ -465,13 +481,19 @@ node_st *CG_CGassign(node_st *node)
                         else
                         {
                             release_assert(BINOP_OP(expr) == BO_sub);
-                            inst1("iidec_1", index);
+                            inst1("idec_1", index);
                         }
                     }
                     else
                     {
-                        TRAVopt(int_node);
-                        ptrdiff_t const_index = IDXlookup(constant_table, int_to_str(val));
+                        bool parent_is_expr = is_expr;
+                        is_expr = false;
+                        TRAVopt(int_node); // Adds int node to table if not present
+                        is_expr = parent_is_expr;
+
+                        char *val_str = int_to_str(val);
+                        ptrdiff_t const_index = IDXlookup(constant_table, val_str);
+                        free(val_str);
                         release_assert(val > 1);
                         if (BINOP_OP(expr) == BO_add)
                         {
@@ -490,13 +512,16 @@ node_st *CG_CGassign(node_st *node)
                 }
                 else
                 {
+                    TRAVopt(expr);
                     inst1("istore", index);
                 }
                 break;
             case DT_float:
+                TRAVopt(expr);
                 inst1("fstore", index);
                 break;
             case DT_bool:
+                TRAVopt(expr);
                 inst1("bstore", index);
                 break;
             default:
@@ -512,6 +537,7 @@ node_st *CG_CGassign(node_st *node)
         release_assert(NODE_TYPE(var) != NT_ARRAYEXPR);
         release_assert(NODE_TYPE(var) != NT_ARRAYVAR);
 
+        TRAVopt(expr);
         switch (type)
         {
         case DT_int:
@@ -541,6 +567,7 @@ node_st *CG_CGassign(node_st *node)
             }
             else
             {
+                TRAVopt(expr);
                 switch (type)
                 {
                 case DT_int:
@@ -568,6 +595,7 @@ node_st *CG_CGassign(node_st *node)
             }
             else
             {
+                TRAVopt(expr);
                 switch (type)
                 {
                 case DT_int:
@@ -587,13 +615,19 @@ node_st *CG_CGassign(node_st *node)
         }
     }
 
-    TRAVchildren(node);
     type = parent_type;
     return node;
 }
 
 node_st *CG_CGbinop(node_st *node)
 {
+    enum DataType parent_type = type;
+    type = BINOP_ARGTYPE(node);
+    release_assert(type != DT_void);
+    release_assert(type != DT_NULL);
+    TRAVchildren(node);
+    type = parent_type;
+
     switch (BINOP_OP(node))
     {
     case BO_sub:
@@ -729,10 +763,10 @@ node_st *CG_CGbinop(node_st *node)
         switch (type)
         {
         case DT_int:
-            inst0("ieq");
+            inst0("ige");
             break;
         case DT_float:
-            inst0("feq");
+            inst0("fge");
             break;
         default:
             release_assert(false);
@@ -782,17 +816,13 @@ node_st *CG_CGbinop(node_st *node)
         break;
     }
 
-    enum DataType parent_type = type;
-    type = BINOP_ARGTYPE(node);
-    release_assert(type != DT_void);
-    release_assert(type != DT_NULL);
-    TRAVchildren(node);
-    type = parent_type;
     return node;
 }
 
 node_st *CG_CGmonop(node_st *node)
 {
+    TRAVchildren(node);
+
     switch (MONOP_OP(node))
     {
     case MO_not:
@@ -818,30 +848,31 @@ node_st *CG_CGmonop(node_st *node)
         break;
     }
 
-    TRAVchildren(node);
     return node;
 }
 
 node_st *CG_CGvardec(node_st *node)
 {
-    // TODO finish and beyond
     node_st *var = VARDEC_VAR(node);
     release_assert(NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_ARRAYEXPR);
     char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
     IDXinsert(idx_table, name, idx_counter++);
+
     enum DataType parent_type = type;
     type = VARDEC_TYPE(node);
     release_assert(type != DT_void);
     release_assert(type != DT_NULL);
-    TRAVchildren(node);
+    bool parent_is_expr = is_expr;
+    is_expr = false;
+    TRAVopt(VARDEC_VAR(node));
+    is_expr = parent_is_expr;
+    TRAVopt(VARDEC_EXPR(node));
     type = parent_type;
     return node;
 }
 
 node_st *CG_CGproccall(node_st *node)
 {
-    // TODO edge case procall to type == DT_void we must omit the return value which is placed
-    // ontop of the stack by using the '<t>pop' instruction
     node_st *var = PROCCALL_VAR(node);
     char *name = VAR_NAME(var);
 
@@ -851,39 +882,93 @@ node_st *CG_CGproccall(node_st *node)
         return node;
     }
 
-    node_st *entry = deep_lookup(current, name);
+    int level = INT_MAX;
+    node_st *entry = deep_lookup_level(current, name, &level);
     enum DataType has_type = symbol_to_type(entry);
     if (type != DT_void)
     {
         release_assert(has_type != DT_NULL);
         release_assert(type == has_type);
     }
+    release_assert(level != INT_MAX);
 
     release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
     node_st *funheader =
         NODE_TYPE(entry) == NT_FUNDEF ? FUNDEF_FUNHEADER(entry) : FUNDEC_FUNHEADER(entry);
     node_st *exprs = PROCCALL_EXPRS(node);
     node_st *params = FUNHEADER_PARAMS(funheader);
-    if (exprs != NULL)
+    uint32_t exprs_count = 0;
+    while (exprs != NULL && params != NULL)
     {
-        while (exprs != NULL && params != NULL)
-        {
-            node_st *expr = EXPRS_EXPR(exprs);
+        exprs_count += 1;
+        node_st *expr = EXPRS_EXPR(exprs);
 
-            enum DataType parent_type = type;
-            type = PARAMS_TYPE(params);
-            release_assert(type != DT_void);
-            release_assert(type != DT_NULL);
-            TRAVopt(expr);
-            type = parent_type;
+        enum DataType parent_type = type;
+        type = PARAMS_TYPE(params);
+        release_assert(type != DT_void);
+        release_assert(type != DT_NULL);
+        TRAVopt(expr);
+        type = parent_type;
 
-            params = PARAMS_NEXT(params);
-            exprs = EXPRS_NEXT(exprs);
-        }
+        params = PARAMS_NEXT(params);
+        exprs = EXPRS_NEXT(exprs);
     }
 
     release_assert(exprs == NULL);
     release_assert(params == NULL);
+
+    if (level == 0)
+    {
+        inst0("isrl");
+    }
+    else if (level > 0)
+    {
+        if (level == 1)
+        {
+            inst0("isr");
+        }
+        else
+        {
+            inst1("isrn", level - 1);
+        }
+    }
+    else // level < 0
+    {
+        inst0("isrg");
+    }
+
+    TRAVopt(PROCCALL_EXPRS(node));
+
+    if (NODE_TYPE(entry) == NT_FUNDEC)
+    {
+        inst1("jsre", IDXlookup(import_table, name));
+    }
+    else
+    {
+        instjsr(exprs_count, name);
+    }
+
+    // edge case procall to type == DT_void we must omit the return value which is placed
+    // ontop of the stack by using the '<t>pop' instruction
+    if (type == DT_void)
+    {
+        switch (has_type)
+        {
+        case DT_NULL:
+        case DT_void:
+            release_assert(false);
+            break;
+        case DT_bool:
+            inst0("bpop");
+            break;
+        case DT_int:
+            inst0("ipop");
+            break;
+        case DT_float:
+            inst0("fpop");
+            break;
+        }
+    }
 
     return node;
 }
@@ -896,40 +981,84 @@ node_st *CG_CGexprs(node_st *node)
 
 node_st *CG_CGifstatement(node_st *node)
 {
+    char *else_label = STRfmt("else%d", if_counter);
+    char *end_label = STRfmt("ifend%d", if_counter);
+    if_counter++;
+
     enum DataType parent_type = type;
     type = DT_bool;
     TRAVopt(IFSTATEMENT_EXPR(node));
     type = parent_type;
-    TRAVopt(IFSTATEMENT_BLOCK(node));
-    TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
+
+    if (IFSTATEMENT_BLOCK(node) != NULL && IFSTATEMENT_ELSE_BLOCK(node) != NULL)
+    {
+        instL("branch_f", else_label);
+        TRAVopt(IFSTATEMENT_BLOCK(node));
+        instL("jump", end_label);
+        label(else_label);
+        TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
+        label(end_label);
+    }
+    else if (IFSTATEMENT_BLOCK(node) == NULL)
+    {
+        instL("branch_t", end_label);
+        TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
+        label(end_label);
+    }
+    else if (IFSTATEMENT_ELSE_BLOCK(node) == NULL)
+    {
+        instL("branch_f", end_label);
+        TRAVopt(IFSTATEMENT_BLOCK(node));
+        label(end_label);
+    }
+
+    free(else_label);
+    free(end_label);
     return node;
 }
 
 node_st *CG_CGwhileloop(node_st *node)
 {
+    char *while_label = STRfmt("while%d", loop_counter);
+    char *end_label = STRfmt("whileend%d", loop_counter);
+    loop_counter++;
+
     enum DataType parent_type = type;
     type = DT_bool;
+    label(while_label);
     TRAVopt(WHILELOOP_EXPR(node));
+    instL("branch_f", end_label);
     type = parent_type;
+
     TRAVopt(WHILELOOP_BLOCK(node));
+    instL("jump", while_label);
+    label(end_label);
+
+    free(while_label);
+    free(end_label);
     return node;
 }
 
 node_st *CG_CGdowhileloop(node_st *node)
 {
+    char *while_label = STRfmt("while%d", loop_counter);
+    loop_counter++;
+
+    label(while_label);
+    TRAVopt(WHILELOOP_BLOCK(node));
+
     enum DataType parent_type = type;
     type = DT_bool;
     TRAVopt(DOWHILELOOP_EXPR(node));
     type = parent_type;
-    TRAVopt(WHILELOOP_BLOCK(node));
+    instL("branch_t", while_label);
+
+    free(while_label);
     return node;
 }
 
 node_st *CG_CGforloop(node_st *node)
 {
-    // TODO Be carful we can have a negative step value where start becomes inclusive uppper bound
-    // and the stop value the execulsive lower bound
-    // TODO All expressions are evaluated exactly once!!!
     node_st *iter = FORLOOP_ITER(node);
     if (iter != NULL && NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 0)
     {
@@ -939,14 +1068,92 @@ node_st *CG_CGforloop(node_st *node)
         free(info.filename);
     }
 
+    node_st *assign = FORLOOP_ASSIGN(node);
+    release_assert(NODE_TYPE(ASSIGN_EXPR(assign)) == NT_VAR ||
+                   NODE_TYPE(ASSIGN_EXPR(assign)) == NT_INT);
+    release_assert(NODE_TYPE(FORLOOP_ITER(node)) == NT_VAR ||
+                   NODE_TYPE(FORLOOP_ITER(node)) == NT_INT);
+    release_assert(NODE_TYPE(FORLOOP_COND(node)) == NT_VAR ||
+                   NODE_TYPE(FORLOOP_COND(node)) == NT_INT);
+    if (FORLOOP_ITER(node) != NULL)
+    {
+        release_assert(NODE_TYPE(FORLOOP_ITER(node)) == NT_VAR ||
+                       NODE_TYPE(FORLOOP_ITER(node)) == NT_INT);
+    }
+
     enum DataType parent_type = type;
     type = DT_int;
-    TRAVopt(FORLOOP_COND(node));
-    TRAVopt(FORLOOP_ITER(node));
-    TRAVopt(ASSIGN_VAR(FORLOOP_ASSIGN(node)));
-    TRAVopt(ASSIGN_EXPR(FORLOOP_ASSIGN(node)));
-    type = parent_type;
-    TRAVopt(FORLOOP_BLOCK(node));
+    char *start_label = STRfmt("for%d", loop_counter);
+    char *end_label = STRfmt("endfor%d", loop_counter);
+    loop_counter++;
+    char *assign_name = VAR_NAME(ASSIGN_VAR(assign));
+
+    TRAVopt(assign);
+
+    if (iter == NULL || (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 1))
+    {
+        label(start_label);
+        TRAVopt(ASSIGN_VAR(assign));
+        TRAVopt(FORLOOP_COND(node));
+        inst0("ilt");
+        instL("branch_f", end_label);
+        type = parent_type;
+        TRAVopt(FORLOOP_BLOCK(node));
+        TRAVopt(iter);
+        inst1("iinc_1", IDXlookup(idx_table, assign_name));
+        instL("jump", start_label);
+        label(end_label);
+    }
+    else if (NODE_TYPE(iter) == NT_INT)
+    {
+        label(start_label);
+        TRAVopt(ASSIGN_VAR(assign));
+        TRAVopt(FORLOOP_COND(node));
+        inst0("ilt");
+        instL("branch_f", end_label);
+        type = parent_type;
+        TRAVopt(FORLOOP_BLOCK(node));
+        bool parent_is_expr = is_expr;
+        is_expr = false;
+        TRAVopt(iter); // only add to constant table if not available
+        is_expr = parent_is_expr;
+        char *val_str = int_to_str(INT_VAL(iter));
+        inst2("iinc", IDXlookup(idx_table, assign_name), IDXlookup(constant_table, val_str));
+        free(val_str);
+        instL("jump", start_label);
+        label(end_label);
+    }
+    else
+    {
+        // general case
+        release_assert(NODE_TYPE(iter) == NT_VAR);
+        release_assert(NODE_TYPE(FORLOOP_COND(node)) == NT_VAR);
+        ptrdiff_t cond_idx = IDXlookup(idx_table, VAR_NAME(FORLOOP_COND(node)));
+
+        TRAVopt(FORLOOP_COND(node));
+        TRAVopt(ASSIGN_VAR(assign));
+        inst0("isub");
+        TRAVopt(iter);
+        inst0("idiv");
+        inst1("istore", cond_idx);
+        label(start_label);
+        TRAVopt(iter);
+        inst0("iloadc_0");
+        inst0("igt");
+        instL("branch_f", end_label);
+        type = parent_type;
+        TRAVopt(FORLOOP_BLOCK(node));
+        inst1("idec_1", cond_idx);
+        TRAVopt(ASSIGN_VAR(assign));
+        TRAVopt(iter);
+        inst0("iadd");
+        inst1("istore", IDXlookup(idx_table, VAR_NAME(iter)));
+        instL("jump", start_label);
+        label(end_label);
+    }
+
+    free(start_label);
+    free(end_label);
     return node;
 }
 
@@ -957,6 +1164,24 @@ node_st *CG_CGretstatement(node_st *node)
     type = FUNHEADER_TYPE(FUNDEF_FUNHEADER(fundef));
     release_assert(type != DT_NULL);
     TRAVchildren(node);
+    switch (type)
+    {
+    case DT_NULL:
+        release_assert(false);
+        break;
+    case DT_void:
+        inst0("return");
+        break;
+    case DT_bool:
+        inst0("breturn");
+        break;
+    case DT_int:
+        inst0("ireturn");
+        break;
+    case DT_float:
+        inst0("freturn");
+        break;
+    }
     type = parent_type;
     return node;
 }
@@ -973,33 +1198,136 @@ node_st *CG_CGcast(node_st *node)
     release_assert(type != DT_void);
     release_assert(type != DT_NULL);
     TRAVchildren(node);
+    if (has_type == DT_int && type == DT_float)
+    {
+        inst0("f2i");
+    }
+    else if (has_type == DT_float && type == DT_int)
+    {
+        inst0("i2f");
+    }
+    else
+    {
+        release_assert(false);
+    }
     type = parent_type;
     return node;
 }
 
 node_st *CG_CGvar(node_st *node)
 {
-    node_st *entry = deep_lookup(current, VAR_NAME(node));
+    int level = INT_MAX;
+    node_st *entry = deep_lookup_level(current, VAR_NAME(node), &level);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
-    TRAVchildren(node);
+    release_assert(level != INT_MAX);
+
+    if (is_expr == false)
+    {
+        return node;
+    }
+
+    char type_str = '\0';
+    switch (has_type)
+    {
+    case DT_NULL:
+    case DT_void:
+        release_assert(false);
+        break;
+    case DT_bool:
+        type_str = 'b';
+        break;
+    case DT_int:
+        type_str = 'i';
+        break;
+    case DT_float:
+        type_str = 'f';
+        break;
+    }
+
+    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
+    if (level == 0)
+    {
+        char load_str = '\0';
+        switch (idx)
+        {
+        case 0:
+            load_str = '0';
+            break;
+        case 1:
+            load_str = '1';
+            break;
+        case 2:
+            load_str = '2';
+            break;
+        case 3:
+            load_str = '3';
+            break;
+        default:
+            release_assert(idx > 3);
+            break;
+        }
+
+        if (load_str != '\0')
+        {
+            char *inst = STRfmt("%cload_%c", type_str, load_str);
+            inst0(inst);
+            free(inst);
+        }
+        else
+        {
+            char *inst = STRfmt("%cload", type_str);
+            inst1(inst, idx);
+            free(inst);
+        }
+    }
+    else if (level > 0)
+    {
+        char *inst = STRfmt("%cloadn", type_str);
+        inst2(inst, level, idx);
+        free(inst);
+    }
+    else // level < 0
+    {
+        if (NODE_TYPE(entry) == NT_GLOBALDEC)
+        {
+            char *inst = STRfmt("%cloade", type_str);
+            inst1(inst, IDXlookup(import_table, VAR_NAME(node)));
+            free(inst);
+        }
+        else
+        {
+            char *inst = STRfmt("%cloadg", type_str);
+            inst1(inst, idx);
+            free(inst);
+        }
+    }
+
     return node;
 }
 
 node_st *CG_CGarrayvar(node_st *node)
 {
+    // Only for type checking
+    bool parent_is_expr = is_expr;
+    is_expr = false;
     TRAVchildren(node);
+    is_expr = parent_is_expr;
     return node;
 }
 
 node_st *CG_CGdimensionvars(node_st *node)
 {
+    // Only for type checking
     enum DataType parent_type = type;
+    bool parent_is_expr = is_expr;
     type = DT_int;
+    is_expr = false;
     TRAVchildren(node);
     type = parent_type;
+    is_expr = parent_is_expr;
     return node;
 }
 
@@ -1012,11 +1340,96 @@ node_st *CG_CGarrayinit(node_st *node)
 
 node_st *CG_CGarrayexpr(node_st *node)
 {
+    // Type checking only
+    int level = INT_MAX;
+    node_st *entry = deep_lookup_level(current, VAR_NAME(node), &level);
+    enum DataType has_type = symbol_to_type(entry);
+    release_assert(has_type != DT_NULL);
+    release_assert(has_type != DT_void);
+    release_assert(type == has_type);
+    release_assert(level != INT_MAX);
+
+    if (is_expr == false)
+    {
+        return node;
+    }
+
+    // Calculate index
     enum DataType parent_type = type;
     type = DT_int;
-    TRAVopt(ARRAYEXPR_DIMS(node));
+    TRAVopt(EXPRS_EXPR(ARRAYEXPR_DIMS(node)));
     type = parent_type;
-    TRAVopt(ARRAYEXPR_VAR(node));
+    release_assert(EXPRS_NEXT(ARRAYEXPR_DIMS(node)) == NULL); // Only 1d allowed
+
+    // Load the array reference
+    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYVAR_VAR(node)));
+    if (level == 0)
+    {
+        char load_str = '\0';
+        switch (idx)
+        {
+        case 0:
+            load_str = '0';
+            break;
+        case 1:
+            load_str = '1';
+            break;
+        case 2:
+            load_str = '2';
+            break;
+        case 3:
+            load_str = '3';
+            break;
+        default:
+            release_assert(idx > 3);
+            break;
+        }
+
+        if (load_str != '\0')
+        {
+            char *inst = STRfmt("aload_%c", load_str);
+            inst0(inst);
+            free(inst);
+        }
+        else
+        {
+            inst1("aload", idx);
+        }
+    }
+    else if (level > 0)
+    {
+        inst2("aloadn", level, idx);
+    }
+    else // level < 0
+    {
+        if (NODE_TYPE(entry) == NT_GLOBALDEC)
+        {
+            inst1("aloade", IDXlookup(import_table, VAR_NAME(node)));
+        }
+        else
+        {
+            inst1("aloadg", idx);
+        }
+    }
+
+    // Load the array element
+    switch (has_type)
+    {
+    case DT_NULL:
+    case DT_void:
+        release_assert(false);
+        break;
+    case DT_bool:
+        inst0(is_arrayexpr_store ? "bstorea" : "bloada");
+        break;
+    case DT_int:
+        inst0(is_arrayexpr_store ? "istorea" : "iloada");
+        break;
+    case DT_float:
+        inst0(is_arrayexpr_store ? "fstorea" : "floada");
+        break;
+    }
+
     return node;
 }
 
@@ -1029,7 +1442,13 @@ node_st *CG_CGarrayassign(node_st *node)
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     type = has_type;
-    TRAVchildren(node);
+    TRAVopt(ARRAYASSIGN_EXPR(node)); // calculate value to store to array
+
+    bool parent_is_arrayexpr_store = is_arrayexpr_store;
+    is_arrayexpr_store = true; // use store commands to array
+    TRAVopt(ARRAYASSIGN_VAR(node));
+    is_arrayexpr_store = parent_is_arrayexpr_store;
+
     type = parent_type;
     return node;
 }
@@ -1037,32 +1456,112 @@ node_st *CG_CGarrayassign(node_st *node)
 node_st *CG_CGint(node_st *node)
 {
     release_assert(type == DT_int);
-    TRAVchildren(node);
+    int val = INT_VAL(node);
+    if (is_expr == false)
+    {
+        char *val_str = int_to_str(val);
+        if (HTlookup(constant_table, val_str) == NULL)
+        {
+            IDXinsert(constant_table, val_str, constant_counter++);
+            consti(val);
+        }
+        free(val_str);
+        return node;
+    }
+
+    if (val == 0)
+    {
+        inst0("iloadc_0");
+    }
+    else if (val == 1)
+    {
+        inst0("iloadc_1");
+    }
+    else if (val == -1)
+    {
+        inst0("iloadc_m1");
+    }
+    else
+    {
+        char *val_str = int_to_str(val);
+        if (HTlookup(constant_table, val_str) == NULL)
+        {
+            IDXinsert(constant_table, val_str, constant_counter++);
+            consti(val);
+        }
+
+        ptrdiff_t idx = IDXlookup(constant_table, val_str);
+        inst1("iloadc", idx);
+
+        free(val_str);
+    }
+
     return node;
 }
 
 node_st *CG_CGfloat(node_st *node)
 {
     release_assert(type == DT_float);
-    TRAVchildren(node);
+    double val = FLOAT_VAL(node);
+    if (val == 0.0)
+    {
+        inst0("floadc_0");
+    }
+    else if (val == 1.0)
+    {
+        inst0("floadc_1");
+    }
+    else
+    {
+        char *val_str = float_to_str(val);
+        if (HTlookup(constant_table, val_str) == NULL)
+        {
+            IDXinsert(constant_table, val_str, constant_counter++);
+            constf(val);
+        }
+
+        ptrdiff_t idx = IDXlookup(constant_table, val_str);
+        inst1("floadc", idx);
+
+        free(val_str);
+    }
+
     return node;
 }
 
 node_st *CG_CGbool(node_st *node)
 {
     release_assert(type == DT_bool);
-    TRAVchildren(node);
+    if (BOOL_VAL(node) == true)
+    {
+        inst0("bloadc_t");
+    }
+    else
+    {
+        inst0("bloadc_f");
+    }
     return node;
 }
 
 node_st *CG_CGternary(node_st *node)
 {
+    char *pfalse_label = STRfmt("pfalse%d", if_counter);
+    char *end_label = STRfmt("pend%d", if_counter);
+    if_counter++;
+
     enum DataType parent_type = type;
     type = DT_bool;
     TRAVopt(TERNARY_PRED(node));
     type = parent_type;
-
+    instL("branch_f", pfalse_label);
     TRAVopt(TERNARY_PTRUE(node));
+    instL("jump", end_label);
+
+    label(pfalse_label);
     TRAVopt(TERNARY_PFALSE(node));
+    label(end_label);
+
+    free(pfalse_label);
+    free(end_label);
     return node;
 }
