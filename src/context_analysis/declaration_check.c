@@ -87,10 +87,11 @@ node_st *CA_DCvar(node_st *node)
 
 node_st *CA_DCvardec(node_st *node)
 {
+    // Edge case int a = a + 1 // a in expr is not declared
+    TRAVopt(VARDEC_EXPR(node));
     node_st *var = VARDEC_VAR(node);
     add_var_symbol(node, var);
     TRAVopt(VARDEC_VAR(node));
-    TRAVopt(VARDEC_EXPR(node));
     return node;
 }
 
@@ -138,6 +139,23 @@ node_st *CA_DCfundef(node_st *node)
     current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
 
+    return node;
+}
+
+node_st *CA_DCdeclarations(node_st *node)
+{
+    node_st *decl = DECLARATIONS_DECL(node);
+    if (NODE_TYPE(decl) == NT_GLOBALDEC || NODE_TYPE(decl) == NT_GLOBALDEF)
+    {
+        TRAVopt(decl); // Traverse global decs in there orderd
+        TRAVopt(DECLARATIONS_NEXT(node));
+    }
+    else
+    {
+        release_assert(NODE_TYPE(decl) == NT_FUNDEF || NODE_TYPE(decl) == NT_FUNDEC);
+        TRAVopt(DECLARATIONS_NEXT(node));
+        TRAVopt(decl); // Traverse functions after all globals
+    }
     return node;
 }
 

@@ -10,7 +10,6 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 static htable_stptr current = NULL;
@@ -738,6 +737,7 @@ node_st *CA_TCifstatement(node_st *node)
     type = DT_bool; // if statement should contain bool
     TRAVopt(IFSTATEMENT_EXPR(node));
     type = parent_type;
+    has_return = false;
     TRAVopt(IFSTATEMENT_BLOCK(node));
     bool if_has_return = has_return;
     has_return = false; // Reset for else check

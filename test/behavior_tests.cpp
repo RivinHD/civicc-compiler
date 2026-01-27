@@ -118,6 +118,8 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         size_t size = std::strtoul(line.substr(start + 1).c_str(), nullptr, 10);
         EXPECT_NE(ERANGE, errno);
         EXPECT_NE(size, 0);
+        EXPECT_TRUE(size >= 28); // CivicC VM bytes code has a fixed 28 bytes infill
+        size -= 28;
         return size;
     }
 

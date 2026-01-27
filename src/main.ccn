@@ -47,6 +47,9 @@ phase ContextAnalysis {
             uid = CA_DC,
             nodes = {
                 Program,
+                // Process all Global variables before the function, as the scoping rules say:
+                // Functions can access global variables defined before and after the function
+                Declarations, 
 
                 // Declarations
                 GlobalDec,

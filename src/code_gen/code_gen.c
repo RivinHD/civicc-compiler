@@ -161,14 +161,14 @@ static char *float_to_str(double value)
 static void consti(int value)
 {
     char *str = int_to_str(value);
-    out(".const int %s", str);
+    out(".const int %s  ; %d", str, value);
     free(str);
 }
 
 static void constf(double value)
 {
     char *str = float_to_str(value);
-    out(".const float %s", str);
+    out(".const float %s  ; %e", str, value);
     free(str);
 }
 
@@ -614,9 +614,23 @@ node_st *CG_CGbinop(node_st *node)
         switch (type)
         {
         case DT_int:
+            if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT && INT_VAL(BINOP_RIGHT(node)) == 0)
+            {
+                struct ctinfo info = NODE_TO_CTINFO(node);
+                info.filename = STRcpy(global.input_file);
+                CTIobj(CTI_WARN, true, info, "Division by zero.");
+                free(info.filename);
+            }
             inst0("idiv");
             break;
         case DT_float:
+            if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT && FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
+            {
+                struct ctinfo info = NODE_TO_CTINFO(node);
+                info.filename = STRcpy(global.input_file);
+                CTIobj(CTI_WARN, true, info, "Division by zero.");
+                free(info.filename);
+            }
             inst0("fdiv");
             break;
         default:
@@ -913,6 +927,9 @@ node_st *CG_CGdowhileloop(node_st *node)
 
 node_st *CG_CGforloop(node_st *node)
 {
+    // TODO Be carful we can have a negative step value where start becomes inclusive uppper bound
+    // and the stop value the execulsive lower bound
+    // TODO All expressions are evaluated exactly once!!!
     node_st *iter = FORLOOP_ITER(node);
     if (iter != NULL && NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 0)
     {
@@ -926,7 +943,8 @@ node_st *CG_CGforloop(node_st *node)
     type = DT_int;
     TRAVopt(FORLOOP_COND(node));
     TRAVopt(FORLOOP_ITER(node));
-    TRAVopt(FORLOOP_ASSIGN(node));
+    TRAVopt(ASSIGN_VAR(FORLOOP_ASSIGN(node)));
+    TRAVopt(ASSIGN_EXPR(FORLOOP_ASSIGN(node)));
     type = parent_type;
     TRAVopt(FORLOOP_BLOCK(node));
     return node;
