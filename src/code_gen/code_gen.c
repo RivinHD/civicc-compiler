@@ -1327,9 +1327,10 @@ node_st *CG_CGvar(node_st *node)
         type_str = 'a';
     }
 
-    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
     if (level == 0)
     {
+        ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
+
         char load_str = '\0';
         switch (idx)
         {
@@ -1365,6 +1366,8 @@ node_st *CG_CGvar(node_st *node)
     }
     else if (level > 0)
     {
+        ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
+
         char *inst = STRfmt("%cloadn", type_str);
         inst2(inst, level, idx);
         free(inst);
@@ -1379,6 +1382,8 @@ node_st *CG_CGvar(node_st *node)
         }
         else
         {
+            ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
+
             char *inst = STRfmt("%cloadg", type_str);
             inst1(inst, idx);
             free(inst);
@@ -1441,10 +1446,11 @@ node_st *CG_CGarrayexpr(node_st *node)
     type = parent_type;
     release_assert(EXPRS_NEXT(ARRAYEXPR_DIMS(node)) == NULL); // Only 1d allowed
 
-    // Load the array reference
-    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYEXPR_VAR(node)));
     if (level == 0)
     {
+        // Load the array reference
+        ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+
         char load_str = '\0';
         switch (idx)
         {
@@ -1478,16 +1484,22 @@ node_st *CG_CGarrayexpr(node_st *node)
     }
     else if (level > 0)
     {
+        // Load the array reference
+        ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+
         inst2("aloadn", level, idx);
     }
     else // level < 0
     {
         if (NODE_TYPE(entry) == NT_GLOBALDEC)
         {
-            inst1("aloade", IDXlookup(import_table, VAR_NAME(node)));
+            inst1("aloade", IDXlookup(import_table, VAR_NAME(ARRAYEXPR_VAR(node))));
         }
         else
         {
+            // Load the array reference
+            ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+
             inst1("aloadg", idx);
         }
     }

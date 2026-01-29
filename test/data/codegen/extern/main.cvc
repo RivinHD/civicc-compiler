@@ -1,0 +1,28 @@
+
+extern int a;
+extern float b;
+extern bool c;
+int d = 6;
+
+extern int[n] arr1;
+extern float[m, k] arr2;
+extern bool[h, i, j] arr3;
+
+extern void fun1();
+extern int fun2();
+extern float fun3();
+extern bool fun4();
+
+export int main() {
+    int val1;
+    int val2;
+    int val3;
+
+    a = 5;
+
+    val1 = arr1[0] + a;
+    val2 = fun2() + val1;
+    val3 = val2 + d;
+    
+    return 0;
+}

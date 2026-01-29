@@ -1,0 +1,13 @@
+
+export int main() {
+    int a = 5;
+    float b;
+
+    int c;
+    float d = 1.6;
+    
+    b = (float) a;
+    c = (int) d;
+
+    return 0;
+}

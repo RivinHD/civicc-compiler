@@ -1,0 +1,30 @@
+
+export int main() {
+    int a = 5;
+    float b = 0.5;
+    bool c = true;
+    int d;
+    int e;
+    
+    if ( b < 6.0 && b <= 6.0)
+    {
+        c = false;
+    }
+
+    if ( c )
+    {
+        a = 10;
+    }
+
+    if ( a > 6 || a < 0 )
+    {
+        b = 1.0;
+    }
+
+    d = a * 5;
+    b = b / 2.0;
+
+    e = d % 7;
+
+    return 0;
+}
