@@ -4,8 +4,8 @@ start phase RootPhase {
     actions {
         pass SPdoScanParse;
         ContextAnalysis;
-        Optimization;
         CodeGenPreparation;
+        Optimization;
         CodeGen;
         FreeSymbols;
     }

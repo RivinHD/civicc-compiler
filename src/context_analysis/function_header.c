@@ -68,7 +68,7 @@ node_st *CA_FHfundec(node_st *node)
         }
 
         char *new_name = STRfmt("@fun_%s", name);
-        HTinsert(current, new_name, node);
+        HTinsert(current, STRcpy(new_name), node);
 
         VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
         free(name);
@@ -111,7 +111,7 @@ node_st *CA_FHfundef(node_st *node)
             main_candidate = node;
         }
 
-        HTinsert(current, new_name, node);
+        HTinsert(current, STRcpy(new_name), node);
     }
     else
     {

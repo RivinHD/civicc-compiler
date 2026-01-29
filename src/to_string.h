@@ -17,3 +17,4 @@ char *node_to_string(node_st *node);
 char *_funheader_params_to_oneliner_string(node_st *node);
 char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter);
 char *symbols_to_string(node_st *node);
+char *idx_to_string(htable_stptr idxtable);

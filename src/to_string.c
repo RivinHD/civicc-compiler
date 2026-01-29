@@ -8,6 +8,7 @@
 #include "user_types.h"
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -589,5 +590,65 @@ char *symbols_to_string(node_st *node)
         free(value);
     }
     HTdelete(htable);
+    return output;
+}
+
+/// Creates a string representtation of the idx tables. The returned char pointer needs to freed
+/// by the caller.
+char *idx_to_string(htable_stptr idxtable)
+{
+    char *output = NULL;
+
+    if (idxtable == NULL)
+    {
+        return output;
+    }
+
+    htable_stptr parent = NULL;
+    for (htable_iter_st *iter = HTiterate(idxtable); iter; iter = HTiterateNext(iter))
+    {
+        // Getter functions to extract htable elements
+        char *key = HTiterKey(iter);
+        void *entry = HTiterValue(iter);
+        release_assert(key != NULL);
+        release_assert(entry != NULL);
+
+        if (STReq(key, htable_parent_name))
+        {
+            release_assert(parent == NULL);
+            parent = entry;
+        }
+        else
+        {
+            ptrdiff_t value = (ptrdiff_t)entry - 1;
+            char *text = STRfmt("├─ %s: %d\n", key, value);
+
+            char *output_old = output;
+            output = STRcat(output_old, text);
+            free(output_old);
+            free(text);
+        }
+    }
+
+    char *output_old = output;
+    if (output_old == NULL)
+    {
+        output_old = STRcpy("");
+    }
+
+    if (parent != NULL)
+    {
+        char *parent_output = idx_to_string(parent);
+        output = STRfmt("┌─ %p -- parent: '%p'\n%s└────────────────────\n\n %s", idxtable, parent,
+                        output_old, parent_output);
+        free(parent_output);
+    }
+    else
+    {
+        output = STRfmt("┌─ %p\n%s└────────────────────\n\n", idxtable, output_old);
+    }
+
+    free(output_old);
+
     return output;
 }
