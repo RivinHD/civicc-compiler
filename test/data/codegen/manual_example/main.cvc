@@ -1,0 +1,22 @@
+extern void printInt(int i);
+extern int scanInt();
+
+export int main() {
+    int n = scanInt();
+    int[n] values;
+    readValues(values);
+    printValues(values);
+    return 0;
+}
+
+void readValues(int[n] v) {
+    for (int i = 0, n) {
+        v[i] = scanInt();
+    }
+}
+
+void printValues(int[n] v) {
+    for (int i = 0, n) {
+        printInt(v[i]);
+    }
+}

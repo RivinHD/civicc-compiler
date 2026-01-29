@@ -52,7 +52,26 @@ static void out(const char *restrict format, ...)
     }
     else
     {
-        vsnprintf(global.output_buf, global.output_buf_len, format, args);
+        release_assert(global.output_buf_len != 0);
+        int added = vsnprintf(global.output_buf, global.output_buf_len, format, args);
+        if (added > 0)
+        {
+            if ((uint32_t)added > global.output_buf_len)
+            {
+                // Added more characters than buffer can hold
+                release_assert(false);
+            }
+            else
+            {
+                global.output_buf += added;
+                global.output_buf_len -= (uint32_t)added;
+            }
+        }
+        else
+        {
+            // Failed to add characters to buffer
+            release_assert(false);
+        }
     }
 #else
     (void)format;
@@ -95,7 +114,7 @@ static void label(const char *label)
 static char *function_signature(node_st *funheader)
 {
     release_assert(NODE_TYPE(funheader) == NT_FUNHEADER);
-    char *name = VAR_NAME(FUNHEADER_VAR(funheader));
+    const char *name = get_pretty_name(VAR_NAME(FUNHEADER_VAR(funheader)));
     char *ret_type = datatype_to_string(FUNHEADER_TYPE(funheader));
     char *output = STRfmt("\"%s\" %s", name, ret_type);
     free(ret_type);
@@ -104,7 +123,7 @@ static char *function_signature(node_st *funheader)
     while (param != NULL)
     {
         char *old_output = output;
-        char *str_type = datatype_to_string(PARAMS_TYPE(funheader));
+        char *str_type = datatype_to_string(PARAMS_TYPE(param));
 
         node_st *var = PARAMS_VAR(param);
         if (NODE_TYPE(var) == NT_ARRAYVAR)
@@ -126,21 +145,21 @@ static char *function_signature(node_st *funheader)
 static void exportfun(node_st *funheader, const char *label)
 {
     char *output = function_signature(funheader);
-    out(".exportfun %s %s", output, label);
+    out(".exportfun %s %s\n", output, label);
     free(output);
 }
 
 static void importfun(node_st *funheader)
 {
     char *output = function_signature(funheader);
-    out(".importfun %s", output);
+    out(".importfun %s\n", output);
     free(output);
 }
 
 static void exportvar(const char *name, ptrdiff_t index)
 {
     release_assert(index >= 0);
-    out(".exportvar \"%s\" %d", name, index);
+    out(".exportvar \"%s\" %d\n", name, index);
 }
 
 static void importvar(const char *name, node_st *entry)
@@ -149,11 +168,11 @@ static void importvar(const char *name, node_st *entry)
     node_st *var = get_var_from_symbol(entry);
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
-        out(".importvar \"%s\" %s[]", name, str_type);
+        out(".importvar \"%s\" %s[]\n", name, str_type);
     }
     else
     {
-        out(".importvar \"%s\" %s", name, str_type);
+        out(".importvar \"%s\" %s\n", name, str_type);
     }
     free(str_type);
 }
@@ -171,14 +190,14 @@ static char *float_to_str(double value)
 static void consti(int value)
 {
     char *str = int_to_str(value);
-    out(".const int %s  ; %d", str, value);
+    out(".const int %s  ; %d\n", str, value);
     free(str);
 }
 
 static void constf(double value)
 {
     char *str = float_to_str(value);
-    out(".const float %s  ; %e", str, value);
+    out(".const float %s  ; %e\n", str, value);
     free(str);
 }
 
@@ -186,11 +205,11 @@ static void constb(bool value)
 {
     if (value)
     {
-        out(".const float true");
+        out(".const float true\n");
     }
     else
     {
-        out(".const float false");
+        out(".const float false\n");
     }
 }
 
@@ -200,11 +219,11 @@ static void globalvar(node_st *entry)
     node_st *var = get_var_from_symbol(entry);
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
-        out(".global %s[]", str_type);
+        out(".global %s[]\n", str_type);
     }
     else
     {
-        out(".global %s", str_type);
+        out(".global %s\n", str_type);
     }
     free(str_type);
 }
@@ -234,6 +253,10 @@ static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
  */
 node_st *CG_CGprogram(node_st *node)
 {
+    char* str = node_to_string(node);
+    printf("%s", str);
+    free(str);
+
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {
@@ -276,7 +299,7 @@ node_st *CG_CGdeclarations(node_st *node)
 
 node_st *CG_CGfundec(node_st *node)
 {
-    IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))), fun_import_counter++);
+    IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEC_FUNHEADER(node))), fun_import_counter++);
     importfun(FUNDEC_FUNHEADER(node));
     return node;
 }
@@ -298,16 +321,42 @@ node_st *CG_CGfundef(node_st *node)
 
     if (FUNDEF_HAS_EXPORT(node))
     {
-        exportfun(FUNDEF_FUNHEADER(node), fun_name);
+        exportfun(FUNDEF_FUNHEADER(node), get_pretty_name(fun_name));
     }
 
-    label(fun_name);
+    label(get_pretty_name(fun_name));
 
     bool parent_is_expr = is_expr;
     is_expr = false;
     TRAVopt(FUNDEF_FUNHEADER(node));
+
+    uint32_t vardec_count = 0;
+    node_st *vardecs = FUNBODY_VARDECS(FUNDEF_FUNBODY(node));
+    while (vardecs != NULL)
+    {
+        vardec_count++;
+        vardecs = VARDECS_NEXT(vardecs);
+    }
+
+    inst1("esr", vardec_count);
+
     is_expr = parent_is_expr;
     TRAVopt(FUNDEF_FUNBODY(node));
+
+    if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(node)) == DT_void)
+    {
+       inst0("return");
+    }
+
+    uint32_t params_count = 0;
+    node_st* params = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
+    while (params != NULL)
+    {
+       params_count++; 
+       params = PARAMS_NEXT(params);
+    }
+
+    release_assert(idx_counter == vardec_count + params_count);
 
     HTdelete(table);
     idx_counter = parent_idx_counter;
@@ -363,21 +412,10 @@ node_st *CG_CGparams(node_st *node)
 
 node_st *CG_CGfunbody(node_st *node)
 {
-    uint32_t vardec_count = 0;
-    node_st *vardecs = FUNBODY_VARDECS(node);
-    while (vardecs != NULL)
-    {
-        vardec_count++;
-        vardecs = VARDECS_NEXT(vardecs);
-    }
-
-    inst1("esr", vardec_count);
-
     enum DataType parent_type = type;
     type = DT_void;
     TRAVchildren(node);
     type = parent_type;
-    release_assert(idx_counter == vardec_count);
     return node;
 }
 
@@ -888,9 +926,30 @@ node_st *CG_CGproccall(node_st *node)
     if (type != DT_void)
     {
         release_assert(has_type != DT_NULL);
+        release_assert(type != DT_NULL);
         release_assert(type == has_type);
     }
     release_assert(level != INT_MAX);
+
+    if (level == 0)
+    {
+        inst0("isrl");
+    }
+    else if (level > 0)
+    {
+        if (level == 1)
+        {
+            inst0("isr");
+        }
+        else
+        {
+            inst1("isrn", level - 1);
+        }
+    }
+    else // level < 0
+    {
+        inst0("isrg");
+    }
 
     release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
     node_st *funheader =
@@ -917,35 +976,13 @@ node_st *CG_CGproccall(node_st *node)
     release_assert(exprs == NULL);
     release_assert(params == NULL);
 
-    if (level == 0)
-    {
-        inst0("isrl");
-    }
-    else if (level > 0)
-    {
-        if (level == 1)
-        {
-            inst0("isr");
-        }
-        else
-        {
-            inst1("isrn", level - 1);
-        }
-    }
-    else // level < 0
-    {
-        inst0("isrg");
-    }
-
-    TRAVopt(PROCCALL_EXPRS(node));
-
     if (NODE_TYPE(entry) == NT_FUNDEC)
     {
         inst1("jsre", IDXlookup(import_table, name));
     }
     else
     {
-        instjsr(exprs_count, name);
+        instjsr(exprs_count, get_pretty_name(name));
     }
 
     // edge case procall to type == DT_void we must omit the return value which is placed
@@ -955,8 +992,10 @@ node_st *CG_CGproccall(node_st *node)
         switch (has_type)
         {
         case DT_NULL:
-        case DT_void:
             release_assert(false);
+            break;
+        case DT_void:
+            // Nothing to do
             break;
         case DT_bool:
             inst0("bpop");
@@ -1071,8 +1110,6 @@ node_st *CG_CGforloop(node_st *node)
     node_st *assign = FORLOOP_ASSIGN(node);
     release_assert(NODE_TYPE(ASSIGN_EXPR(assign)) == NT_VAR ||
                    NODE_TYPE(ASSIGN_EXPR(assign)) == NT_INT);
-    release_assert(NODE_TYPE(FORLOOP_ITER(node)) == NT_VAR ||
-                   NODE_TYPE(FORLOOP_ITER(node)) == NT_INT);
     release_assert(NODE_TYPE(FORLOOP_COND(node)) == NT_VAR ||
                    NODE_TYPE(FORLOOP_COND(node)) == NT_INT);
     if (FORLOOP_ITER(node) != NULL)
@@ -1216,18 +1253,20 @@ node_st *CG_CGcast(node_st *node)
 
 node_st *CG_CGvar(node_st *node)
 {
+    if (is_expr == false)
+    {
+        return node;
+    }
+
     int level = INT_MAX;
     node_st *entry = deep_lookup_level(current, VAR_NAME(node), &level);
     enum DataType has_type = symbol_to_type(entry);
+    release_assert(type != DT_NULL);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
 
-    if (is_expr == false)
-    {
-        return node;
-    }
 
     char type_str = '\0';
     switch (has_type)
@@ -1245,6 +1284,12 @@ node_st *CG_CGvar(node_st *node)
     case DT_float:
         type_str = 'f';
         break;
+    }
+
+    node_st* var = get_var_from_symbol(entry);
+    if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
+    {
+        type_str = 'a';
     }
 
     ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(node));
@@ -1340,19 +1385,20 @@ node_st *CG_CGarrayinit(node_st *node)
 
 node_st *CG_CGarrayexpr(node_st *node)
 {
+    if (is_expr == false)
+    {
+        return node;
+    }
+
     // Type checking only
     int level = INT_MAX;
-    node_st *entry = deep_lookup_level(current, VAR_NAME(node), &level);
+    node_st *entry = deep_lookup_level(current, VAR_NAME(ARRAYEXPR_VAR(node)), &level);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
 
-    if (is_expr == false)
-    {
-        return node;
-    }
 
     // Calculate index
     enum DataType parent_type = type;
@@ -1362,7 +1408,7 @@ node_st *CG_CGarrayexpr(node_st *node)
     release_assert(EXPRS_NEXT(ARRAYEXPR_DIMS(node)) == NULL); // Only 1d allowed
 
     // Load the array reference
-    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYVAR_VAR(node)));
+    ptrdiff_t idx = IDXdeep_lookup(idx_table, VAR_NAME(ARRAYEXPR_VAR(node)));
     if (level == 0)
     {
         char load_str = '\0';

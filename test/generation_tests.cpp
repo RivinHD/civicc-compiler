@@ -1,3 +1,4 @@
+#include "testutils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <filesystem>
@@ -29,6 +30,7 @@ class GenerationTest : public testing::Test
     GenerationTest()
     {
         output_buffer = new char[output_buffer_size];
+        output_buffer[0] = '\0';
     }
 
     void SetUp(node_st *node)
@@ -106,7 +108,90 @@ class GenerationTest : public testing::Test
 
         if (output_buffer != nullptr)
         {
+            if (HasFailure())
+            {
+                std::cerr
+                    << "========================================================================\n"
+                    << "                            Generated Code\n"
+                    << "========================================================================\n"
+                    << output_buffer << std::endl;
+            }
             delete[] output_buffer;
         }
     }
 };
+
+TEST_F(GenerationTest, ManualExample)
+{
+    SetUp("codegen/manual_example/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importfun \"printInt\" void int\n"
+                           ".importfun \"scanInt\" int\n"
+                           ".exportfun \"main\" int main\n"
+                           "main:\n"
+                           "    esr 3\n"
+                           "    isrg\n"
+                           "    jsre 1\n"
+                           "    iload_1\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    inewa\n"
+                           "    astore 2\n"
+                           "    isrg\n"
+                           "    iload_1\n"
+                           "    aload_2\n"
+                           "    jsr 2 readValues\n"
+                           "    isrg\n"
+                           "    iload_1\n"
+                           "    aload_2\n"
+                           "    jsr 2 printValues\n"
+                           "    iloadc_0\n"
+                           "    ireturn\n"
+                           "readValues:\n"
+                           "    esr 2\n"
+                           "    iload_0\n"
+                           "    istore 3\n"
+                           "    iloadc_0\n"
+                           "    istore 2\n"
+                           "for0:\n"
+                           "    iload_2\n"
+                           "    iload_3\n"
+                           "    ilt\n"
+                           "    branch_f endfor0\n"
+                           "    isrg\n"
+                           "    jsre 1\n"
+                           "    iload_2\n"
+                           "    aload_1\n"
+                           "    istorea\n"
+                           "    iinc_1 2\n"
+                           "    jump for0\n"
+                           "endfor0:\n"
+                           "    return\n"
+                           "printValues:\n"
+                           "    esr 2\n"
+                           "    iload_0\n"
+                           "    istore 3\n"
+                           "    iloadc_0\n"
+                           "    istore 2\n"
+                           "for1:\n"
+                           "    iload_2\n"
+                           "    iload_3\n"
+                           "    ilt\n"
+                           "    branch_f endfor1\n"
+                           "    isrg\n"
+                           "    iload_2\n"
+                           "    aload_1\n"
+                           "    iloada\n"
+                           "    jsre 0\n"
+                           "    iinc_1 2\n"
+                           "    jump for1\n"
+                           "endfor1:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    esr 0\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}

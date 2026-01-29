@@ -57,10 +57,44 @@ Note: Afl is not required to build the generator."
 )
 option(DEBUG_SCANPARSE "Prints debug information from the lexing and parsing to the console." OFF)
 
-option(CIVICC_ASSEMBLER "The path to the civicc assembler 'civas'" "civas")
-option(CIVICC_VM "The path to the civicc virtual machine 'civvm'" "civvm")
+option(CIVICC_ASSEMBLER "The path to the civicc assembler 'civas'")
+option(CIVICC_VM "The path to the civicc virtual machine 'civvm'")
 
-add_compile_definitions(PROGRAM_CIVAS="${CIVICC_ASSEMBLER}" PROGRAM_CIVVM="${CIVICC_VM}")
+if(NOT "${CIVICC_ASSEMBLER}")
+    find_file(PATH_CIVAS
+        "civas"
+        OPTIONAL
+    )
+else()
+    get_filename_component(DIR_CIVAS "${CIVICC_ASSEMBLER}" DIRECTORY)
+    get_filename_component(FILENAME_CIVAS "${CIVICC_ASSEMBLER}" NAME)
+    find_file(PATH_CIVAS
+        "${FILENAME_CIVAS}"
+        PATHS "${DIR_CIVAS}"
+        REQUIRED
+    )
+endif()
+
+if(NOT "${CIVICC_VM}")
+    find_file(PATH_CIVVM
+        "civvm"
+        OPTIONAL
+    )
+else()
+    get_filename_component(DIR_CIVVM "${CIVICC_VM}" DIRECTORY)
+    get_filename_component(FILENAME_CIVVM "${CIVICC_VM}" NAME)
+    find_file(PATH_CIVVM
+        "${FILENAME_CIVVM}"
+        PATHS "${DIR_CIVVM}"
+        REQUIRED
+    )
+endif()
+
+if(DEFINED PATH_CIVVM AND DEFINED PATH_CIVAS)
+    message(STATUS "Found 'civas' at: '${PATH_CIVAS}'")
+    message(STATUS "Found 'civvm' at: '${PATH_CIVVM}'")
+    add_compile_definitions(PROGRAM_CIVAS="${PATH_CIVAS}" PROGRAM_CIVVM="${PATH_CIVAS}")
+endif()
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")
 set(COMPILER "${CMAKE_CURRENT_BINARY_DIR}/civicc")

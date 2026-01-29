@@ -43,7 +43,7 @@ node_st *CGP_PPproccall(node_st *node)
         {
             node_st *entry = deep_lookup(current, VAR_NAME(cur_expr));
             release_assert(entry != NULL);
-            node_st *cur_var = PARAMS_VAR(entry);
+            node_st *cur_var = get_var_from_symbol(entry);
 
             if (NODE_TYPE(cur_var) == NT_ARRAYVAR)
             {
@@ -54,6 +54,17 @@ node_st *CGP_PPproccall(node_st *node)
                                                   PROCCALL_EXPRS(node));
                     PROCCALL_EXPRS(node) = new_exprs;
                     cur_arrayvar_dim_vars = DIMENSIONVARS_NEXT(cur_arrayvar_dim_vars);
+                }
+            }
+            else if(NODE_TYPE(cur_var) == NT_ARRAYEXPR)
+            {
+                node_st *cur_arrayexpr_dim_vars = ARRAYEXPR_DIMS(cur_var);
+                while (cur_arrayexpr_dim_vars != NULL)
+                {
+                    node_st *new_exprs = ASTexprs(CCNcopy(EXPRS_EXPR(cur_arrayexpr_dim_vars)),
+                                                  PROCCALL_EXPRS(node));
+                    PROCCALL_EXPRS(node) = new_exprs;
+                    cur_arrayexpr_dim_vars = EXPRS_NEXT(cur_arrayexpr_dim_vars);
                 }
             }
         }

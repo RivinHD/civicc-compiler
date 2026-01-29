@@ -24,6 +24,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
     std::filesystem::path input_filepath[TCount];
     std::filesystem::path output_filepath[TCount];
     size_t code_sizes[TCount]; // in bytes; Filled after Execute was called.
+    size_t instruction_count;
     std::string err_output;
     std::string std_output;
 
@@ -74,8 +75,9 @@ template <size_t TCount> class BehaviorTest : public testing::Test
     }
 
     // Runs the generated civicc program and returns the number of exectued instructions.
-    size_t Execute()
+    void Execute()
     {
+#if defined(PROGRAM_CIVVM) && defined(PROGRAM_CIVAS)
         std::string objects;
         for (size_t i = 0; i < TCount; i++)
         {
@@ -120,7 +122,10 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         EXPECT_NE(size, 0);
         EXPECT_TRUE(size >= 28); // CivicC VM bytes code has a fixed 28 bytes infill
         size -= 28;
-        return size;
+        instruction_count = size;
+#else
+        GTEST_SKIP() << "Missing civas or civvm to execute. Test is skipped!";
+#endif // defined (PROGRAM_CIVVM) && defined (PROGRAM_CIVAS)
     }
 
     void TearDown() override
