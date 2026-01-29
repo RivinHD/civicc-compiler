@@ -344,7 +344,10 @@ node_st *CG_CGfundef(node_st *node)
         vardecs = VARDECS_NEXT(vardecs);
     }
 
-    inst1("esr", vardec_count);
+    if (vardec_count != 0)
+    {
+        inst1("esr", vardec_count);
+    }
 
     is_expr = parent_is_expr;
     TRAVopt(FUNDEF_FUNBODY(node));
@@ -912,7 +915,7 @@ node_st *CG_CGvardec(node_st *node)
     is_expr = parent_is_expr;
     TRAVopt(VARDEC_EXPR(node));
 
-    if (VARDEC_EXPR(node) == NULL)
+    if (VARDEC_EXPR(node) != NULL)
     {
         release_assert(NODE_TYPE(var) == NT_VAR);
         ptrdiff_t index = IDXlookup(idx_table, name);
