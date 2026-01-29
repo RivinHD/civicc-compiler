@@ -912,22 +912,26 @@ node_st *CG_CGvardec(node_st *node)
     is_expr = parent_is_expr;
     TRAVopt(VARDEC_EXPR(node));
 
-    ptrdiff_t index = IDXlookup(idx_table, name);
-    switch (type)
+    if (VARDEC_EXPR(node) == NULL)
     {
-    case DT_NULL:
-    case DT_void:
-        release_assert(false);
-        break;
-    case DT_int:
-        inst1("istore", index);
-        break;
-    case DT_float:
-        inst1("fstore", index);
-        break;
-    case DT_bool:
-        inst1("bstore", index);
-        break;
+        release_assert(NODE_TYPE(var) == NT_VAR);
+        ptrdiff_t index = IDXlookup(idx_table, name);
+        switch (type)
+        {
+        case DT_NULL:
+        case DT_void:
+            release_assert(false);
+            break;
+        case DT_int:
+            inst1("istore", index);
+            break;
+        case DT_float:
+            inst1("fstore", index);
+            break;
+        case DT_bool:
+            inst1("bstore", index);
+            break;
+        }
     }
 
     type = parent_type;
