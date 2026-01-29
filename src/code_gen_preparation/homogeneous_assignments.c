@@ -1,4 +1,5 @@
 #include "ccngen/ast.h"
+#include "code_gen_preparation/unpack_arrayinit.h"
 #include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
@@ -17,14 +18,14 @@ node_st *CGP_HAvardec(node_st *node)
 {
     node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
 
-    node_st *temp_var = VARDEC_VAR(node);
-    if (NODE_TYPE(temp_var) == NT_ARRAYEXPR)
+    node_st *var = VARDEC_VAR(node);
+    if (NODE_TYPE(var) == NT_ARRAYEXPR)
     {
         node_st *funbody = FUNDEF_FUNBODY(last_fundef);
         node_st *expr = VARDEC_EXPR(node);
 
         // Step 0: Count iteration length
-        node_st *dim = ARRAYEXPR_DIMS(temp_var);
+        node_st *dim = ARRAYEXPR_DIMS(var);
         node_st *alloc_expr = CCNcopy(EXPRS_EXPR(dim));
         dim = EXPRS_NEXT(dim);
         while (dim != NULL)
@@ -46,7 +47,7 @@ node_st *CGP_HAvardec(node_st *node)
         node_st *alloc_var = ASTvar(STRcpy(alloc_func));
         node_st *alloc_exprs = ASTexprs(CCNcopy(dims_var), NULL);
         node_st *alloc_proccall = ASTproccall(alloc_var, alloc_exprs);
-        node_st *alloc_stmt = ASTassign(CCNcopy(ARRAYEXPR_VAR(temp_var)), alloc_proccall);
+        node_st *alloc_stmt = ASTassign(CCNcopy(ARRAYEXPR_VAR(var)), alloc_proccall);
 
         // Step 2: Find position to append to
         node_st *stmts = FUNBODY_STMTS(cur_funbody);
@@ -59,53 +60,71 @@ node_st *CGP_HAvardec(node_st *node)
             stmts = STATEMENTS_NEXT(stmts);
         }
 
-        node_st *alloc_stmts = NULL;
         if (expr != NULL)
         {
-            node_st *loop_expression = ASTvar(STRfmt("@loop_expr%d", loop_counter));
-            node_st *expr_assign = ASTassign(CCNcopy(loop_expression), expr);
-            node_st *new_vardec = ASTvardec(loop_expression, NULL, VARDEC_TYPE(node));
-            HTinsert(current, VAR_NAME(VARDEC_VAR(new_vardec)), new_vardec);
+            if (NODE_TYPE(expr) == NT_ARRAYINIT)
+            {
+                node_st *top_stmts = NULL;
+                node_st *last_stmts =
+                    init_index_calculation(node, VAR_NAME(ARRAYEXPR_VAR(var)), &top_stmts);
+                if (ARRAYINIT_EXPR(expr) != NULL)
+                {
+                    release_assert(top_stmts != NULL);
+                    release_assert(last_stmts != NULL);
+                    release_assert(STATEMENTS_NEXT(last_stmts) == NULL);
 
-            // Step 3.1: Create for Loop
-            node_st *loop_var = ASTvar(STRfmt("@loop_var%d", loop_counter));
-            node_st *loop_assign = ASTassign(loop_var, ASTint(0));
-            node_st *loop_array_exprs = ASTexprs(CCNcopy(loop_var), NULL);
-            node_st *loop_array_assign =
-                ASTarrayexpr(loop_array_exprs, CCNcopy(ARRAYEXPR_VAR(temp_var)));
-            node_st *loop_block_assign =
-                ASTarrayassign(loop_array_assign, CCNcopy(loop_expression));
-            node_st *loop_stmts = ASTstatements(loop_block_assign, NULL);
-            node_st *loop = ASTforloop(loop_assign, CCNcopy(dims_var), NULL, loop_stmts);
-            node_st *new_loop_vardec = ASTvardec(CCNcopy(loop_var), NULL, DT_int);
-            HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
-            node_st *new_loop_vardecs = ASTvardecs(new_loop_vardec, FUNBODY_VARDECS(funbody));
-            FUNBODY_VARDECS(funbody) = new_loop_vardecs;
+                    STATEMENTS_NEXT(last_stmts) = stmts;
+                    stmts = top_stmts;
+                }
+                else
+                {
+                    release_assert(top_stmts == NULL);
+                    release_assert(last_stmts == NULL);
+                }
+            }
+            else
+            {
+                node_st *loop_expression = ASTvar(STRfmt("@loop_expr%d", loop_counter));
+                node_st *expr_assign = ASTassign(CCNcopy(loop_expression), expr);
+                node_st *new_vardec = ASTvardec(loop_expression, NULL, VARDEC_TYPE(node));
+                HTinsert(current, VAR_NAME(VARDEC_VAR(new_vardec)), new_vardec);
 
-            // Step 3.2: Append alloc + loop statement at the calculated position
-            node_st *assign_loop_stmts = ASTstatements(loop, stmts);
-            node_st *new_temp_stmts = ASTstatements(expr_assign, assign_loop_stmts);
-            alloc_stmts = ASTstatements(alloc_stmt, new_temp_stmts);
-            alloc_stmts = ASTstatements(dims_assign, alloc_stmts);
+                // Step 3.1: Create for Loop
+                node_st *loop_var = ASTvar(STRfmt("@loop_var%d", loop_counter));
+                node_st *loop_assign = ASTassign(loop_var, ASTint(0));
+                node_st *loop_array_exprs = ASTexprs(CCNcopy(loop_var), NULL);
+                node_st *loop_array_assign =
+                    ASTarrayexpr(loop_array_exprs, CCNcopy(ARRAYEXPR_VAR(var)));
+                node_st *loop_block_assign =
+                    ASTarrayassign(loop_array_assign, CCNcopy(loop_expression));
+                node_st *loop_stmts = ASTstatements(loop_block_assign, NULL);
+                node_st *loop = ASTforloop(loop_assign, CCNcopy(dims_var), NULL, loop_stmts);
+                node_st *new_loop_vardec = ASTvardec(CCNcopy(loop_var), NULL, DT_int);
+                HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
+                node_st *new_loop_vardecs = ASTvardecs(new_loop_vardec, FUNBODY_VARDECS(funbody));
+                FUNBODY_VARDECS(funbody) = new_loop_vardecs;
 
-            node_st *new_vardecs = ASTvardecs(new_vardec, FUNBODY_VARDECS(funbody));
-            FUNBODY_VARDECS(funbody) = new_vardecs;
+                // Step 3.2: Append alloc + loop statement at the calculated position
+                stmts = ASTstatements(loop, stmts);
+                stmts = ASTstatements(expr_assign, stmts);
+
+                node_st *new_vardecs = ASTvardecs(new_vardec, FUNBODY_VARDECS(funbody));
+                FUNBODY_VARDECS(funbody) = new_vardecs;
+            }
         }
-        else
-        {
-            alloc_stmts = ASTstatements(alloc_stmt, stmts);
-            alloc_stmts = ASTstatements(dims_assign, alloc_stmts);
-        }
+
+        stmts = ASTstatements(alloc_stmt, stmts);
+        stmts = ASTstatements(dims_assign, stmts);
 
         loop_counter++;
-        release_assert(alloc_stmts != NULL);
+        release_assert(stmts != NULL);
         if (last_stmts != NULL)
         {
-            STATEMENTS_NEXT(last_stmts) = alloc_stmts;
+            STATEMENTS_NEXT(last_stmts) = stmts;
         }
         else
         {
-            FUNBODY_STMTS(cur_funbody) = alloc_stmts;
+            FUNBODY_STMTS(cur_funbody) = stmts;
         }
 
         // Update node

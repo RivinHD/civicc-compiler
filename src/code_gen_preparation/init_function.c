@@ -1,4 +1,5 @@
 #include "ccngen/ast.h"
+#include "code_gen_preparation/unpack_arrayinit.h"
 #include "definitions.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
@@ -9,67 +10,8 @@
 #include <ccngen/enum.h>
 #include <stdbool.h>
 
-static node_st *cur_var_array_expr = NULL;
 static node_st *init_fun = NULL;
 static uint32_t init_counter = 0;
-
-void nested_init_index_calculation(node_st *node, node_st *start_exprs)
-{
-    release_assert(node != NULL);
-    release_assert(start_exprs != NULL);
-    release_assert(NODE_TYPE(start_exprs) == NT_EXPRS);
-
-    if (NODE_TYPE(node) != NT_ARRAYINIT)
-    {
-        // Here: rec_init = Int -- val:'1'
-        node_st *new_var = ASTvar(STRcpy(VAR_NAME(cur_var_array_expr)));
-        node_st *new_arrayexpr = ASTarrayexpr(start_exprs, new_var);
-        node_st *new_arrayassign = ASTarrayassign(new_arrayexpr, CCNcopy(node));
-
-        node_st *new_stmts =
-            ASTstatements(new_arrayassign, FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)));
-        FUNBODY_STMTS(FUNDEF_FUNBODY(init_fun)) = new_stmts;
-        return;
-    }
-
-    int index_counter = 0;
-    while (node != NULL)
-    {
-        release_assert(NODE_TYPE(node) == NT_ARRAYINIT);
-        if (ARRAYINIT_EXPR(node) != NULL)
-        {
-            node_st *copy_start_exprs = CCNcopy(start_exprs);
-            release_assert(NODE_TYPE(copy_start_exprs) == NT_EXPRS);
-            node_st *exprs = copy_start_exprs;
-            while (EXPRS_NEXT(exprs) != NULL)
-            {
-                exprs = EXPRS_NEXT(exprs);
-                release_assert(NODE_TYPE(exprs) == NT_EXPRS);
-            }
-
-            node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
-            EXPRS_NEXT(exprs) = new_exprs;
-            nested_init_index_calculation(ARRAYINIT_EXPR(node), copy_start_exprs);
-        }
-        node = ARRAYINIT_NEXT(node);
-    }
-    CCNfree(start_exprs);
-}
-
-void init_index_calculation(node_st *node)
-{
-    node_st *rec_init = VARDEC_EXPR(node);
-    int index_counter = 0;
-    while (rec_init != NULL)
-    {
-        if (ARRAYINIT_EXPR(rec_init) != NULL)
-        {
-            node_st *new_exprs = ASTexprs(ASTint(index_counter++), NULL);
-            nested_init_index_calculation(ARRAYINIT_EXPR(rec_init), new_exprs);
-        }
-        rec_init = ARRAYINIT_NEXT(rec_init);
-    }
-}
 
 node_st *CGP_IFglobaldef(node_st *node)
 {
@@ -91,13 +33,31 @@ node_st *CGP_IFglobaldef(node_st *node)
         {
             new_assign = ASTassign(CCNcopy(var), expr);
             VARDEC_EXPR(cur_vardec) = NULL;
+            node_st *new_stmts = ASTstatements(new_assign, init_stmts);
+            FUNBODY_STMTS(init_funbody) = new_stmts;
         }
         else
         {
             if (NODE_TYPE(expr) == NT_ARRAYINIT)
             {
-                cur_var_array_expr = ARRAYEXPR_VAR(var);
-                init_index_calculation(cur_vardec);
+                node_st *top_stmts = NULL;
+                node_st *last_stmts =
+                    init_index_calculation(cur_vardec, VAR_NAME(ARRAYEXPR_VAR(var)), &top_stmts);
+
+                if (ARRAYINIT_EXPR(expr) != NULL)
+                {
+                    release_assert(top_stmts != NULL);
+                    release_assert(last_stmts != NULL);
+                    release_assert(STATEMENTS_NEXT(last_stmts) == NULL);
+
+                    STATEMENTS_NEXT(last_stmts) = init_stmts;
+                    FUNBODY_STMTS(init_funbody) = top_stmts;
+                }
+                else
+                {
+                    release_assert(top_stmts == NULL);
+                    release_assert(last_stmts == NULL);
+                }
 
                 VARDEC_EXPR(cur_vardec) = NULL;
                 CCNfree(expr);
@@ -114,10 +74,10 @@ node_st *CGP_IFglobaldef(node_st *node)
 
                 // update current node
                 VARDEC_EXPR(cur_vardec) = CCNcopy(tmp_var);
+                node_st *new_stmts = ASTstatements(new_assign, init_stmts);
+                FUNBODY_STMTS(init_funbody) = new_stmts;
             }
         }
-        node_st *new_stmts = ASTstatements(new_assign, init_stmts);
-        FUNBODY_STMTS(init_funbody) = new_stmts;
     }
 
     TRAVopt(cur_vardec);
