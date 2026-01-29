@@ -3,6 +3,7 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "user_types.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
@@ -174,9 +175,10 @@ node_st *CGP_AAstatements(node_st *node)
 {
     current_statements = node;
     TRAVopt(STATEMENTS_STMT(current_statements));
-    TRAVopt(STATEMENTS_NEXT(current_statements));
+    node_st* this_stmts = current_statements;
+    TRAVopt(STATEMENTS_NEXT(this_stmts));
 
-    return current_statements;
+    return this_stmts;
 }
 
 node_st *CGP_AAvardecs(node_st *node)

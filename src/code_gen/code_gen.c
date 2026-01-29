@@ -253,7 +253,7 @@ static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
  */
 node_st *CG_CGprogram(node_st *node)
 {
-    char* str = node_to_string(node);
+    char *str = node_to_string(node);
     printf("%s", str);
     free(str);
 
@@ -281,6 +281,12 @@ node_st *CG_CGprogram(node_st *node)
     TRAVchildren(node);
     HTdelete(table);
     HTdelete(import_table);
+    for (htable_iter_st *iter = HTiterate(constant_table); iter; iter = HTiterateNext(iter))
+    {
+        // Getter functions to extract htable elements
+        char *key = HTiterKey(iter);
+        free(key);
+    }
     HTdelete(constant_table);
 
     if (fd != NULL)
@@ -345,15 +351,15 @@ node_st *CG_CGfundef(node_st *node)
 
     if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(node)) == DT_void)
     {
-       inst0("return");
+        inst0("return");
     }
 
     uint32_t params_count = 0;
-    node_st* params = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
+    node_st *params = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
     while (params != NULL)
     {
-       params_count++; 
-       params = PARAMS_NEXT(params);
+        params_count++;
+        params = PARAMS_NEXT(params);
     }
 
     release_assert(idx_counter == vardec_count + params_count);
@@ -664,7 +670,6 @@ node_st *CG_CGbinop(node_st *node)
     release_assert(type != DT_void);
     release_assert(type != DT_NULL);
     TRAVchildren(node);
-    type = parent_type;
 
     switch (BINOP_OP(node))
     {
@@ -853,6 +858,7 @@ node_st *CG_CGbinop(node_st *node)
         release_assert(false);
         break;
     }
+    type = parent_type;
 
     return node;
 }
@@ -1084,7 +1090,7 @@ node_st *CG_CGdowhileloop(node_st *node)
     loop_counter++;
 
     label(while_label);
-    TRAVopt(WHILELOOP_BLOCK(node));
+    TRAVopt(DOWHILELOOP_BLOCK(node));
 
     enum DataType parent_type = type;
     type = DT_bool;
@@ -1152,7 +1158,9 @@ node_st *CG_CGforloop(node_st *node)
         TRAVopt(FORLOOP_BLOCK(node));
         bool parent_is_expr = is_expr;
         is_expr = false;
+        type = DT_int;
         TRAVopt(iter); // only add to constant table if not available
+        type = parent_type;
         is_expr = parent_is_expr;
         char *val_str = int_to_str(INT_VAL(iter));
         inst2("iinc", IDXlookup(idx_table, assign_name), IDXlookup(constant_table, val_str));
@@ -1180,9 +1188,11 @@ node_st *CG_CGforloop(node_st *node)
         instL("branch_f", end_label);
         type = parent_type;
         TRAVopt(FORLOOP_BLOCK(node));
+        type = DT_int;
         inst1("idec_1", cond_idx);
         TRAVopt(ASSIGN_VAR(assign));
         TRAVopt(iter);
+        type = parent_type;
         inst0("iadd");
         inst1("istore", IDXlookup(idx_table, VAR_NAME(iter)));
         instL("jump", start_label);
@@ -1267,7 +1277,6 @@ node_st *CG_CGvar(node_st *node)
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
 
-
     char type_str = '\0';
     switch (has_type)
     {
@@ -1286,7 +1295,7 @@ node_st *CG_CGvar(node_st *node)
         break;
     }
 
-    node_st* var = get_var_from_symbol(entry);
+    node_st *var = get_var_from_symbol(entry);
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
         type_str = 'a';
@@ -1399,7 +1408,6 @@ node_st *CG_CGarrayexpr(node_st *node)
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
 
-
     // Calculate index
     enum DataType parent_type = type;
     type = DT_int;
@@ -1511,7 +1519,10 @@ node_st *CG_CGint(node_st *node)
             IDXinsert(constant_table, val_str, constant_counter++);
             consti(val);
         }
-        free(val_str);
+        else
+        {
+            free(val_str);
+        }
         return node;
     }
 
@@ -1534,12 +1545,17 @@ node_st *CG_CGint(node_st *node)
         {
             IDXinsert(constant_table, val_str, constant_counter++);
             consti(val);
+
+            ptrdiff_t idx = IDXlookup(constant_table, val_str);
+            inst1("iloadc", idx);
         }
+        else
+        {
+            ptrdiff_t idx = IDXlookup(constant_table, val_str);
+            inst1("iloadc", idx);
 
-        ptrdiff_t idx = IDXlookup(constant_table, val_str);
-        inst1("iloadc", idx);
-
-        free(val_str);
+            free(val_str);
+        }
     }
 
     return node;
@@ -1564,12 +1580,17 @@ node_st *CG_CGfloat(node_st *node)
         {
             IDXinsert(constant_table, val_str, constant_counter++);
             constf(val);
+
+            ptrdiff_t idx = IDXlookup(constant_table, val_str);
+            inst1("floadc", idx);
         }
+        else
+        {
+            ptrdiff_t idx = IDXlookup(constant_table, val_str);
+            inst1("floadc", idx);
 
-        ptrdiff_t idx = IDXlookup(constant_table, val_str);
-        inst1("floadc", idx);
-
-        free(val_str);
+            free(val_str);
+        }
     }
 
     return node;
