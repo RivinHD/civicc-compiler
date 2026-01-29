@@ -81,6 +81,7 @@ node_st *CGP_HAvardec(node_st *node)
                     release_assert(top_stmts == NULL);
                     release_assert(last_stmts == NULL);
                 }
+                CCNfree(expr);
             }
             else
             {
