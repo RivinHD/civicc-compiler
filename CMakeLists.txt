@@ -90,7 +90,7 @@ else()
     )
 endif()
 
-if("${PATH_CIVAS}" STREQUAL "PARTH_CIVAS-NOTFOUND")
+if("${PATH_CIVAS}" STREQUAL "PATH_CIVAS-NOTFOUND")
     message(STATUS "Missing 'civas' skipping behavior tests!")
     set(PATH_CIVAS_FOUND TRUE)
 else()
@@ -107,7 +107,6 @@ else()
 endif()
 
 if((${PATH_CIVAS_FOUND}) AND (${PATH_CIVVM_FOUND}))
-    message(STATUS "Added to compile definition")
     add_compile_definitions(PROGRAM_CIVAS="${PATH_CIVAS}" PROGRAM_CIVVM="${PATH_CIVAS}")
 endif()
 
