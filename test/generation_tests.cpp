@@ -1,13 +1,19 @@
 #include "testutils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include <cstddef>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <stdint.h>
+#include <stdio.h>
 #include <string>
+#include <sys/mman.h>
+#include <unistd.h>
 
 extern "C"
 {
+#include "palm/str.h"
 #include "test_interface.h"
 #include "to_string.h"
 }
@@ -44,6 +50,8 @@ class GenerationTest : public testing::Test
         ASSERT_THAT(err_output,
                     testing::Not(testing::HasSubstr("error: Inconsistent node found in AST")));
         root_string = node_to_string(root);
+        symbols_string = symbols_to_string(root);
+        CheckAssembly();
     }
 
     void SetUpNoExecute(std::string filepath)
@@ -67,6 +75,42 @@ class GenerationTest : public testing::Test
                     testing::Not(testing::HasSubstr("error: Inconsistent node found in AST")));
         root_string = node_to_string(root);
         symbols_string = symbols_to_string(root);
+        CheckAssembly();
+    }
+
+    void CheckAssembly()
+    {
+#ifdef PROGRAM_CIVAS
+        int proc_code = memfd_create("test_civ_code", 0);
+        ASSERT_NE(-1, proc_code);
+        size_t len = STRlen(output_buffer) + 1; // Include null terminate character
+        ssize_t written = pwrite(proc_code, output_buffer, len, 0);
+        ASSERT_NE(-1, written);
+
+        char *assembler_cmd =
+            STRfmt("%s 2>&1 -o /dev/null /proc/self/fd/%d", PROGRAM_CIVAS, proc_code);
+        FILE *fd_civas = popen(assembler_cmd, "r");
+        free(assembler_cmd);
+        ASSERT_NE(nullptr, fd_civas) << "Failed to popen civas";
+
+        const size_t buf_len = 1024;
+        char buf[buf_len];
+
+        while (fgets(buf, buf_len, fd_civas) != NULL)
+        {
+            ASSERT_THAT(std::string(buf), testing::Not(testing::HasSubstr("error")));
+        }
+
+        // Close
+        int status = pclose(fd_civas);
+
+        ASSERT_NE(-1, status) << "Failed to retrieve the status";
+        int exit_status = WEXITSTATUS(status);
+        ASSERT_EQ(0, exit_status) << "Error on assembling the generated code.";
+
+        int signal = WIFSIGNALED(status);
+        ASSERT_EQ(0, signal) << "Killed by signal: '" << WTERMSIG(status) << "'";
+#endif // PROGRAM_CIVAS
     }
 
     void TearDown() override
@@ -732,8 +776,14 @@ TEST_F(GenerationTest, ExternGeneration)
                            ".importvar \"b\" float\n"
                            ".importvar \"c\" bool\n"
                            ".global int\n"
+                           ".importvar \"__dim0_arr1\" int\n"
                            ".importvar \"arr1\" int[]\n"
+                           ".importvar \"__dim0_arr2\" int\n"
+                           ".importvar \"__dim1_arr2\" int\n"
                            ".importvar \"arr2\" float[]\n"
+                           ".importvar \"__dim0_arr3\" int\n"
+                           ".importvar \"__dim1_arr3\" int\n"
+                           ".importvar \"__dim2_arr3\" int\n"
                            ".importvar \"arr3\" bool[]\n"
                            ".importfun \"fun1\" void\n"
                            ".importfun \"fun2\" int\n"
@@ -746,7 +796,7 @@ TEST_F(GenerationTest, ExternGeneration)
                            "    iloadc 0\n"
                            "    istoree 0\n"
                            "    iloadc_0\n"
-                           "    aloade 3\n"
+                           "    aloade 4\n"
                            "    iloada\n"
                            "    iloade 0\n"
                            "    iadd\n"
@@ -1502,6 +1552,1215 @@ TEST_F(GenerationTest, SameIdentifierFunDefVarDecValid)
                            "    ireturn\n"
                            ".exportfun \"__init\" void __init\n"
                            "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, SameIdentifierParamNestedParam)
+{
+    SetUp("same_identifier/param_nested_param/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "fun_one:\n"
+                           "    iload_0\n"
+                           "    ireturn\n"
+                           "lf0_nested_fun_one:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, ProcCallContext)
+{
+    SetUp("proc_call/context/main.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "fun:\n"
+                           "    iload_0\n"
+                           "    ireturn\n"
+                           "test:\n"
+                           "    esr 1\n"
+                           "    isrg\n"
+                           "    iloadc_1\n"
+                           "    jsr 1 fun\n"
+                           "    isrg\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    jsr 1 fun\n"
+                           "    iadd\n"
+                           "    istore 0\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_Binop)
+{
+    SetUp("testsuite_public/basic/check_success/binops.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 6\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    istore 1\n"
+                           ".const int 0x3  ; 3\n"
+                           "    iloadc 1\n"
+                           ".const int 0x4  ; 4\n"
+                           "    iloadc 2\n"
+                           "    iadd\n"
+                           "    istore 2\n"
+                           ".const int 0x5  ; 5\n"
+                           "    iloadc 3\n"
+                           ".const int 0x6  ; 6\n"
+                           "    iloadc 4\n"
+                           "    imul\n"
+                           "    istore 3\n"
+                           ".const int 0x7  ; 7\n"
+                           "    iloadc 5\n"
+                           ".const int 0x8  ; 8\n"
+                           "    iloadc 6\n"
+                           "    irem\n"
+                           "    istore 4\n"
+                           "    iload_2\n"
+                           "    iload_3\n"
+                           "    iadd\n"
+                           "    iload 4\n"
+                           "    iload_1\n"
+                           "    imul\n"
+                           "    isub\n"
+                           "    istore 5\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_Boolop)
+{
+    SetUp("testsuite_public/basic/check_success/boolop.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "f:\n"
+                           "    esr 23\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           ".const int 0x3  ; 3\n"
+                           "    iloadc 1\n"
+                           "    iadd\n"
+                           ".const int 0x4  ; 4\n"
+                           "    iloadc 2\n"
+                           "    iadd\n"
+                           ".const int 0x5  ; 5\n"
+                           "    iloadc 3\n"
+                           "    iadd\n"
+                           "    istore 0\n"
+                           ".const float 0x1.38p+5  ; 3.900000e+01\n"
+                           "    floadc 4\n"
+                           ".const float 0x1.8p+1  ; 3.000000e+00\n"
+                           "    floadc 5\n"
+                           "    fadd\n"
+                           ".const float 0x1.5p+4  ; 2.100000e+01\n"
+                           "    floadc 6\n"
+                           "    fadd\n"
+                           "    fstore 1\n"
+                           "    bloadc_f\n"
+                           "    bloadc_f\n"
+                           "    badd\n"
+                           "    bstore 2\n"
+                           "    iloadc 0\n"
+                           "    iloadc 1\n"
+                           "    isub\n"
+                           "    iloadc 2\n"
+                           "    isub\n"
+                           "    iloadc 3\n"
+                           "    isub\n"
+                           "    istore 3\n"
+                           "    floadc 4\n"
+                           "    floadc 5\n"
+                           "    fsub\n"
+                           "    floadc 6\n"
+                           "    fsub\n"
+                           "    fstore 4\n"
+                           "    iloadc 0\n"
+                           "    iloadc 1\n"
+                           "    imul\n"
+                           "    iloadc_1\n"
+                           "    imul\n"
+                           "    istore 5\n"
+                           ".const float 0x1.91eb851eb851fp+1  ; 3.140000e+00\n"
+                           "    floadc 7\n"
+                           ".const float 0x1p+1  ; 2.000000e+00\n"
+                           "    floadc 8\n"
+                           "    fmul\n"
+                           "    fstore 6\n"
+                           "    bloadc_t\n"
+                           "    bloadc_f\n"
+                           "    bmul\n"
+                           "    bstore 7\n"
+                           "    iloadc 2\n"
+                           "    iloadc 1\n"
+                           "    idiv\n"
+                           "    istore 8\n"
+                           ".const int 0x6  ; 6\n"
+                           "    iloadc 9\n"
+                           "    iloadc_0\n"
+                           "    idiv\n"
+                           "    istore 9\n"
+                           ".const float 0x1.4p+2  ; 5.000000e+00\n"
+                           "    floadc 10\n"
+                           "    floadc 8\n"
+                           "    fdiv\n"
+                           "    fstore 10\n"
+                           ".const float 0x1.2p+3  ; 9.000000e+00\n"
+                           "    floadc 11\n"
+                           "    floadc_0\n"
+                           "    fdiv\n"
+                           "    fstore 11\n"
+                           ".const int 0xc  ; 12\n"
+                           "    iloadc 12\n"
+                           ".const int 0x8  ; 8\n"
+                           "    iloadc 13\n"
+                           "    irem\n"
+                           "    iloadc 1\n"
+                           "    irem\n"
+                           "    istore 12\n"
+                           ".const int 0x14  ; 20\n"
+                           "    iloadc 14\n"
+                           "    iloadc 14\n"
+                           "    ilt\n"
+                           "    bstore 13\n"
+                           "    floadc 5\n"
+                           ".const float 0x1.8666666666666p+2  ; 6.100000e+00\n"
+                           "    floadc 15\n"
+                           "    flt\n"
+                           "    bstore 14\n"
+                           "    iloadc 14\n"
+                           "    iloadc 14\n"
+                           "    ile\n"
+                           "    bstore 15\n"
+                           "    floadc 5\n"
+                           "    floadc 15\n"
+                           "    fle\n"
+                           "    bstore 16\n"
+                           ".const int 0x3c  ; 60\n"
+                           "    iloadc 16\n"
+                           ".const int 0x32  ; 50\n"
+                           "    iloadc 17\n"
+                           "    ilt\n"
+                           "    branch_f pfalse0\n"
+                           "    bloadc_t\n"
+                           "    jump pend0\n"
+                           "pfalse0:\n"
+                           ".const int 0x1e  ; 30\n"
+                           "    iloadc 18\n"
+                           ".const int 0xa  ; 10\n"
+                           "    iloadc 19\n"
+                           "    igt\n"
+                           "pend0:\n"
+                           "    bstore 17\n"
+                           "    floadc 5\n"
+                           "    floadc 8\n"
+                           "    fgt\n"
+                           "    bstore 18\n"
+                           "    iloadc 13\n"
+                           "    iloadc 13\n"
+                           "    ine\n"
+                           "    bstore 19\n"
+                           "    iloadc 13\n"
+                           "    iloadc 13\n"
+                           "    ieq\n"
+                           "    bstore 20\n"
+                           ".const float 0x1.3333333333333p+0  ; 1.200000e+00\n"
+                           "    floadc 20\n"
+                           ".const float 0x1.0cccccccccccdp+1  ; 2.100000e+00\n"
+                           "    floadc 21\n"
+                           "    fne\n"
+                           "    bstore 21\n"
+                           "    bloadc_t\n"
+                           "    bloadc_f\n"
+                           "    bne\n"
+                           "    bstore 22\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+
+    ASSERT_THAT(err_output, testing::HasSubstr("warning: Division by zero"));
+}
+
+TEST_F(GenerationTest, Suite_Basic_CommentMultiline)
+{
+    SetUp("testsuite_public/basic/check_success/comment_multiline.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".global int\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_CommentSingleline)
+{
+    SetUp("testsuite_public/basic/check_success/comment_singleline.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".global int\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_DoWhile)
+{
+    SetUp("testsuite_public/basic/check_success/do_while.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "test_do_while2:\n"
+                           "    esr 2\n"
+                           "    iloadc_0\n"
+                           "    istore 0\n"
+                           ".const int 0xa  ; 10\n"
+                           "    iloadc 0\n"
+                           "    istore 1\n"
+                           "while0:\n"
+                           "    iinc_1 0\n"
+                           "    idec_1 1\n"
+                           "    iload_0\n"
+                           "    iload_1\n"
+                           "    ile\n"
+                           "    branch_t while0\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_EarlyReturn)
+{
+    SetUp("testsuite_public/basic/check_success/early_return.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 1\n"
+                           "    iloadc_1\n"
+                           "    istore 1\n"
+                           "    iload_0\n"
+                           "    iloadc_1\n"
+                           "    igt\n"
+                           "    branch_f ifend0\n"
+                           "    return\n"
+                           "ifend0:\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    istore 1\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ExternVar)
+{
+    SetUp("testsuite_public/basic/check_success/extern_var.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importvar \"pi\" float\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_NoReturn)
+{
+    SetUp("testsuite_public/basic/check_success/no_return.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "baz:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParamsFuncall)
+{
+    SetUp("testsuite_public/basic/check_success/params_funcall.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    ipop\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    iloadc_1\n"
+                           "    iadd\n"
+                           "    ireturn\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParamsSimple)
+{
+    SetUp("testsuite_public/basic/check_success/params_simple.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "func:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseAssign)
+{
+    SetUp("testsuite_public/basic/check_success/parse_assign.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".global int\n"
+                           "foo:\n"
+                           "    esr 1\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           "    iloadc_1\n"
+                           "    istoreg 0\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseDoWhile)
+{
+    SetUp("testsuite_public/basic/check_success/parse_do_while.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "while0:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    bloadc_t\n"
+                           "    branch_t while0\n"
+                           "while1:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    bloadc_f\n"
+                           "    branch_t while1\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseFor)
+{
+    SetUp("testsuite_public/basic/check_success/parse_for.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 5\n"
+                           "    iloadc_0\n"
+                           "    istore 0\n"
+                           "for0:\n"
+                           "    iload_0\n"
+                           ".const int 0xa  ; 10\n"
+                           "    iloadc 0\n"
+                           "    ilt\n"
+                           "    branch_f endfor0\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    iinc_1 0\n"
+                           "    jump for0\n"
+                           "endfor0:\n"
+                           "    iloadc_0\n"
+                           "    istore 1\n"
+                           "for1:\n"
+                           "    iload_1\n"
+                           "    iloadc 0\n"
+                           "    ilt\n"
+                           "    branch_f endfor1\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    iinc_1 1\n"
+                           "    jump for1\n"
+                           "endfor1:\n"
+                           "    iloadc_0\n"
+                           "    istore 3\n"
+                           "    iloadc_1\n"
+                           "    ineg\n"
+                           "    istore 4\n"
+                           "    iloadc 0\n"
+                           "    istore 2\n"
+                           "    iload_3\n"
+                           "    iload_2\n"
+                           "    isub\n"
+                           "    iload 4\n"
+                           "    idiv\n"
+                           "    istore 3\n"
+                           "for2:\n"
+                           "    iload 4\n"
+                           "    iloadc_0\n"
+                           "    igt\n"
+                           "    branch_f endfor2\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    idec_1 3\n"
+                           "    iload_2\n"
+                           "    iload 4\n"
+                           "    iadd\n"
+                           "    istore 4\n"
+                           "    jump for2\n"
+                           "endfor2:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseFunbody)
+{
+    SetUp("testsuite_public/basic/check_success/parse_funbody.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "vardec:\n"
+                           "    esr 1\n"
+                           "    return\n"
+                           "vardec_stat:\n"
+                           "    esr 1\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           "    return\n"
+                           "vardec_ret:\n"
+                           "    esr 1\n"
+                           "    iloadc 0\n"
+                           "    ireturn\n"
+                           "vardec_stat_ret:\n"
+                           "    esr 1\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    ireturn\n"
+                           "stat_ret:\n"
+                           "    isrg\n"
+                           "    jsr 0 vardec\n"
+                           "    iloadc 0\n"
+                           "    ireturn\n"
+                           "ret:\n"
+                           "    iloadc 0\n"
+                           "    ireturn\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseFuncall)
+{
+    SetUp("testsuite_public/basic/check_success/parse_funcall.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseGlobaldec)
+{
+    SetUp("testsuite_public/basic/check_success/parse_globaldec.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importvar \"a\" bool\n"
+                           ".importvar \"b\" int\n"
+                           ".importvar \"c\" float\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseGlobaldef)
+{
+    SetUp("testsuite_public/basic/check_success/parse_globaldef.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".global int\n"
+                           ".global float\n"
+                           ".global bool\n"
+                           ".global int\n"
+                           ".global float\n"
+                           ".global bool\n"
+                           ".global int\n"
+                           ".exportvar \"a2\" 6\n"
+                           ".global float\n"
+                           ".exportvar \"b2\" 7\n"
+                           ".global bool\n"
+                           ".exportvar \"c2\" 8\n"
+                           ".global int\n"
+                           ".exportvar \"d2\" 9\n"
+                           ".global float\n"
+                           ".exportvar \"e2\" 10\n"
+                           ".global bool\n"
+                           ".exportvar \"f2\" 11\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    bloadc_f\n"
+                           "    bstoreg 11\n"
+                           "    floadc_1\n"
+                           "    fstoreg 10\n"
+                           ".const int 0x141  ; 321\n"
+                           "    iloadc 0\n"
+                           "    istoreg 9\n"
+                           "    bloadc_f\n"
+                           "    bstoreg 5\n"
+                           "    floadc_1\n"
+                           "    fstoreg 4\n"
+                           "    iloadc 0\n"
+                           "    istoreg 3\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseIfElse)
+{
+    SetUp("testsuite_public/basic/check_success/parse_if_else.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    bloadc_t\n"
+                           "    branch_f else0\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    jump ifend0\n"
+                           "else0:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "ifend0:\n"
+                           "    bloadc_f\n"
+                           "    branch_f else1\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    jump ifend1\n"
+                           "else1:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "ifend1:\n"
+                           "    bloadc_t\n"
+                           "    branch_f else2\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    jump ifend2\n"
+                           "else2:\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "ifend2:\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_IntegerOutOfRange)
+{
+    SetUp("testsuite_public/basic/check_error/integer_out_of_range.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".global int\n"
+                           ".importfun \"printInt\" void int\n"
+                           ".exportfun \"main\" int main\n"
+                           "main:\n"
+                           "    isrg\n"
+                           "    iloadg 0\n"
+                           "    jsre 0\n"
+                           "    iloadc_0\n"
+                           "    ireturn\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           ".const int 0x7fffffff  ; 2147483647\n"
+                           "    iloadc 0\n"
+                           "    istoreg 0\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseOperators)
+{
+    SetUp("testsuite_public/basic/check_success/parse_operators.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 2\n"
+                           "    iloadc_1\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 0\n"
+                           "    iadd\n"
+                           "    istore 0\n"
+                           "    idec_1 0\n"
+                           "    iload_0\n"
+                           ".const int 0x2d  ; 45\n"
+                           "    iloadc 1\n"
+                           "    imul\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           ".const int 0x9  ; 9\n"
+                           "    iloadc 2\n"
+                           "    idiv\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           ".const int 0x4  ; 4\n"
+                           "    iloadc 3\n"
+                           "    irem\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    iloadc_1\n"
+                           "    ilt\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    iloadc 0\n"
+                           "    igt\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           ".const int 0x3  ; 3\n"
+                           "    iloadc 4\n"
+                           "    ile\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    iloadc 3\n"
+                           "    ige\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           ".const int 0x5  ; 5\n"
+                           "    iloadc 5\n"
+                           "    ieq\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           ".const int 0x6  ; 6\n"
+                           "    iloadc 6\n"
+                           "    ine\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    iloadc 6\n"
+                           "    ine\n"
+                           "    branch_f pfalse0\n"
+                           "    iload_0\n"
+                           "    iloadc 3\n"
+                           "    ige\n"
+                           "    jump pend0\n"
+                           "pfalse0:\n"
+                           "    bloadc_f\n"
+                           "pend0:\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    iloadc 6\n"
+                           "    ieq\n"
+                           "    branch_f pfalse1\n"
+                           "    bloadc_t\n"
+                           "    jump pend1\n"
+                           "pfalse1:\n"
+                           "    iload_0\n"
+                           "    iloadc 3\n"
+                           "    ile\n"
+                           "pend1:\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    ineg\n"
+                           "    istore 0\n"
+                           "    bload_1\n"
+                           "    bnot\n"
+                           "    bstore 1\n"
+                           "    iload_0\n"
+                           "    iloadc_1\n"
+                           "    ineg\n"
+                           "    isub\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    ineg\n"
+                           "    ineg\n"
+                           "    ineg\n"
+                           "    ineg\n"
+                           "    ineg\n"
+                           "    ineg\n"
+                           "    istore 0\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseTypecast)
+{
+    SetUp("testsuite_public/basic/check_success/parse_typecast.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 3\n"
+                           "    floadc_1\n"
+                           "    f2i\n"
+                           "    istore 0\n"
+                           "    iloadc_1\n"
+                           "    i2f\n"
+                           "    fstore 1\n"
+                           "    iloadc_1\n"
+                           "    iloadc_0\n"
+                           "    ine\n"
+                           "    branch_f pfalse0\n"
+                           "    bloadc_t\n"
+                           "    jump pend0\n"
+                           "pfalse0:\n"
+                           "    bloadc_f\n"
+                           "pend0:\n"
+                           "    bstore 2\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_ParseVardec)
+{
+    SetUp("testsuite_public/basic/check_success/parse_vardec.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "foo:\n"
+                           "    esr 6\n"
+                           "    bloadc_t\n"
+                           "    bstore 3\n"
+                           "    iloadc_1\n"
+                           "    istore 4\n"
+                           "    floadc_1\n"
+                           "    fstore 5\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Basic_VardecInit)
+{
+    SetUp("testsuite_public/basic/check_success/vardec_init.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "testVarInits:\n"
+                           "    esr 4\n"
+                           ".const int 0x3  ; 3\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           ".const int 0x5  ; 5\n"
+                           "    iloadc 1\n"
+                           "    istore 1\n"
+                           "    iload_0\n"
+                           "    iload_1\n"
+                           "    iadd\n"
+                           "    istore 2\n"
+                           "    iload_0\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 2\n"
+                           "    iadd\n"
+                           "    istore 3\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Arrays_ExternArrayArg)
+{
+    SetUp("testsuite_public/arrays/check_success/extern_array_arg.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importvar \"__dim0_arr\" int\n"
+                           ".importvar \"arr\" int[]\n"
+                           "foo:\n"
+                           "    return\n"
+                           ".exportfun \"main\" int main\n"
+                           "main:\n"
+                           "    isrg\n"
+                           "    iloade 0\n"
+                           "    aloade 1\n"
+                           "    jsr 2 foo\n"
+                           "    iloadc_0\n"
+                           "    ireturn\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Arrays_LocalArraydef)
+{
+    SetUp("testsuite_public/arrays/check_success/local_arraydef.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "func:\n"
+                           "    esr 6\n"
+                           ".const int 0xa  ; 10\n"
+                           "    iloadc 0\n"
+                           "    istore 2\n"
+                           ".const int 0x14  ; 20\n"
+                           "    iloadc 1\n"
+                           ".const int 0x1e  ; 30\n"
+                           "    iloadc 2\n"
+                           "    imul\n"
+                           "    istore 1\n"
+                           ".const int 0x4  ; 4\n"
+                           "    iloadc 3\n"
+                           ".const int 0x5  ; 5\n"
+                           "    iloadc 4\n"
+                           "    imul\n"
+                           ".const int 0x6  ; 6\n"
+                           "    iloadc 5\n"
+                           "    imul\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    inewa\n"
+                           "    astore 5\n"
+                           "    iload_1\n"
+                           "    inewa\n"
+                           "    astore 4\n"
+                           "    iload_2\n"
+                           "    inewa\n"
+                           "    astore 3\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Arrays_ScanVectorMatrix)
+{
+    SetUp("testsuite_public/arrays/check_success/scan_vector_matrix.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importfun \"scanInt\" int\n"
+                           ".importfun \"scanFloat\" float\n"
+                           ".importfun \"printInt\" void int\n"
+                           ".importfun \"printFloat\" void float\n"
+                           "scan_vector:\n"
+                           "    esr 2\n"
+                           "    iload_0\n"
+                           "    istore 3\n"
+                           "    iloadc_0\n"
+                           "    istore 2\n"
+                           "for0:\n"
+                           "    iload_2\n"
+                           "    iload_3\n"
+                           "    ilt\n"
+                           "    branch_f endfor0\n"
+                           "    isrg\n"
+                           "    jsre 1\n"
+                           "    iload_2\n"
+                           "    aload_1\n"
+                           "    fstorea\n"
+                           "    iinc_1 2\n"
+                           "    jump for0\n"
+                           "endfor0:\n"
+                           "    return\n"
+                           "scan_matrix:\n"
+                           "    esr 4\n"
+                           "    iload_1\n"
+                           "    istore 5\n"
+                           "    iloadc_0\n"
+                           "    istore 3\n"
+                           "for1:\n"
+                           "    iload_3\n"
+                           "    iload 5\n"
+                           "    ilt\n"
+                           "    branch_f endfor1\n"
+                           "    iload_0\n"
+                           "    istore 6\n"
+                           "    iloadc_0\n"
+                           "    istore 4\n"
+                           "for2:\n"
+                           "    iload 4\n"
+                           "    iload 6\n"
+                           "    ilt\n"
+                           "    branch_f endfor2\n"
+                           "    isrg\n"
+                           "    jsre 1\n"
+                           "    iload_3\n"
+                           "    iload_1\n"
+                           "    imul\n"
+                           "    iload 4\n"
+                           "    iadd\n"
+                           "    aload_2\n"
+                           "    fstorea\n"
+                           "    iinc_1 4\n"
+                           "    jump for2\n"
+                           "endfor2:\n"
+                           "    iinc_1 3\n"
+                           "    jump for1\n"
+                           "endfor1:\n"
+                           "    return\n"
+                           ".exportfun \"main\" int main\n"
+                           "main:\n"
+                           "    esr 2\n"
+                           ".const int 0x3  ; 3\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           "    iloadc 0\n"
+                           "    istore 1\n"
+                           "    iload_1\n"
+                           "    iloadc_1\n"
+                           "    ieq\n"
+                           "    branch_f pfalse1\n"
+                           "    iload_0\n"
+                           "    iloadc_1\n"
+                           "    ige\n"
+                           "    jump pend1\n"
+                           "pfalse1:\n"
+                           "    bloadc_f\n"
+                           "pend1:\n"
+                           "    branch_f else0\n"
+                           "    isrl\n"
+                           "    jsr 0 lf0_do_vector\n"
+                           "    jump ifend0\n"
+                           "else0:\n"
+                           "    iload_1\n"
+                           "    iloadc_1\n"
+                           "    igt\n"
+                           "    branch_f pfalse3\n"
+                           "    iload_0\n"
+                           "    iloadc_1\n"
+                           "    ige\n"
+                           "    jump pend3\n"
+                           "pfalse3:\n"
+                           "    bloadc_f\n"
+                           "pend3:\n"
+                           "    branch_f ifend2\n"
+                           "    isrl\n"
+                           "    jsr 0 lf1_do_matrix\n"
+                           "ifend2:\n"
+                           "ifend0:\n"
+                           "    iloadc_0\n"
+                           "    ireturn\n"
+                           "lf0_do_vector:\n"
+                           "    esr 2\n"
+                           "    iloadn 1 0\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    fnewa\n"
+                           "    astore 1\n"
+                           "    isrg\n"
+                           "    iloadn 1 0\n"
+                           "    aload_1\n"
+                           "    jsr 2 scan_vector\n"
+                           "    return\n"
+                           "lf1_do_matrix:\n"
+                           "    esr 2\n"
+                           "    iloadn 1 0\n"
+                           "    iloadn 1 1\n"
+                           "    imul\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    fnewa\n"
+                           "    astore 1\n"
+                           "    isrg\n"
+                           "    iloadn 1 1\n"
+                           "    iloadn 1 0\n"
+                           "    aload_1\n"
+                           "    jsr 3 scan_matrix\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}
+
+TEST_F(GenerationTest, Suite_Arrays_Scopes)
+{
+    SetUp("testsuite_public/arrays/check_success/scopes.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importfun \"printInt\" void int\n"
+                           ".importfun \"printNewlines\" void int\n"
+                           ".global int\n"
+                           ".global int\n"
+                           ".global int[]\n"
+                           ".importvar \"__dim0_d\" int\n"
+                           ".importvar \"d\" int[]\n"
+                           "foo:\n"
+                           "    esr 3\n"
+                           "    iload_0\n"
+                           "    iloadg 1\n"
+                           "    iadd\n"
+                           "    iloadc_1\n"
+                           "    iadd\n"
+                           "    istore 0\n"
+                           "    iload_1\n"
+                           "    istore 1\n"
+                           "    iinc_1 0\n"
+                           "    iload_1\n"
+                           "    iloadc_1\n"
+                           "    isub\n"
+                           "    istore 2\n"
+                           "    isrl\n"
+                           ".const int 0x4  ; 4\n"
+                           "    iloadc 0\n"
+                           "    iload_0\n"
+                           "    iload_2\n"
+                           "    aloade 1\n"
+                           "    iloada\n"
+                           "    iadd\n"
+                           "    aloadg 2\n"
+                           "    jsr 3 lf0_baz\n"
+                           "    ireturn\n"
+                           "lf0_baz:\n"
+                           "    esr 1\n"
+                           "    iload_1\n"
+                           "    iload_0\n"
+                           "    iadd\n"
+                           "    istore 3\n"
+                           "    iload_3\n"
+                           "    iload_1\n"
+                           "    aload_2\n"
+                           "    iloada\n"
+                           "    iadd\n"
+                           "    ireturn\n"
+                           "bar:\n"
+                           "    esr 2\n"
+                           "    iloadg 1\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    ireturn\n"
+                           "baz:\n"
+                           "    esr 3\n"
+                           "    isrg\n"
+                           "    iload_0\n"
+                           "    jsre 0\n"
+                           "    iloadc_1\n"
+                           "    istore 1\n"
+                           "for0:\n"
+                           "    iload_1\n"
+                           ".const int 0xa  ; 10\n"
+                           "    iloadc 1\n"
+                           "    ilt\n"
+                           "    branch_f endfor0\n"
+                           "    isrg\n"
+                           "    iload_1\n"
+                           "    jsre 0\n"
+                           "    iloadc_1\n"
+                           "    istore 2\n"
+                           "for1:\n"
+                           "    iload_2\n"
+                           "    iloadc 1\n"
+                           "    ilt\n"
+                           "    branch_f endfor1\n"
+                           "    isrg\n"
+                           "    iload_2\n"
+                           "    jsre 0\n"
+                           "    iinc_1 2\n"
+                           "    jump for1\n"
+                           "endfor1:\n"
+                           "    isrg\n"
+                           "    iload_1\n"
+                           "    jsre 0\n"
+                           "    iinc_1 1\n"
+                           "    jump for0\n"
+                           "endfor0:\n"
+                           "    isrg\n"
+                           "    iload_0\n"
+                           "    jsre 0\n"
+                           "    return\n"
+                           ".exportfun \"main\" int main\n"
+                           "main:\n"
+                           "    isrg\n"
+                           "    isrg\n"
+                           "    jsr 0 foo\n"
+                           "    jsre 0\n"
+                           "    isrg\n"
+                           "    iloadc_1\n"
+                           "    jsre 1\n"
+                           "    isrg\n"
+                           "    isrg\n"
+                           "    jsr 0 bar\n"
+                           "    jsre 0\n"
+                           "    isrg\n"
+                           "    iloadc_1\n"
+                           "    jsre 1\n"
+                           "    isrg\n"
+                           "    jsr 0 baz\n"
+                           "    isrg\n"
+                           "    iloadc_1\n"
+                           "    jsre 1\n"
+                           "    iloadc_0\n"
+                           "    ireturn\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    esr 1\n"
+                           "    iloadc 0\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    inewa\n"
+                           "    astoreg 2\n"
+                           ".const int 0x2  ; 2\n"
+                           "    iloadc 2\n"
+                           "    istoreg 1\n"
+                           "    iloadc_1\n"
+                           "    istoreg 0\n"
                            "    return\n";
 
     ASSERT_MLSTREQ(expected, output_buffer);

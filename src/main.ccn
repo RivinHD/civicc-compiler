@@ -120,6 +120,9 @@ phase CodeGenPreparation
                 Program,
                 FunDef,
 
+                // Edge Case
+                Globaldef, // exported array always need var dims
+
                 // Nodes to update
                 Funbody,
                 ArrayExpr,

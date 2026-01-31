@@ -693,14 +693,14 @@ TEST_F(CodeGenPrepTest, GlobalArrayAssignments)
     expected = "┌─ 0: Program\n"
                "├─ __init: FunHeader -- type:'void' -- Params: (null)\n"
                "├─ arr1: VarDec -- type:'int'\n"
-               "├─ @loop_dims0: VarDec -- type:'int'\n"
                "├─ arr2: VarDec -- type:'int'\n"
-               "├─ @loop_dims1: VarDec -- type:'int'\n"
                "├─ arr3: VarDec -- type:'int'\n"
-               "├─ @loop_dims2: VarDec -- type:'int'\n"
                "└────────────────────\n"
                "\n"
                "┌─ 1: FunDef '__init' -- parent: '0: Program'\n"
+               "├─ @loop_dims0: VarDec -- type:'int'\n"
+               "├─ @loop_dims1: VarDec -- type:'int'\n"
+               "├─ @loop_dims2: VarDec -- type:'int'\n"
                "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);
@@ -1015,15 +1015,6 @@ TEST_F(CodeGenPrepTest, InitFun)
 
     expected = "┌─ 0: Program\n"
                "├─ __init: FunHeader -- type:'void' -- Params: (null)\n"
-               "├─ @loop_dims0: VarDec -- type:'int'\n"
-               "├─ @loop_dims1: VarDec -- type:'int'\n"
-               "├─ @loop_dims2: VarDec -- type:'int'\n"
-               "├─ @loop_dims3: VarDec -- type:'int'\n"
-               "├─ @loop_dims4: VarDec -- type:'int'\n"
-               "├─ @loop_dims5: VarDec -- type:'int'\n"
-               "├─ @loop_expr0: VarDec -- type:'int'\n"
-               "├─ @loop_expr2: VarDec -- type:'float'\n"
-               "├─ @loop_expr4: VarDec -- type:'bool'\n"
                "├─ aa: VarDec -- type:'int'\n"
                "├─ ab: VarDec -- type:'int'\n"
                "├─ ba: VarDec -- type:'float'\n"
@@ -1034,14 +1025,23 @@ TEST_F(CodeGenPrepTest, InitFun)
                "├─ db: VarDec -- type:'int'\n"
                "├─ ea: VarDec -- type:'float'\n"
                "├─ eb: VarDec -- type:'float'\n"
-               "├─ @loop_var0: VarDec -- type:'int'\n"
-               "├─ @loop_var2: VarDec -- type:'int'\n"
-               "├─ @loop_var4: VarDec -- type:'int'\n"
                "├─ fa: VarDec -- type:'bool'\n"
                "├─ fb: VarDec -- type:'bool'\n"
                "└────────────────────\n"
                "\n"
                "┌─ 1: FunDef '__init' -- parent: '0: Program'\n"
+               "├─ @loop_dims0: VarDec -- type:'int'\n"
+               "├─ @loop_dims1: VarDec -- type:'int'\n"
+               "├─ @loop_dims2: VarDec -- type:'int'\n"
+               "├─ @loop_dims3: VarDec -- type:'int'\n"
+               "├─ @loop_dims4: VarDec -- type:'int'\n"
+               "├─ @loop_dims5: VarDec -- type:'int'\n"
+               "├─ @loop_expr0: VarDec -- type:'int'\n"
+               "├─ @loop_expr2: VarDec -- type:'float'\n"
+               "├─ @loop_expr4: VarDec -- type:'bool'\n"
+               "├─ @loop_var0: VarDec -- type:'int'\n"
+               "├─ @loop_var2: VarDec -- type:'int'\n"
+               "├─ @loop_var4: VarDec -- type:'int'\n"
                "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);
@@ -2011,7 +2011,6 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
                "├─ m: VarDec -- type:'int'\n"
                "├─ n: VarDec -- type:'int'\n"
                "├─ __init: FunHeader -- type:'void' -- Params: (null)\n"
-               "├─ @loop_dims0: VarDec -- type:'int'\n"
                "├─ m1: DimensionVars\n"
                "├─ n2: DimensionVars\n"
                "├─ @fun_test: FunHeader -- type:'void' -- Params: int (Var -- name:'r'), int (Var "
@@ -2039,6 +2038,7 @@ TEST_F(CodeGenPrepTest, DimensionReduction)
                "└────────────────────\n"
                "\n"
                "┌─ 1: FunDef '__init' -- parent: '0: Program'\n"
+               "├─ @loop_dims0: VarDec -- type:'int'\n"
                "└────────────────────\n";
 
     ASSERT_MLSTREQ(expected, symbols_string);

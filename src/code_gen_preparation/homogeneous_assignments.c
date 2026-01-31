@@ -16,12 +16,12 @@ static uint32_t loop_counter = 0;
 
 node_st *CGP_HAvardec(node_st *node)
 {
-    node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
+    node_st *funbody = FUNDEF_FUNBODY(last_fundef);
+    release_assert(current != NULL);
 
     node_st *var = VARDEC_VAR(node);
     if (NODE_TYPE(var) == NT_ARRAYEXPR)
     {
-        node_st *funbody = FUNDEF_FUNBODY(last_fundef);
         node_st *expr = VARDEC_EXPR(node);
 
         // Step 0: Count iteration length
@@ -43,14 +43,14 @@ node_st *CGP_HAvardec(node_st *node)
         node_st *dims_assign = ASTassign(CCNcopy(dims_var), alloc_expr);
 
         // Step 1: Create allocation statement
-        release_assert(cur_funbody != NULL);
+        release_assert(funbody != NULL);
         node_st *alloc_var = ASTvar(STRcpy(alloc_func));
         node_st *alloc_exprs = ASTexprs(CCNcopy(dims_var), NULL);
         node_st *alloc_proccall = ASTproccall(alloc_var, alloc_exprs);
         node_st *alloc_stmt = ASTassign(CCNcopy(ARRAYEXPR_VAR(var)), alloc_proccall);
 
         // Step 2: Find position to append to
-        node_st *stmts = FUNBODY_STMTS(cur_funbody);
+        node_st *stmts = FUNBODY_STMTS(funbody);
         node_st *last_stmts = NULL;
         while (stmts != NULL && NODE_TYPE(STATEMENTS_STMT(stmts)) == NT_ASSIGN &&
                VAR_NAME(ASSIGN_VAR(STATEMENTS_STMT(stmts))) != NULL &&
@@ -125,7 +125,7 @@ node_st *CGP_HAvardec(node_st *node)
         }
         else
         {
-            FUNBODY_STMTS(cur_funbody) = stmts;
+            FUNBODY_STMTS(funbody) = stmts;
         }
 
         // Update node
@@ -154,6 +154,7 @@ node_st *CGP_HAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
 
+    htable_stptr parent_current = current;
     current = FUNDEF_SYMBOLS(node);
     release_assert(current != NULL);
 
@@ -163,7 +164,7 @@ node_st *CGP_HAfundef(node_st *node)
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
 
-    current = HTlookup(current, htable_parent_name);
+    current = parent_current;
     release_assert(current != NULL);
 
     last_fundef = parent_fundef;
@@ -184,6 +185,7 @@ node_st *CGP_HAprogram(node_st *node)
     release_assert(entry != NULL);
     release_assert(NODE_TYPE(entry) == NT_FUNDEF);
     last_fundef = entry;
+    current = FUNDEF_SYMBOLS(entry);
 
     TRAVopt(PROGRAM_DECLS(node));
 

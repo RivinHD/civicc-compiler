@@ -639,7 +639,7 @@ char *idx_to_string(htable_stptr idxtable)
     if (parent != NULL)
     {
         char *parent_output = idx_to_string(parent);
-        output = STRfmt("┌─ %p -- parent: '%p'\n%s└────────────────────\n\n %s", idxtable, parent,
+        output = STRfmt("┌─ %p -- parent: '%p'\n%s└────────────────────\n\n%s", idxtable, parent,
                         output_old, parent_output);
         free(parent_output);
     }

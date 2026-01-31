@@ -237,7 +237,6 @@ static void IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
 
 static ptrdiff_t IDXlookup(htable_stptr table, char *key)
 {
-
     void *entry = HTlookup(table, key);
     release_assert(entry != NULL);
     return (ptrdiff_t)entry - 1;
@@ -250,12 +249,70 @@ static ptrdiff_t IDXdeep_lookup(htable_stptr table, char *key)
     return (ptrdiff_t)entry - 1;
 }
 
+/// Recursive lookup into the index, import and symbol table parallel and in all theses parents
+/// symbol table for the given name. Also defines the level at which the index was found.
+// The (negated/negative level) - 1 indicates that is in global scope i.e. out_level = -level - 1
+static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
+                                 htable_stptr symbols, const char *name, int *out_level,
+                                 node_st **out_entry)
+{
+    int level = 0;
+    void *idx = HTlookup(table, (void *)name);
+    node_st *entry = HTlookup(symbols, (void *)name);
+
+    // Check import table if entry is a possilbe import type
+    if (HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
+        (NODE_TYPE(entry) == NT_GLOBALDEC || NODE_TYPE(entry) == NT_DIMENSIONVARS))
+    {
+        idx = HTlookup(import_table, (void *)name);
+    }
+
+    while (entry == NULL || idx == NULL)
+    {
+        htable_stptr parent_idx = HTlookup(table, htable_parent_name);
+        htable_stptr parent = HTlookup(symbols, htable_parent_name);
+        if (parent == NULL || parent_idx == NULL)
+        {
+            // Both tables should have the same depth
+            release_assert(parent_idx == NULL);
+            release_assert(parent == NULL);
+            break;
+        }
+
+        table = parent_idx;
+        symbols = parent;
+        idx = HTlookup(table, (void *)name);
+        entry = HTlookup(symbols, (void *)name);
+        level++;
+
+        // Check import table if entry is a possilbe import type
+        if (HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
+            (NODE_TYPE(entry) == NT_GLOBALDEC || NODE_TYPE(entry) == NT_DIMENSIONVARS))
+        {
+            idx = HTlookup(import_table, (void *)name);
+        }
+    }
+
+    htable_stptr parent_idx = HTlookup(table, htable_parent_name);
+    htable_stptr parent = HTlookup(symbols, htable_parent_name);
+    release_assert(parent == NULL ? parent_idx == NULL : parent_idx != NULL);
+
+    *out_level = (parent == NULL) ? -level - 1 : level;
+    *out_entry = entry;
+    release_assert(idx != NULL);
+    return (ptrdiff_t)idx - 1;
+}
+
 /**
  * CodeGen Nodes
  */
 node_st *CG_CGprogram(node_st *node)
 {
     char *str = node_to_string(node);
+    printf("%s", str);
+    free(str);
+
+    str = symbols_to_string(node);
     printf("%s", str);
     free(str);
 
@@ -316,16 +373,6 @@ node_st *CG_CGfundec(node_st *node)
 
 node_st *CG_CGfundef(node_st *node)
 {
-    char *fun_name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node)));
-    if (fundef != NULL)
-    {
-        // only counter for local functions
-        char *old_fun_name = fun_name;
-        fun_name = STRfmt("@fun_lf%d_%s", lfun_counter++, get_pretty_name(old_fun_name));
-        VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))) = fun_name;
-        free(old_fun_name);
-    }
-
     uint32_t parent_idx_counter = idx_counter;
     idx_counter = 0;
     htable_stptr table = HTnew_String(2 << 8);
@@ -336,6 +383,7 @@ node_st *CG_CGfundef(node_st *node)
     htable_stptr parent_current = current;
     current = FUNDEF_SYMBOLS(node);
     fundef = node;
+    char *fun_name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node)));
 
     if (FUNDEF_HAS_EXPORT(node))
     {
@@ -392,6 +440,25 @@ node_st *CG_CGglobaldec(node_st *node)
 {
     node_st *var = GLOBALDEC_VAR(node);
     char *globaldec_name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
+
+    // Add dims to import table if array
+    if (NODE_TYPE(var) == NT_ARRAYVAR)
+    {
+        uint32_t dim_counter = 0;
+        node_st *dim = ARRAYVAR_DIMS(var);
+        while (dim != NULL)
+        {
+            char *name = VAR_NAME(DIMENSIONVARS_DIM(dim));
+            // With this naming we ensure that name of the dimension does not matter in the
+            // export/import and only the array name need to be correct.
+            char *import_name = STRfmt("__dim%d_%s", dim_counter++, globaldec_name);
+            IDXinsert(import_table, name, var_import_counter++);
+            importvar(import_name, dim);
+            dim = DIMENSIONVARS_NEXT(dim);
+            free(import_name);
+        }
+    }
+
     IDXinsert(import_table, globaldec_name, var_import_counter++);
     importvar(globaldec_name, node);
     return node;
@@ -406,8 +473,30 @@ node_st *CG_CGglobaldef(node_st *node)
 
     if (GLOBALDEF_HAS_EXPORT(node) == true)
     {
-        node_st *var = GLOBALDEF_VARDEC(node);
+        node_st *var = VARDEC_VAR(GLOBALDEF_VARDEC(node));
         char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+
+        // Add dims to import table if array
+        if (NODE_TYPE(var) == NT_ARRAYEXPR)
+        {
+            uint32_t dim_counter = 0;
+            node_st *dim = ARRAYEXPR_DIMS(var);
+            while (dim != NULL)
+            {
+                node_st *dim_var = EXPRS_EXPR(dim);
+                release_assert(NODE_TYPE(dim_var) == NT_VAR);
+                char *lookup_name = VAR_NAME(dim_var);
+                // With this naming we ensure that name of the dimension does not matter in
+                // the export/import and only the array name need to be correct.
+                ptrdiff_t idx = IDXlookup(index_table, lookup_name);
+                release_assert(idx >= 0);
+                char *export_name = STRfmt("__dim%d_%s", dim_counter++, name);
+                exportvar(export_name, idx);
+                dim = EXPRS_NEXT(dim);
+                free(export_name);
+            }
+        }
+
         ptrdiff_t idx = IDXlookup(index_table, name);
         exportvar(name, idx);
     }
@@ -435,6 +524,19 @@ node_st *CG_CGparams(node_st *node)
 
 node_st *CG_CGfunbody(node_st *node)
 {
+    // Rename local fundefs
+    node_st *lfun = FUNBODY_LOCALFUNDEFS(node);
+    while (lfun != NULL)
+    {
+        node_st *lfundef = LOCALFUNDEFS_LOCALFUNDEF(lfun);
+        char *fun_name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(lfundef)));
+        char *old_fun_name = fun_name;
+        fun_name = STRfmt("@fun_lf%d_%s", lfun_counter++, get_pretty_name(old_fun_name));
+        VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(lfundef))) = fun_name;
+        free(old_fun_name);
+        lfun = LOCALFUNDEFS_NEXT(lfun);
+    }
+
     enum DataType parent_type = type;
     type = DT_void;
     TRAVopt(FUNBODY_VARDECS(node));
@@ -934,7 +1036,7 @@ node_st *CG_CGvardec(node_st *node)
     if (VARDEC_EXPR(node) != NULL)
     {
         release_assert(NODE_TYPE(var) == NT_VAR);
-        ptrdiff_t index = IDXlookup(index_table, name);
+        ptrdiff_t index = IDXdeep_lookup(index_table, name);
         switch (type)
         {
         case DT_NULL:
@@ -1314,13 +1416,23 @@ node_st *CG_CGvar(node_st *node)
     }
 
     int level = INT_MAX;
-    node_st *entry = deep_lookup_level(current, VAR_NAME(node), &level);
+    node_st *entry = NULL;
+    // We need to do a smart lookup because a vardec can be assigned a global variable which is
+    // shawdowed by a local variable. E.g.:
+    // int b = 1;
+    // void foo() {
+    //      int a = b; // Referes to the global table.
+    //      int b;   // Defined in symbole table but not int index table
+    //  }
+    ptrdiff_t idx =
+        IDXsmart_lookup(index_table, import_table, current, VAR_NAME(node), &level, &entry);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(type != DT_NULL);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
 
     char type_str = '\0';
     switch (has_type)
@@ -1348,7 +1460,8 @@ node_st *CG_CGvar(node_st *node)
 
     if (level == 0)
     {
-        ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(node));
+        ptrdiff_t check_idx = IDXlookup(index_table, VAR_NAME(node));
+        release_assert(idx == check_idx);
 
         char load_str = '\0';
         switch (idx)
@@ -1385,8 +1498,8 @@ node_st *CG_CGvar(node_st *node)
     }
     else if (level > 0)
     {
-        ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(node));
-
+        ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(node));
+        release_assert(idx == check_idx);
         char *inst = STRfmt("%cloadn", type_str);
         inst2(inst, level, idx);
         free(inst);
@@ -1396,12 +1509,36 @@ node_st *CG_CGvar(node_st *node)
         if (NODE_TYPE(entry) == NT_GLOBALDEC)
         {
             char *inst = STRfmt("%cloade", type_str);
-            inst1(inst, IDXlookup(import_table, VAR_NAME(node)));
+            ptrdiff_t check_idx = IDXlookup(import_table, VAR_NAME(node));
+            release_assert(idx == check_idx);
+            inst1(inst, idx);
             free(inst);
+        }
+        else if (NODE_TYPE(entry) == NT_DIMENSIONVARS) // Could be in import table or index tabel
+        {
+            void *entry = HTlookup(import_table, VAR_NAME(node));
+            if (entry != NULL)
+            {
+                // Found in import table
+                char *inst = STRfmt("%cloade", type_str);
+                ptrdiff_t check_idx = IDXlookup(import_table, VAR_NAME(node));
+                release_assert(idx == check_idx);
+                inst1(inst, idx);
+                free(inst);
+            }
+            else
+            {
+                ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(node));
+                release_assert(idx == check_idx);
+                char *inst = STRfmt("%cloadg", type_str);
+                inst1(inst, idx);
+                free(inst);
+            }
         }
         else
         {
-            ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(node));
+            ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(node));
+            release_assert(idx == check_idx);
 
             char *inst = STRfmt("%cloadg", type_str);
             inst1(inst, idx);
@@ -1451,12 +1588,15 @@ node_st *CG_CGarrayexpr(node_st *node)
 
     // Type checking only
     int level = INT_MAX;
-    node_st *entry = deep_lookup_level(current, VAR_NAME(ARRAYEXPR_VAR(node)), &level);
+    node_st *entry = NULL;
+    ptrdiff_t idx = IDXsmart_lookup(index_table, import_table, current,
+                                    VAR_NAME(ARRAYEXPR_VAR(node)), &level, &entry);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
     release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
 
     // Calculate index
     enum DataType parent_type = type;
@@ -1468,7 +1608,8 @@ node_st *CG_CGarrayexpr(node_st *node)
     if (level == 0)
     {
         // Load the array reference
-        ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+        ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+        release_assert(check_idx == idx);
 
         char load_str = '\0';
         switch (idx)
@@ -1504,7 +1645,8 @@ node_st *CG_CGarrayexpr(node_st *node)
     else if (level > 0)
     {
         // Load the array reference
-        ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+        ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+        release_assert(check_idx == idx);
 
         inst2("aloadn", level, idx);
     }
@@ -1512,13 +1654,15 @@ node_st *CG_CGarrayexpr(node_st *node)
     {
         if (NODE_TYPE(entry) == NT_GLOBALDEC)
         {
-            inst1("aloade", IDXlookup(import_table, VAR_NAME(ARRAYEXPR_VAR(node))));
+            ptrdiff_t check_idx = IDXlookup(import_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+            release_assert(check_idx == idx);
+            inst1("aloade", idx);
         }
         else
         {
             // Load the array reference
-            ptrdiff_t idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
-
+            ptrdiff_t check_idx = IDXdeep_lookup(index_table, VAR_NAME(ARRAYEXPR_VAR(node)));
+            release_assert(check_idx == idx);
             inst1("aloadg", idx);
         }
     }

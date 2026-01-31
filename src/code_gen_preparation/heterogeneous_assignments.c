@@ -3,10 +3,10 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 static node_st *program_decls = NULL;
@@ -15,6 +15,7 @@ static uint32_t temp_counter = 0;
 static htable_stptr current = NULL;
 static node_st *last_vardecs = NULL;
 static node_st *current_statements = NULL;
+bool is_exported = false;
 
 node_st *new_temp_assign(enum DataType type, node_st *expr)
 {
@@ -68,7 +69,8 @@ node_st *CGP_AAarrayexpr(node_st *node)
             node_st *cur_expr = EXPRS_EXPR(exprs);
             release_assert(cur_expr != NULL);
 
-            if (NODE_TYPE(cur_expr) == NT_INT || NODE_TYPE(cur_expr) == NT_VAR)
+            // If the global def is exported we need dimension variables for module linkage
+            if ((NODE_TYPE(cur_expr) == NT_INT && !is_exported) || NODE_TYPE(cur_expr) == NT_VAR)
             {
                 exprs = EXPRS_NEXT(exprs);
                 continue;
@@ -155,8 +157,10 @@ node_st *CGP_AAforloop(node_st *node)
         ASSIGN_EXPR(assign) = var;
     }
 
-    if (NODE_TYPE(FORLOOP_COND(node)) != NT_INT)
+    if (NODE_TYPE(FORLOOP_COND(node)) != NT_INT ||
+        (FORLOOP_ITER(node) != NULL && NODE_TYPE(FORLOOP_ITER(node)) != NT_INT))
     {
+        // if iter is a var than cond need to be a var too. See code gen general case
         node_st *var = new_temp_assign(DT_int, FORLOOP_COND(node));
         FORLOOP_COND(node) = var;
     }
@@ -173,11 +177,13 @@ node_st *CGP_AAforloop(node_st *node)
 
 node_st *CGP_AAstatements(node_st *node)
 {
+    node_st *parent_current_stmts = current_statements;
     current_statements = node;
     TRAVopt(STATEMENTS_STMT(current_statements));
-    node_st* this_stmts = current_statements;
+    node_st *this_stmts = current_statements;
     TRAVopt(STATEMENTS_NEXT(this_stmts));
 
+    current_statements = parent_current_stmts;
     return this_stmts;
 }
 
@@ -186,7 +192,6 @@ node_st *CGP_AAvardecs(node_st *node)
     TRAVopt(VARDECS_VARDEC(node));
     last_vardecs = node;
     TRAVopt(VARDECS_NEXT(node));
-
     return node;
 }
 
@@ -200,12 +205,21 @@ node_st *CGP_AAfunbody(node_st *node)
     return node;
 }
 
+node_st *CGP_AAglobaldef(node_st *node)
+{
+    is_exported = GLOBALDEF_HAS_EXPORT(node);
+    TRAVopt(GLOBALDEF_VARDEC(node));
+    is_exported = false;
+    return node;
+}
+
 /**
  * For symbol table.
  */
 node_st *CGP_AAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
+    node_st *parent_last_vardecs = last_vardecs;
     last_vardecs = NULL;
 
     current = FUNDEF_SYMBOLS(node);
@@ -220,6 +234,7 @@ node_st *CGP_AAfundef(node_st *node)
     current = HTlookup(current, htable_parent_name);
     release_assert(current != NULL);
     last_fundef = parent_fundef;
+    last_vardecs = parent_last_vardecs;
 
     return node;
 }

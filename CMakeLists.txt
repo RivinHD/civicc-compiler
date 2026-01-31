@@ -57,17 +57,26 @@ Note: Afl is not required to build the generator."
 )
 option(DEBUG_SCANPARSE "Prints debug information from the lexing and parsing to the console." OFF)
 
-option(CIVICC_ASSEMBLER "The path to the civicc assembler 'civas'")
+option(CIVICC_AS "The path to the civicc assembler 'civas'")
 option(CIVICC_VM "The path to the civicc virtual machine 'civvm'")
 
-if(NOT "${CIVICC_ASSEMBLER}")
+if((NOT "${CIVICC_AS}") AND (DEFINED ENV{CIVICC_AS}))
+    set(CIVICC_VM "$ENV{CIVICC_AS}")
+endif()
+
+if((NOT "${CIVICC_VM}") AND (DEFINED ENV{CIVICC_VM}))
+    set(CIVICC_VM "$ENV{CIVICC_VM}")
+endif()
+
+
+if(NOT "${CIVICC_AS}")
     find_file(PATH_CIVAS
         "civas"
         OPTIONAL
     )
 else()
-    get_filename_component(DIR_CIVAS "${CIVICC_ASSEMBLER}" DIRECTORY)
-    get_filename_component(FILENAME_CIVAS "${CIVICC_ASSEMBLER}" NAME)
+    get_filename_component(DIR_CIVAS "${CIVICC_AS}" DIRECTORY)
+    get_filename_component(FILENAME_CIVAS "${CIVICC_AS}" NAME)
     find_file(PATH_CIVAS
         "${FILENAME_CIVAS}"
         PATHS "${DIR_CIVAS}"
@@ -91,7 +100,7 @@ else()
 endif()
 
 if("${PATH_CIVAS}" STREQUAL "PATH_CIVAS-NOTFOUND")
-    message(STATUS "Missing 'civas' skipping behavior tests!")
+    message(STATUS "Missing 'civas' skipping behavior tests & codegen assembly check!")
     set(PATH_CIVAS_FOUND TRUE)
 else()
     message(STATUS "Found 'civas' at: '${PATH_CIVAS}'")
