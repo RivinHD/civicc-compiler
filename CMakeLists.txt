@@ -256,12 +256,30 @@ target_include_directories("civicc_codegen${AFL_EXT}"
 )
 
 if(NOT AFL_ENABLED)
+    if(APPLE)
+        set(TIMEOUT_NAME "gtimeout")
+    else()
+        set(TIMEOUT_NAME "timeout")
+    endif()
+
+    find_program(PROG_TIMEOUT NAMES "${TIMEOUT_NAME}" OPTIONAL)
+
     add_executable(tests ${TEST_FILES}) # No need to apply afl to tests
     target_link_libraries(tests PRIVATE gmock_main civicc_lib)
     coconut_add_includes(tests)
     target_include_directories(tests
         PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
     )
+
+    if((${PATH_CIVAS_FOUND}) AND (${PATH_CIVVM_FOUND}))
+        if("${PROG_TIMEOUT}" STREQUAL "PROG_TIMEOUT-NOTFOUND")
+            if(APPLE)
+                message(FATAL_ERROR "Behaviour tests requiere '${TIMEOUT_NAME}' to exists.\nInstall with 'brew install coreutils'")
+            else()
+                message(FATAL_ERROR "Behaviour tests requiere '${TIMEOUT_NAME}' to exists.")
+            endif()
+        endif()
+    endif()
 
     # === Google Test integration ===
     enable_testing()

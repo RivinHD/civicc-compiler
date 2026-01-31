@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include <cerrno>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -86,12 +87,35 @@ template <size_t TCount> class BehaviorTest : public testing::Test
             std::string assembler_cmd = PROGRAM_CIVAS + std::string(" -o ") +
                                         object_filepath.string() + " " +
                                         output_filepath[i].string();
-            system(assembler_cmd.c_str());
+            FILE *fd_civas = popen(assembler_cmd.c_str(), "r");
+            ASSERT_NE(nullptr, fd_civas) << "Failed to popen civas";
+
+            const size_t buf_len = 1024;
+            char buf[buf_len];
+
+            while (fgets(buf, buf_len, fd_civas) != NULL)
+            {
+                ASSERT_THAT(std::string(buf), testing::Not(testing::HasSubstr("error")));
+            }
+
+            // Close
+            int status = pclose(fd_civas);
+
+            ASSERT_NE(-1, status) << "Failed to retrieve the status";
+            int exit_status = WEXITSTATUS(status);
+            ASSERT_EQ(0, exit_status) << "Error on assembling the generated code.";
+
+            int signal = WIFSIGNALED(status);
+            ASSERT_EQ(0, signal) << "Killed by signal: '" << WTERMSIG(status) << "'";
 
             objects += " " + object_filepath.string();
         }
 
-        std::string timeout_cmd = "timeout 3s "; // Add
+#ifdef __APPLE__
+        std::string timeout_cmd = "timeout 3s ";
+#else
+        std::string timeout_cmd = "gtimeout 3s ";
+#endif // __APPLE__
         std::string options = " --size --instrs ";
         std::string vm_cmd = timeout_cmd + PROGRAM_CIVVM + options + objects;
         testing::internal::CaptureStdout();
