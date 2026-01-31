@@ -11,7 +11,6 @@
 #include <stdbool.h>
 
 static node_st *init_fun = NULL;
-static uint32_t init_counter = 0;
 
 node_st *CGP_IFglobaldef(node_st *node)
 {
@@ -65,17 +64,6 @@ node_st *CGP_IFglobaldef(node_st *node)
                 TRAVopt(cur_vardec);
 
                 return node;
-            }
-            else
-            {
-                char *tmp_name = STRfmt("@init%d", init_counter++);
-                node_st *tmp_var = ASTvar(tmp_name);
-                new_assign = ASTassign(tmp_var, expr);
-
-                // update current node
-                VARDEC_EXPR(cur_vardec) = CCNcopy(tmp_var);
-                node_st *new_stmts = ASTstatements(new_assign, init_stmts);
-                FUNBODY_STMTS(init_funbody) = new_stmts;
             }
         }
     }
