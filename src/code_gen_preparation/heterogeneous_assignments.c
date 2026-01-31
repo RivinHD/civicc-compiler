@@ -184,7 +184,7 @@ node_st *CGP_AAstatements(node_st *node)
     TRAVopt(STATEMENTS_NEXT(this_stmts));
 
     current_statements = parent_current_stmts;
-    return this_stmts;
+    return node;
 }
 
 node_st *CGP_AAvardecs(node_st *node)

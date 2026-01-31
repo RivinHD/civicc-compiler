@@ -101,13 +101,29 @@ int main(int argc, char *argv[])
         src = (char *)realloc(src, len);
         std::memcpy(src, buf, len);
 #if SLICE_TARGET == 1
+#ifdef __AFL_COMPILER
         node_st *root = run_scan_parse_buf(filepath, src, (uint32_t)len);
+#else
+        node_st *root = run_scan_parse(filepath);
+#endif // __AFL_COMPILER
 #elif SLICE_TARGET == 2
+#ifdef __AFL_COMPILER
         node_st *root = run_context_analysis_buf(filepath, src, (uint32_t)len);
+#else
+        node_st *root = run_context_analysis(filepath);
+#endif // __AFL_COMPILER
 #elif SLICE_TARGET == 3
+#ifdef __AFL_COMPILER
         node_st *root = run_code_gen_preparation_buf(filepath, src, (uint32_t)len);
+#else
+        node_st *root = run_code_gen_preparation(filepath);
+#endif // __AFL_COMPILER
 #elif SLICE_TARGET == 4
+#ifdef __AFL_COMPILER
         node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0);
+#else
+        node_st *root = run_code_generation(filepath, NULL, 0);
+#endif // __AFL_COMPILER
 #else
         static_assert(false, "No valid slice target given to preprocessor");
 #endif

@@ -61,7 +61,7 @@ option(CIVICC_AS "The path to the civicc assembler 'civas'")
 option(CIVICC_VM "The path to the civicc virtual machine 'civvm'")
 
 if((NOT "${CIVICC_AS}") AND (DEFINED ENV{CIVICC_AS}))
-    set(CIVICC_VM "$ENV{CIVICC_AS}")
+    set(CIVICC_AS "$ENV{CIVICC_AS}")
 endif()
 
 if((NOT "${CIVICC_VM}") AND (DEFINED ENV{CIVICC_VM}))
@@ -69,7 +69,7 @@ if((NOT "${CIVICC_VM}") AND (DEFINED ENV{CIVICC_VM}))
 endif()
 
 
-if(NOT "${CIVICC_AS}")
+if("${CIVICC_AS}" STREQUAL "OFF")
     find_file(PATH_CIVAS
         "civas"
         OPTIONAL
@@ -84,7 +84,7 @@ else()
     )
 endif()
 
-if(NOT "${CIVICC_VM}")
+if("${CIVICC_VM}" STREQUAL "OFF")
     find_file(PATH_CIVVM
         "civvm"
         OPTIONAL

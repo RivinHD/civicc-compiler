@@ -157,6 +157,7 @@ phase CodeGenPreparation
 
                 // Nodes to update
                 FunDef,
+                FunHeader,
                 ProcCall
             }
         };

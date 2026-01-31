@@ -56,13 +56,13 @@ node_st *CGP_PPproccall(node_st *node)
                     cur_arrayvar_dim_vars = DIMENSIONVARS_NEXT(cur_arrayvar_dim_vars);
                 }
             }
-            else if(NODE_TYPE(cur_var) == NT_ARRAYEXPR)
+            else if (NODE_TYPE(cur_var) == NT_ARRAYEXPR)
             {
                 node_st *cur_arrayexpr_dim_vars = ARRAYEXPR_DIMS(cur_var);
                 while (cur_arrayexpr_dim_vars != NULL)
                 {
-                    node_st *new_exprs = ASTexprs(CCNcopy(EXPRS_EXPR(cur_arrayexpr_dim_vars)),
-                                                  PROCCALL_EXPRS(node));
+                    node_st *new_exprs =
+                        ASTexprs(CCNcopy(EXPRS_EXPR(cur_arrayexpr_dim_vars)), PROCCALL_EXPRS(node));
                     PROCCALL_EXPRS(node) = new_exprs;
                     cur_arrayexpr_dim_vars = EXPRS_NEXT(cur_arrayexpr_dim_vars);
                 }
@@ -75,14 +75,9 @@ node_st *CGP_PPproccall(node_st *node)
     return node;
 }
 
-node_st *CGP_PPfundef(node_st *node)
+node_st *CGP_PPfunheader(node_st *node)
 {
-    // Set current symbol table
-    current = FUNDEF_SYMBOLS(node);
-    release_assert(current != NULL);
-
-    node_st *cur_funheader = FUNDEF_FUNHEADER(node);
-    node_st *cur_params = FUNHEADER_PARAMS(cur_funheader);
+    node_st *cur_params = FUNHEADER_PARAMS(node);
 
     while (cur_params != NULL)
     {
@@ -94,14 +89,23 @@ node_st *CGP_PPfundef(node_st *node)
             while (cur_dim_var != NULL)
             {
                 node_st *new_params = ASTparams(CCNcopy(DIMENSIONVARS_DIM(cur_dim_var)),
-                                                FUNHEADER_PARAMS(cur_funheader), DT_int);
-                FUNHEADER_PARAMS(cur_funheader) = new_params;
+                                                FUNHEADER_PARAMS(node), DT_int);
+                FUNHEADER_PARAMS(node) = new_params;
                 cur_dim_var = DIMENSIONVARS_NEXT(cur_dim_var);
             }
         }
 
         cur_params = PARAMS_NEXT(cur_params);
     }
+
+    return node;
+}
+
+node_st *CGP_PPfundef(node_st *node)
+{
+    // Set current symbol table
+    current = FUNDEF_SYMBOLS(node);
+    release_assert(current != NULL);
 
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
