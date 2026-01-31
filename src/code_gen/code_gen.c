@@ -412,11 +412,6 @@ node_st *CG_CGfundef(node_st *node)
     is_expr = parent_is_expr;
     TRAVopt(FUNDEF_FUNBODY(node));
 
-    if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(node)) == DT_void)
-    {
-        inst0("return");
-    }
-
     uint32_t params_count = 0;
     node_st *params = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
     while (params != NULL)
@@ -541,6 +536,11 @@ node_st *CG_CGfunbody(node_st *node)
     type = DT_void;
     TRAVopt(FUNBODY_VARDECS(node));
     TRAVopt(FUNBODY_STMTS(node));
+    if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(fundef)) == DT_void)
+    {
+        inst0("return");
+    }
+
     TRAVopt(FUNBODY_LOCALFUNDEFS(node));
     type = parent_type;
     return node;
