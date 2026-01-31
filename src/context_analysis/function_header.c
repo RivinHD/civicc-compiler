@@ -68,7 +68,6 @@ node_st *CA_FHfundec(node_st *node)
             error_invalid_identifier_name(node, entry, name);
         }
 
-        printf("new_name %s\n", new_name);
         bool success = HTinsert(current, STRcpy(new_name), node);
         release_assert(success);
     }

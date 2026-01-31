@@ -12,6 +12,7 @@
 static node_st *program_decls = NULL;
 static node_st *last_fundef = NULL;
 static uint32_t temp_counter = 0;
+static htable_stptr global_current = NULL;
 static htable_stptr current = NULL;
 static node_st *last_vardecs = NULL;
 static node_st *current_statements = NULL;
@@ -89,7 +90,7 @@ node_st *CGP_AAarrayexpr(node_st *node)
                 temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
                 node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, DT_int);
                 node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
-                bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+                bool success = HTinsert(global_current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
                 release_assert(success);
 
                 // Step 2: Append to before the current globalDef (decls)
@@ -249,6 +250,7 @@ node_st *CGP_AAprogram(node_st *node)
 {
     current = PROGRAM_SYMBOLS(node);
     program_decls = PROGRAM_DECLS(node);
+    global_current = current;
 
     // Global arrays unpack assignment into the __init function
     node_st *entry = HTlookup(current, global_init_func);

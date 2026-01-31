@@ -6046,3 +6046,15 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("error: Assignment to for loop iterator 'i' is illegal"),
             testing::HasSubstr(" 62 Error")));
 }
+
+
+TEST_F(ContextTest, Typecheck_EdgeCaseArray)
+{
+    SetUpNoExecute("typecheck/edge_case_array/main.cvc");
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(
+            testing::HasSubstr("Scalar 'json' can not be accessed with an array expression."),
+            testing::HasSubstr(" 1 Error")));
+}
+

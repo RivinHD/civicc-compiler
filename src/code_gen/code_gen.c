@@ -35,6 +35,7 @@ static uint32_t loop_counter = 0;
 static bool is_expr = true;
 static bool is_arrayexpr_store = false;
 static uint32_t lfun_counter = 0;
+static bool preprocess_decls = true;
 
 /**
  * Helper functions.
@@ -237,6 +238,7 @@ static bool IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
 
 static ptrdiff_t IDXlookup(htable_stptr table, char *key)
 {
+    printf("KEY %s\n", key);
     void *entry = HTlookup(table, key);
     release_assert(entry != NULL);
     return (ptrdiff_t)entry - 1;
@@ -308,6 +310,14 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
  */
 node_st *CG_CGprogram(node_st *node)
 {
+    char *str = node_to_string(node);
+    printf("%s", str);
+    free(str);
+
+    str = symbols_to_string(node);
+    printf("%s", str);
+    free(str);
+
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {
@@ -331,6 +341,8 @@ node_st *CG_CGprogram(node_st *node)
     current = PROGRAM_SYMBOLS(node);
 
     TRAVchildren(node);
+    preprocess_decls = false;
+    TRAVchildren(node);
 
     HTdelete(table);
     HTdelete(import_table);
@@ -352,13 +364,32 @@ node_st *CG_CGprogram(node_st *node)
 
 node_st *CG_CGdeclarations(node_st *node)
 {
-    TRAVchildren(node);
+    if (preprocess_decls)
+    {
+        if (NODE_TYPE(DECLARATIONS_DECL(node)) != NT_FUNDEF)
+        {
+            // Preprocess all fundec, globaldef, globaldec
+            TRAVopt(DECLARATIONS_DECL(node));
+        }
+
+        TRAVopt(DECLARATIONS_NEXT(node));
+    }
+    else
+    {
+        if (NODE_TYPE(DECLARATIONS_DECL(node)) == NT_FUNDEF)
+        {
+            TRAVopt(DECLARATIONS_DECL(node));
+        }
+        TRAVopt(DECLARATIONS_NEXT(node));
+    }
+
     return node;
 }
 
 node_st *CG_CGfundec(node_st *node)
 {
-    bool success = IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEC_FUNHEADER(node))), fun_import_counter++);
+    bool success = IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEC_FUNHEADER(node))),
+                             fun_import_counter++);
     release_assert(success);
     importfun(FUNDEC_FUNHEADER(node));
     return node;
@@ -479,7 +510,8 @@ node_st *CG_CGglobaldef(node_st *node)
                 char *lookup_name = VAR_NAME(dim_var);
                 // With this naming we ensure that name of the dimension does not matter in
                 // the export/import and only the array name need to be correct.
-                ptrdiff_t idx = IDXlookup(index_table, lookup_name);
+                void *entry = HTlookup(index_table, lookup_name);
+                ptrdiff_t idx = IDXlookup(entry == NULL ? import_table : index_table, lookup_name);
                 release_assert(idx >= 0);
                 char *export_name = STRfmt("__dim%d_%s", dim_counter++, name);
                 exportvar(export_name, idx);
