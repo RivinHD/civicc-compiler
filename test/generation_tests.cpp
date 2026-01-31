@@ -10,6 +10,9 @@
 #include <string>
 #include <sys/mman.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <fcntl.h>
+#endif // __APPLE__
 
 extern "C"
 {
@@ -81,7 +84,15 @@ class GenerationTest : public testing::Test
     void CheckAssembly()
     {
 #ifdef PROGRAM_CIVAS
+#ifdef __APPLE__
+        const testing::TestInfo *const test_info =
+            testing::UnitTest::GetInstance()->current_test_info();
+        const char *testname = test_info->name();
+        int proc_code = open(testname, O_RDWR);
+        unlink(testname); // Immediatly remove it from the file sytem
+#else                     // Linux
         int proc_code = memfd_create("test_civ_code", 0);
+#endif
         ASSERT_NE(-1, proc_code);
         size_t len = STRlen(output_buffer) + 1; // Include null terminate character
         ssize_t written = pwrite(proc_code, output_buffer, len, 0);
