@@ -1171,8 +1171,8 @@ node_st *CG_CGexprs(node_st *node)
 
 node_st *CG_CGifstatement(node_st *node)
 {
-    char *else_label = STRfmt("else%d", if_counter);
-    char *end_label = STRfmt("ifend%d", if_counter);
+    char *else_label = STRfmt("_else%d", if_counter);
+    char *end_label = STRfmt("_ifend%d", if_counter);
     if_counter++;
 
     enum DataType parent_type = type;
@@ -1209,8 +1209,8 @@ node_st *CG_CGifstatement(node_st *node)
 
 node_st *CG_CGwhileloop(node_st *node)
 {
-    char *while_label = STRfmt("while%d", loop_counter);
-    char *end_label = STRfmt("whileend%d", loop_counter);
+    char *while_label = STRfmt("_while%d", loop_counter);
+    char *end_label = STRfmt("_whileend%d", loop_counter);
     loop_counter++;
 
     enum DataType parent_type = type;
@@ -1231,7 +1231,7 @@ node_st *CG_CGwhileloop(node_st *node)
 
 node_st *CG_CGdowhileloop(node_st *node)
 {
-    char *while_label = STRfmt("while%d", loop_counter);
+    char *while_label = STRfmt("_while%d", loop_counter);
     loop_counter++;
 
     label(while_label);
@@ -1271,8 +1271,8 @@ node_st *CG_CGforloop(node_st *node)
 
     enum DataType parent_type = type;
     type = DT_int;
-    char *start_label = STRfmt("for%d", loop_counter);
-    char *end_label = STRfmt("endfor%d", loop_counter);
+    char *start_label = STRfmt("_for%d", loop_counter);
+    char *end_label = STRfmt("_endfor%d", loop_counter);
     loop_counter++;
     char *assign_name = VAR_NAME(ASSIGN_VAR(assign));
 
@@ -1813,8 +1813,8 @@ node_st *CG_CGbool(node_st *node)
 
 node_st *CG_CGternary(node_st *node)
 {
-    char *pfalse_label = STRfmt("pfalse%d", if_counter);
-    char *end_label = STRfmt("pend%d", if_counter);
+    char *pfalse_label = STRfmt("_pfalse%d", if_counter);
+    char *end_label = STRfmt("_pend%d", if_counter);
     if_counter++;
 
     enum DataType parent_type = type;
