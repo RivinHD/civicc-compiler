@@ -177,7 +177,10 @@ static node_st *processed_deep_lookup(htable_stptr symbols, htable_stptr process
     if (entry == NULL)
     {
         htable_stptr parent = HTlookup(symbols, htable_parent_name);
-        release_assert(parent != NULL);
+        if (parent == NULL)
+        {
+            return NULL;
+        }
         entry = deep_lookup(parent, name);
     }
 
@@ -252,10 +255,6 @@ node_st *CA_TCvar(node_st *node)
             anytype = false;
         }
         return node;
-    }
-    if (entry == NULL)
-    {
-        // printf("%s\n%s", node_to_string(node), idx_to_string(process_vardecs));
     }
     release_assert(entry != NULL);
 
@@ -803,11 +802,6 @@ node_st *CA_TCassign(node_st *node)
         // Missing entry due to error, skip check.
         return node;
     }
-
-    if (entry == NULL)
-    {
-        // printf("%s\n%s", node_to_string(node), idx_to_string(process_vardecs));
-    }
     release_assert(entry != NULL);
 
     node_st *var = get_var_from_symbol(entry);
@@ -857,11 +851,6 @@ node_st *CA_TCarrayassign(node_st *node)
     {
         // Missing entry due to error, skip check.
         return node;
-    }
-
-    if (entry == NULL)
-    {
-        // printf("%s\n%s", node_to_string(node), idx_to_string(process_vardecs));
     }
     release_assert(entry != NULL);
 
@@ -1011,7 +1000,7 @@ node_st *CA_TCfundef(node_st *node)
     has_return = false;
     rettype = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
     current = FUNDEF_SYMBOLS(node);
-    process_vardecs = HTnew_String(1 << 8);
+    process_vardecs = HTnew_String(2 << 8);
 
     node_st *param = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
     while (param != NULL)
@@ -1059,7 +1048,6 @@ node_st *CA_TCfundef(node_st *node)
 
 node_st *CA_TCprogram(node_st *node)
 {
-    // printf("%s", symbols_to_string(node));
     process_vardecs = HTnew_String(1 << 8);
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));

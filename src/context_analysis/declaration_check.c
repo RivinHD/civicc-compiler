@@ -4,6 +4,7 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -11,6 +12,7 @@
 #include <stdbool.h>
 
 static htable_stptr current = NULL;
+node_st *program_node = NULL;
 
 void add_var_symbol(node_st *node, node_st *var)
 {
@@ -91,8 +93,25 @@ node_st *CA_DCvardec(node_st *node)
     // Edge case int a = a + 1 // a in expr is not declared
     TRAVopt(VARDEC_EXPR(node));
     node_st *var = VARDEC_VAR(node);
-    add_var_symbol(node, var);
-    TRAVopt(VARDEC_VAR(node));
+    if (NODE_TYPE(var) == NT_ARRAYEXPR)
+    {
+        TRAVopt(ARRAYEXPR_DIMS(var));
+        add_var_symbol(node, var);
+        TRAVopt(ARRAYEXPR_VAR(var));
+    }
+    else
+    {
+        release_assert(NODE_TYPE(var) == NT_VAR);
+        add_var_symbol(node, var);
+        TRAVopt(var);
+    }
+    return node;
+}
+
+node_st *CA_DCarrayexpr(node_st *node)
+{
+    TRAVopt(ARRAYEXPR_DIMS(node));
+    TRAVopt(ARRAYEXPR_VAR(node));
     return node;
 }
 
@@ -117,13 +136,18 @@ node_st *CA_DCglobaldec(node_st *node)
 
 node_st *CA_DCfundec(node_st *node)
 {
-    // No need to check fundec
+    htable_stptr parent_current = current;
+    current = HTnew_String(2 << 8);
+    bool success = HTinsert(current, htable_parent_name, parent_current);
+    release_assert(success);
+    TRAVopt(FUNDEC_FUNHEADER(node));
+    HTdelete(current);
+    current = parent_current;
     return node;
 }
 
 node_st *CA_DCdimensionvars(node_st *node)
 {
-
     node_st *var = DIMENSIONVARS_DIM(node);
     add_var_symbol(node, var);
 
@@ -163,6 +187,7 @@ node_st *CA_DCdeclarations(node_st *node)
 node_st *CA_DCprogram(node_st *node)
 {
     current = PROGRAM_SYMBOLS(node);
+    program_node = node;
 
     TRAVopt(PROGRAM_DECLS(node));
     return node;

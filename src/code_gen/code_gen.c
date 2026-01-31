@@ -238,7 +238,6 @@ static bool IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
 
 static ptrdiff_t IDXlookup(htable_stptr table, char *key)
 {
-    printf("KEY %s\n", key);
     void *entry = HTlookup(table, key);
     release_assert(entry != NULL);
     return (ptrdiff_t)entry - 1;
@@ -310,14 +309,6 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
  */
 node_st *CG_CGprogram(node_st *node)
 {
-    char *str = node_to_string(node);
-    printf("%s", str);
-    free(str);
-
-    str = symbols_to_string(node);
-    printf("%s", str);
-    free(str);
-
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {

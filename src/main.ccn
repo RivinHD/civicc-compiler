@@ -60,6 +60,7 @@ phase ContextAnalysis {
 
 
                 // Usage
+                ArrayExpr,
                 Var,
                 ProcCall,
 
