@@ -21,7 +21,8 @@ node_st *new_temp_assign(enum DataType type, node_st *expr)
 {
     node_st *temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
     node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, type);
-    HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+    bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+    release_assert(success);
     node_st *tmp_assign = ASTassign(CCNcopy(temp_var), expr);
 
     release_assert(last_fundef != NULL);
@@ -88,7 +89,8 @@ node_st *CGP_AAarrayexpr(node_st *node)
                 temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
                 node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), NULL, DT_int);
                 node_st *temp_globaldef = ASTglobaldef(temp_vardec, false);
-                HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+                bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+                release_assert(success);
 
                 // Step 2: Append to before the current globalDef (decls)
                 node_st *temp_decls = ASTdeclarations(temp_globaldef, program_decls);
@@ -107,7 +109,8 @@ node_st *CGP_AAarrayexpr(node_st *node)
                     // Step 1: Create temp varDec
                     temp_var = ASTvar(STRfmt("@temp_%d", temp_counter++));
                     node_st *temp_vardec = ASTvardec(CCNcopy(temp_var), cur_expr, DT_int);
-                    HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+                    bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(temp_vardec)), temp_vardec);
+                    release_assert(success);
 
                     // Step 2: Append above of the current
                     if (last_vardecs == NULL)

@@ -258,6 +258,8 @@ TEST_F(GenerationTest, WhileLoopsGeneration)
                            ".const int 0x5  ; 5\n"
                            "    iloadc 0\n"
                            "    istore 0\n"
+                           "    iloadc_1\n"
+                           "    istore 1\n"
                            "_while0:\n"
                            "    iload_0\n"
                            ".const int 0x64  ; 100\n"

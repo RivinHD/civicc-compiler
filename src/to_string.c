@@ -548,7 +548,8 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
             output_old = STRcpy("");
         }
 
-        HTinsert(htable, symbols, STRfmt("%d: %s", counter, node_name));
+        bool success = HTinsert(htable, symbols, STRfmt("%d: %s", counter, node_name));
+        release_assert(success);
         if (parent != NULL)
         {
             const char *parent_name = HTlookup(htable, parent);

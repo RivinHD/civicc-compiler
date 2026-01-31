@@ -89,9 +89,11 @@ node_st *CGP_IFprogram(node_st *node)
     init_fun = ASTfundef(funheader, funbody, true);
     FUNDEF_SYMBOLS(init_fun) = HTnew_String(2 << 8);
     htable_stptr symbols = FUNDEF_SYMBOLS(init_fun);
-    HTinsert(symbols, htable_parent_name, PROGRAM_SYMBOLS(node));
+    bool success = HTinsert(symbols, htable_parent_name, PROGRAM_SYMBOLS(node));
+    release_assert(success);
 
-    HTinsert(PROGRAM_SYMBOLS(node), global_init_func, init_fun);
+    success = HTinsert(PROGRAM_SYMBOLS(node), global_init_func, init_fun);
+    release_assert(success);
 
     release_assert(DECLARATIONS_NEXT(last_decls) == NULL);
     node_st *init_decl = ASTdeclarations(init_fun, NULL);

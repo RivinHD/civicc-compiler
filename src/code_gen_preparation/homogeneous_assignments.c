@@ -37,7 +37,8 @@ node_st *CGP_HAvardec(node_st *node)
         // Step 0: Create temp dimension size var
         node_st *dims_var = ASTvar(STRfmt("@loop_dims%d", loop_counter));
         node_st *dims_vardec = ASTvardec(dims_var, NULL, DT_int);
-        HTinsert(current, VAR_NAME(VARDEC_VAR(dims_vardec)), dims_vardec);
+        bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(dims_vardec)), dims_vardec);
+        release_assert(success);
         node_st *dims_new_vardecs = ASTvardecs(dims_vardec, FUNBODY_VARDECS(funbody));
         FUNBODY_VARDECS(funbody) = dims_new_vardecs;
         node_st *dims_assign = ASTassign(CCNcopy(dims_var), alloc_expr);
@@ -88,7 +89,8 @@ node_st *CGP_HAvardec(node_st *node)
                 node_st *loop_expression = ASTvar(STRfmt("@loop_expr%d", loop_counter));
                 node_st *expr_assign = ASTassign(CCNcopy(loop_expression), expr);
                 node_st *new_vardec = ASTvardec(loop_expression, NULL, VARDEC_TYPE(node));
-                HTinsert(current, VAR_NAME(VARDEC_VAR(new_vardec)), new_vardec);
+                bool success = HTinsert(current, VAR_NAME(VARDEC_VAR(new_vardec)), new_vardec);
+                release_assert(success);
 
                 // Step 3.1: Create for Loop
                 node_st *loop_var = ASTvar(STRfmt("@loop_var%d", loop_counter));
@@ -101,7 +103,8 @@ node_st *CGP_HAvardec(node_st *node)
                 node_st *loop_stmts = ASTstatements(loop_block_assign, NULL);
                 node_st *loop = ASTforloop(loop_assign, CCNcopy(dims_var), NULL, loop_stmts);
                 node_st *new_loop_vardec = ASTvardec(CCNcopy(loop_var), NULL, DT_int);
-                HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
+                success = HTinsert(current, VAR_NAME(VARDEC_VAR(new_loop_vardec)), new_loop_vardec);
+                release_assert(success);
                 node_st *new_loop_vardecs = ASTvardecs(new_loop_vardec, FUNBODY_VARDECS(funbody));
                 FUNBODY_VARDECS(funbody) = new_loop_vardecs;
 

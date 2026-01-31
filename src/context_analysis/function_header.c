@@ -59,7 +59,8 @@ node_st *CA_FHfundec(node_st *node)
 
     node_st *funheader = FUNDEC_FUNHEADER(node);
     char *name = VAR_NAME(FUNHEADER_VAR(funheader));
-    node_st *entry = HTlookup(current, name);
+    char *new_name = STRfmt("@fun_%s", name);
+    node_st *entry = HTlookup(current, new_name);
     if (entry == NULL)
     {
         if (name[0] == '_')
@@ -67,11 +68,9 @@ node_st *CA_FHfundec(node_st *node)
             error_invalid_identifier_name(node, entry, name);
         }
 
-        char *new_name = STRfmt("@fun_%s", name);
-        HTinsert(current, STRcpy(new_name), node);
-
-        VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
-        free(name);
+        printf("new_name %s\n", new_name);
+        bool success = HTinsert(current, STRcpy(new_name), node);
+        release_assert(success);
     }
     else
     {
@@ -80,6 +79,9 @@ node_st *CA_FHfundec(node_st *node)
             NODE_TYPE(entry) == NT_FUNDEF ? FUNDEF_FUNHEADER(entry) : FUNDEC_FUNHEADER(entry);
         error_already_defined(node, funheader, name);
     }
+
+    VAR_NAME(FUNHEADER_VAR(funheader)) = new_name;
+    free(name);
 
     return node;
 }
@@ -90,7 +92,8 @@ node_st *CA_FHfundef(node_st *node)
 
     FUNDEF_SYMBOLS(node) = HTnew_String(2 << 8); // 512
     htable_stptr symbols = FUNDEF_SYMBOLS(node);
-    HTinsert(symbols, htable_parent_name, current);
+    bool success = HTinsert(symbols, htable_parent_name, current);
+    release_assert(success);
 
     // Add function type to parent symbol table
     node_st *funheader = FUNDEF_FUNHEADER(node);
@@ -111,7 +114,8 @@ node_st *CA_FHfundef(node_st *node)
             main_candidate = node;
         }
 
-        HTinsert(current, STRcpy(new_name), node);
+        bool success = HTinsert(current, STRcpy(new_name), node);
+        release_assert(success);
     }
     else
     {

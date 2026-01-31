@@ -116,7 +116,7 @@ else()
 endif()
 
 if((${PATH_CIVAS_FOUND}) AND (${PATH_CIVVM_FOUND}))
-    add_compile_definitions(PROGRAM_CIVAS="${PATH_CIVAS}" PROGRAM_CIVVM="${PATH_CIVAS}")
+    add_compile_definitions(PROGRAM_CIVAS="${PATH_CIVAS}" PROGRAM_CIVVM="${PATH_CIVVM}")
 endif()
 
 set(TEST_DIR "${CMAKE_CURRENT_LIST_DIR}/test")

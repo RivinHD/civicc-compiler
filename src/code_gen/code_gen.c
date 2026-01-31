@@ -230,9 +230,9 @@ static void globalvar(node_st *entry)
     free(str_type);
 }
 
-static void IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
+static bool IDXinsert(htable_stptr table, char *key, ptrdiff_t index)
 {
-    HTinsert(table, key, (void *)(index + 1));
+    return HTinsert(table, key, (void *)(index + 1));
 }
 
 static ptrdiff_t IDXlookup(htable_stptr table, char *key)
@@ -308,14 +308,6 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
  */
 node_st *CG_CGprogram(node_st *node)
 {
-    char *str = node_to_string(node);
-    printf("%s", str);
-    free(str);
-
-    str = symbols_to_string(node);
-    printf("%s", str);
-    free(str);
-
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {
@@ -366,7 +358,8 @@ node_st *CG_CGdeclarations(node_st *node)
 
 node_st *CG_CGfundec(node_st *node)
 {
-    IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEC_FUNHEADER(node))), fun_import_counter++);
+    bool success = IDXinsert(import_table, VAR_NAME(FUNHEADER_VAR(FUNDEC_FUNHEADER(node))), fun_import_counter++);
+    release_assert(success);
     importfun(FUNDEC_FUNHEADER(node));
     return node;
 }
@@ -376,7 +369,8 @@ node_st *CG_CGfundef(node_st *node)
     uint32_t parent_idx_counter = idx_counter;
     idx_counter = 0;
     htable_stptr table = HTnew_String(2 << 8);
-    HTinsert(table, htable_parent_name, index_table);
+    bool success = HTinsert(table, htable_parent_name, index_table);
+    release_assert(success);
     index_table = table;
 
     node_st *parent_fundef = fundef;
@@ -447,14 +441,16 @@ node_st *CG_CGglobaldec(node_st *node)
             // With this naming we ensure that name of the dimension does not matter in the
             // export/import and only the array name need to be correct.
             char *import_name = STRfmt("__dim%d_%s", dim_counter++, globaldec_name);
-            IDXinsert(import_table, name, var_import_counter++);
+            bool success = IDXinsert(import_table, name, var_import_counter++);
+            release_assert(success);
             importvar(import_name, dim);
             dim = DIMENSIONVARS_NEXT(dim);
             free(import_name);
         }
     }
 
-    IDXinsert(import_table, globaldec_name, var_import_counter++);
+    bool success = IDXinsert(import_table, globaldec_name, var_import_counter++);
+    release_assert(success);
     importvar(globaldec_name, node);
     return node;
 }
@@ -509,7 +505,8 @@ node_st *CG_CGparams(node_st *node)
     node_st *var = PARAMS_VAR(node);
     release_assert(NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_ARRAYVAR);
     char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
-    IDXinsert(index_table, name, idx_counter++);
+    bool success = IDXinsert(index_table, name, idx_counter++);
+    release_assert(success);
     bool parent_is_expr = is_expr;
     is_expr = false;
     TRAVchildren(node);
@@ -1021,7 +1018,8 @@ node_st *CG_CGvardec(node_st *node)
     node_st *var = VARDEC_VAR(node);
     release_assert(NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_ARRAYEXPR);
     char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
-    IDXinsert(index_table, name, idx_counter++);
+    bool success = IDXinsert(index_table, name, idx_counter++);
+    release_assert(success);
 
     enum DataType parent_type = type;
     type = VARDEC_TYPE(node);
@@ -1717,7 +1715,8 @@ node_st *CG_CGint(node_st *node)
         char *val_str = int_to_str(val);
         if (HTlookup(constant_table, val_str) == NULL)
         {
-            IDXinsert(constant_table, val_str, constant_counter++);
+            bool success = IDXinsert(constant_table, val_str, constant_counter++);
+            release_assert(success);
             consti(val);
         }
         else
@@ -1744,7 +1743,8 @@ node_st *CG_CGint(node_st *node)
         char *val_str = int_to_str(val);
         if (HTlookup(constant_table, val_str) == NULL)
         {
-            IDXinsert(constant_table, val_str, constant_counter++);
+            bool success = IDXinsert(constant_table, val_str, constant_counter++);
+            release_assert(success);
             consti(val);
 
             ptrdiff_t idx = IDXlookup(constant_table, val_str);
@@ -1779,7 +1779,8 @@ node_st *CG_CGfloat(node_st *node)
         char *val_str = float_to_str(val);
         if (HTlookup(constant_table, val_str) == NULL)
         {
-            IDXinsert(constant_table, val_str, constant_counter++);
+            bool success = IDXinsert(constant_table, val_str, constant_counter++);
+            release_assert(success);
             constf(val);
 
             ptrdiff_t idx = IDXlookup(constant_table, val_str);

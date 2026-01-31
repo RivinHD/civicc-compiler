@@ -35,6 +35,7 @@ help:
 	@echo "  fuzz_scanparse_grammar:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_context_grammar:  Fuzz the context analysis of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegenprep_grammar:  Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_codegen_grammar:  Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs."
 
 .PHONY: jobs
 jobs:
@@ -212,6 +213,14 @@ fuzz_codegenprep_grammar_multi: check_tmpfs generate_seeds
 .PHONY: fuzz_codegenprep_grammar
 fuzz_codegenprep_grammar: check_tmpfs generate_seeds
 	$(call fuzz_single,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+
+.PHONY: fuzz_codegen_grammar_multi
+fuzz_codegen_grammar_multi: check_tmpfs generate_seeds
+	$(call fuzz_multicore,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+
+.PHONY: fuzz_codegen_grammar
+fuzz_codegen_grammar: check_tmpfs generate_seeds
+	$(call fuzz_single,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 .PHONY: dist
 dist:

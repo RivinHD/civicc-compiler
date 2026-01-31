@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <iostream>
 #include <sstream>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string>
 
@@ -19,15 +20,16 @@ extern "C"
 template <size_t TCount> class BehaviorTest : public testing::Test
 {
   public:
-    char *root_string[TCount] = nullptr;
-    char *symbols_string[TCount] = nullptr;
-    node_st *root[TCount] = nullptr;
+    char *root_string[TCount];
+    char *symbols_string[TCount];
+    node_st *root[TCount];
     std::filesystem::path input_filepath[TCount];
     std::filesystem::path output_filepath[TCount];
     size_t code_sizes[TCount]; // in bytes; Filled after Execute was called.
     size_t instruction_count;
     std::string err_output;
     std::string std_output;
+    std::string vm_output;
 
   protected:
     BehaviorTest()
@@ -48,11 +50,11 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         {
             path filepath = filepaths[i];
             input_filepath[i] = input_folder / filepath;
-            ASSERT_TRUE(exists(input_filepath))
+            ASSERT_TRUE(exists(input_filepath[i]))
                 << "File does not exist at path '" << input_filepath << "'";
 
             filepath.replace_extension(".s");
-            output_filepath[i] = output_folder / filepath;
+            output_filepath[i] = output_folder / filepath.filename();
         }
     }
 
@@ -66,8 +68,8 @@ template <size_t TCount> class BehaviorTest : public testing::Test
             root[i] =
                 run_code_generation_file(input_filepath[i].c_str(), output_filepath[i].c_str());
             EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << input_filepath << "'";
-            root_string[i] = node_to_string(root);
-            symbols_string[i] = symbols_to_string(root);
+            root_string[i] = node_to_string(root[i]);
+            symbols_string[i] = symbols_to_string(root[i]);
         }
         err_output = testing::internal::GetCapturedStderr();
         std_output = testing::internal::GetCapturedStdout();
@@ -84,7 +86,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         {
             std::filesystem::path object_filepath{output_filepath[i]};
             object_filepath.replace_extension(".out");
-            std::string assembler_cmd = PROGRAM_CIVAS + std::string(" -o ") +
+            std::string assembler_cmd = PROGRAM_CIVAS + std::string(" 2>&1 -o ") +
                                         object_filepath.string() + " " +
                                         output_filepath[i].string();
             FILE *fd_civas = popen(assembler_cmd.c_str(), "r");
@@ -112,19 +114,37 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         }
 
 #ifdef __APPLE__
-        std::string timeout_cmd = "timeout 3s ";
-#else
         std::string timeout_cmd = "gtimeout 3s ";
+#else
+        std::string timeout_cmd = "timeout 3s ";
 #endif // __APPLE__
-        std::string options = " --size --instrs ";
+        std::string options = " 2>&1 --size --instrs ";
         std::string vm_cmd = timeout_cmd + PROGRAM_CIVVM + options + objects;
-        testing::internal::CaptureStdout();
-        testing::internal::CaptureStderr();
-        system(vm_cmd.c_str());
-        err_output = testing::internal::GetCapturedStderr();
-        std_output = testing::internal::GetCapturedStdout();
+        FILE *fd_civvm = popen(vm_cmd.c_str(), "r");
+        ASSERT_NE(nullptr, fd_civvm) << "Failed to popen civas";
 
-        std::istringstream stream(err_output);
+        std::stringstream stream;
+
+        const size_t buf_len = 1024;
+        char buf[buf_len];
+
+        while (fgets(buf, buf_len, fd_civvm) != NULL)
+        {
+            stream << buf;
+            vm_output += buf;
+        }
+
+        // Close
+        int status = pclose(fd_civvm);
+
+        ASSERT_NE(-1, status) << "Failed to retrieve the status";
+        int exit_status = WEXITSTATUS(status);
+        ASSERT_NE(-1, exit_status) << "Failed to create child";
+        ASSERT_NE(124, exit_status) << "Timeout!";
+        ASSERT_EQ(0, exit_status) << "Error on running in the civvm.";
+
+        int signal = WIFSIGNALED(status);
+        ASSERT_EQ(0, signal) << "Killed by signal: '" << WTERMSIG(status) << "'";
 
         for (size_t i = 0; i < TCount; i++)
         {
@@ -145,7 +165,6 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         EXPECT_NE(ERANGE, errno);
         EXPECT_NE(size, 0);
         EXPECT_TRUE(size >= 28); // CivicC VM bytes code has a fixed 28 bytes infill
-        size -= 28;
         instruction_count = size;
 #else
         GTEST_SKIP() << "Missing civas or civvm to execute. Test is skipped!";
@@ -158,12 +177,11 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         {
             if (root_string[i] != nullptr)
             {
-
                 if (HasFailure())
                 {
                     std::cerr << "================================================================="
                                  "=======\n"
-                              << "                        Node Representation\n"
+                              << "Node Representation of " << input_filepath[i] << "\n"
                               << "================================================================="
                                  "=======\n"
                               << root_string[i] << std::endl;
@@ -177,7 +195,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
                 {
                     std::cerr << "================================================================="
                                  "=======\n"
-                              << "                        Symbol Tables of AST\n"
+                              << "Symbol Tables of AST of " << input_filepath[i] << "\n"
                               << "================================================================="
                                  "=======\n"
                               << symbols_string[i] << std::endl;
@@ -192,6 +210,27 @@ template <size_t TCount> class BehaviorTest : public testing::Test
                 root[i] = nullptr;
             }
         }
+
+        if (HasFailure())
+        {
+            std::cerr
+                << "========================================================================\n"
+                << "                      Compilation Standard Output\n"
+                << "========================================================================\n"
+                << std_output << std::endl;
+
+            std::cerr
+                << "========================================================================\n"
+                << "                       Compilation Error Output\n"
+                << "========================================================================\n"
+                << err_output << std::endl;
+
+            std::cerr
+                << "========================================================================\n"
+                << "                             VM Output\n"
+                << "========================================================================\n"
+                << vm_output << std::endl;
+        }
     }
 };
 
@@ -199,3 +238,15 @@ template <size_t TCount> class BehaviorTest : public testing::Test
 class BehaviorTest_1 : public BehaviorTest<1>
 {
 };
+
+TEST_F(BehaviorTest_1, WhileLoops)
+{
+    std::string filepaths[] = {"codegen/while_loops/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(1698, instruction_count);
+
+    ASSERT_EQ(166, code_sizes[0]);
+}

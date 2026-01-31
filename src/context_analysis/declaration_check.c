@@ -45,7 +45,8 @@ void add_var_symbol(node_st *node, node_st *var)
             error_invalid_identifier_name(node, entry, pretty_name);
         }
 
-        HTinsert(current, name, node);
+        bool success = HTinsert(current, name, node);
+        release_assert(success);
     }
     else
     {

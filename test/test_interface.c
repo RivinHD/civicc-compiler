@@ -42,6 +42,10 @@ node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t b
     node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CONTEXTANALYSIS), CCN_ROOT_TYPE, node, true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    if (CTIgetErrors() > 0)
+    {
+        cleanup_nodes(node);
+    }
     CTIabortOnError();
     return node;
 }
@@ -57,6 +61,10 @@ node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32
     node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CODEGENPREPARATION), CCN_ROOT_TYPE, node,
                              true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    if (CTIgetErrors() > 0)
+    {
+        cleanup_nodes(node);
+    }
     CTIabortOnError();
     return node;
 }
