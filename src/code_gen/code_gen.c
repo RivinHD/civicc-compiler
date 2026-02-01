@@ -34,7 +34,7 @@ static uint32_t if_counter = 0;
 static uint32_t loop_counter = 0;
 static bool is_expr = true;
 static bool is_arrayexpr_store = false;
-static uint32_t lfun_counter = 0;
+static uint32_t lfun_counter = 0; // local function counter
 static bool preprocess_decls = true;
 
 static void reset_state()

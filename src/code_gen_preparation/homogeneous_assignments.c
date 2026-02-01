@@ -7,6 +7,7 @@
 #include "user_types.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
+#include <stdint.h>
 #include <stdio.h>
 
 static node_st *first_decls = NULL;
@@ -164,6 +165,7 @@ node_st *CGP_HAfunbody(node_st *node)
 node_st *CGP_HAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
+    uint32_t parent_loopcounter = loop_counter;
 
     htable_stptr parent_current = current;
     current = FUNDEF_SYMBOLS(node);
@@ -178,6 +180,7 @@ node_st *CGP_HAfundef(node_st *node)
     current = parent_current;
     release_assert(current != NULL);
 
+    loop_counter = parent_loopcounter;
     last_fundef = parent_fundef;
     return node;
 }

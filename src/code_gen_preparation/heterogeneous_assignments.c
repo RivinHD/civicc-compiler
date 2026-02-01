@@ -7,6 +7,7 @@
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 static node_st *program_decls = NULL;
@@ -238,6 +239,7 @@ node_st *CGP_AAfundef(node_st *node)
 {
     node_st *parent_fundef = last_fundef;
     node_st *parent_last_vardecs = last_vardecs;
+    uint32_t parent_temp_counter = temp_counter;
     last_vardecs = NULL;
 
     current = FUNDEF_SYMBOLS(node);
@@ -253,7 +255,7 @@ node_st *CGP_AAfundef(node_st *node)
     release_assert(current != NULL);
     last_fundef = parent_fundef;
     last_vardecs = parent_last_vardecs;
-
+    temp_counter = parent_temp_counter;
     return node;
 }
 
