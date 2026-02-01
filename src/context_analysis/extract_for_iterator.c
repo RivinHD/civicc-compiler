@@ -1,7 +1,6 @@
 #include "ccngen/ast.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
@@ -11,8 +10,24 @@
 static node_st *funbody = NULL;
 static node_st *last_vardecs = NULL;
 static uint32_t for_counter = 0;
-static char *old_for_name = NULL;
 static char *new_for_name = NULL;
+static char *old_for_name = NULL;
+
+static void reset_state()
+{
+    funbody = NULL;
+    last_vardecs = NULL;
+    for_counter = 0;
+    new_for_name = NULL;
+    old_for_name = NULL;
+}
+
+node_st *CA_EFIprogram(node_st *node)
+{
+    reset_state();
+    TRAVchildren(node);
+    return node;
+}
 
 node_st *CA_EFIfundef(node_st *node)
 {

@@ -1,6 +1,7 @@
 #include "release_assert.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>

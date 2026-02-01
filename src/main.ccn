@@ -32,7 +32,8 @@ phase ContextAnalysis {
                 FunDef,
                 VarDecs,
                 ForLoop,
-                Var
+                Var,
+                Program
             }
         };
         traversal FunctionHeader {

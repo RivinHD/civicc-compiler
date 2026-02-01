@@ -4,7 +4,6 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -12,7 +11,13 @@
 #include <stdbool.h>
 
 static htable_stptr current = NULL;
-node_st *program_node = NULL;
+static node_st *program_node = NULL;
+
+static void reset_state()
+{
+    current = NULL;
+    program_node = NULL;
+}
 
 void add_var_symbol(node_st *node, node_st *var)
 {
@@ -186,6 +191,7 @@ node_st *CA_DCdeclarations(node_st *node)
 
 node_st *CA_DCprogram(node_st *node)
 {
+    reset_state();
     current = PROGRAM_SYMBOLS(node);
     program_node = node;
 

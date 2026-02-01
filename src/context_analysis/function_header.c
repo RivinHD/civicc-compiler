@@ -15,8 +15,16 @@
 static htable_stptr current = NULL;
 static node_st *main_candidate = NULL;
 
+static void reset_state()
+{
+    current = NULL;
+    main_candidate = NULL;
+}
+
 node_st *CA_FHprogram(node_st *node)
 {
+    reset_state();
+
     PROGRAM_SYMBOLS(node) = HTnew_String(2 << 8); // 512
     current = PROGRAM_SYMBOLS(node);
 

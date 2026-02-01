@@ -37,15 +37,36 @@ static bool is_arrayexpr_store = false;
 static uint32_t lfun_counter = 0;
 static bool preprocess_decls = true;
 
+static void reset_state()
+{
+    current = NULL;
+    index_table = NULL;
+    import_table = NULL;
+    constant_table = NULL;
+    type = DT_NULL;
+    fundef = NULL;
+    idx_counter = 0;
+    fun_import_counter = 0;
+    var_import_counter = 0;
+    constant_counter = 0;
+    out_file = NULL;
+    if_counter = 0;
+    loop_counter = 0;
+    is_expr = true;
+    is_arrayexpr_store = false;
+    lfun_counter = 0;
+    preprocess_decls = true;
+}
+
 /**
  * Helper functions.
  */
 static void out(const char *restrict format, ...)
 {
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     va_list args;
     va_start(args, format);
 
-#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if (global.output_buf == NULL)
     {
         if (out_file != NULL)
@@ -76,12 +97,11 @@ static void out(const char *restrict format, ...)
             release_assert(false);
         }
     }
-#else
-    (void)format;
-    (void)args;
-#endif /* ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
     va_end(args);
+#else
+    (void)format;
+#endif /* ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 static void inst0(const char *inst)
@@ -309,6 +329,7 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
  */
 node_st *CG_CGprogram(node_st *node)
 {
+    reset_state();
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {
@@ -331,6 +352,7 @@ node_st *CG_CGprogram(node_st *node)
     index_table = table;
     current = PROGRAM_SYMBOLS(node);
 
+    preprocess_decls = true;
     TRAVchildren(node);
     preprocess_decls = false;
     TRAVchildren(node);

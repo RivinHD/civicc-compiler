@@ -14,6 +14,14 @@ static node_st *last_fundef = NULL;
 static htable_stptr current = NULL;
 static uint32_t loop_counter = 0;
 
+static void reset_state()
+{
+    first_decls = NULL;
+    last_fundef = NULL;
+    current = NULL;
+    loop_counter = 0;
+}
+
 node_st *CGP_HAvardec(node_st *node)
 {
     node_st *funbody = FUNDEF_FUNBODY(last_fundef);
@@ -179,6 +187,7 @@ node_st *CGP_HAfundef(node_st *node)
  */
 node_st *CGP_HAprogram(node_st *node)
 {
+    reset_state();
     htable_stptr symbols = PROGRAM_SYMBOLS(node);
     current = symbols;
     first_decls = PROGRAM_DECLS(node);

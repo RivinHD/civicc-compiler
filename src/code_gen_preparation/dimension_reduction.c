@@ -1,8 +1,5 @@
 #include "ccngen/ast.h"
-#include "definitions.h"
-#include "palm/str.h"
 #include "release_assert.h"
-#include "stdio.h"
 #include "utils.h"
 
 #include <ccn/dynamic_core.h>
@@ -10,6 +7,11 @@
 #include <stdbool.h>
 
 static htable_stptr current = NULL;
+
+static void reset_state()
+{
+    current = NULL;
+}
 
 node_st *CGP_DRarrayexpr(node_st *node)
 {
@@ -47,8 +49,9 @@ node_st *CGP_DRarrayexpr(node_st *node)
         node_st *dim = ARRAYVAR_DIMS(arrdef);
         while (expr != NULL && dim != NULL)
         {
-            start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(DIMENSIONVARS_DIM(dim)), BO_mul, DT_int),
-                                  EXPRS_EXPR(expr), BO_add, DT_int);
+            start_expr =
+                ASTbinop(ASTbinop(start_expr, CCNcopy(DIMENSIONVARS_DIM(dim)), BO_mul, DT_int),
+                         EXPRS_EXPR(expr), BO_add, DT_int);
             EXPRS_EXPR(expr) = NULL;
             expr = EXPRS_NEXT(expr);
             dim = DIMENSIONVARS_NEXT(dim);
@@ -103,6 +106,7 @@ node_st *CGP_DRfundef(node_st *node)
 
 node_st *CGP_DRprogram(node_st *node)
 {
+    reset_state();
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));
     return node;

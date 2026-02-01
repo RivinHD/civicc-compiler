@@ -19,6 +19,16 @@ static enum DataType type = DT_NULL;
 static enum DataType rettype = DT_NULL;
 static bool has_return = false;
 
+static void reset_state()
+{
+    current = NULL;
+    process_vardecs = NULL;
+    anytype = false;
+    type = DT_NULL;
+    rettype = DT_NULL;
+    has_return = false;
+}
+
 static void type_check(node_st *node, const char *name, enum DataType expected, enum DataType value)
 {
     release_assert(expected != DT_NULL);
@@ -1048,6 +1058,7 @@ node_st *CA_TCfundef(node_st *node)
 
 node_st *CA_TCprogram(node_st *node)
 {
+    reset_state();
     process_vardecs = HTnew_String(1 << 8);
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));

@@ -11,6 +11,11 @@
 
 static htable_stptr current = NULL;
 
+static void reset_state()
+{
+    current = NULL;
+}
+
 node_st *CGP_PPproccall(node_st *node)
 {
     char *procall_name = VAR_NAME(PROCCALL_VAR(node));
@@ -118,6 +123,7 @@ node_st *CGP_PPfundef(node_st *node)
 
 node_st *CGP_PPprogram(node_st *node)
 {
+    reset_state();
     TRAVopt(PROGRAM_DECLS(node));
 
     return node;

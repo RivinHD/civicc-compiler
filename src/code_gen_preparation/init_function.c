@@ -12,6 +12,11 @@
 
 static node_st *init_fun = NULL;
 
+static void reset_state()
+{
+    init_fun = NULL;
+}
+
 node_st *CGP_IFglobaldef(node_st *node)
 {
     node_st *cur_vardec = GLOBALDEF_VARDEC(node);
@@ -75,6 +80,7 @@ node_st *CGP_IFglobaldef(node_st *node)
 
 node_st *CGP_IFprogram(node_st *node)
 {
+    reset_state();
     node_st *last_decls = PROGRAM_DECLS(node);
     release_assert(last_decls);
     while (DECLARATIONS_NEXT(last_decls) != NULL)
