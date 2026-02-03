@@ -660,7 +660,8 @@ node_st *CA_TCproccall(node_st *node)
                         info.filename = STRcpy(global.input_file);
                         CTIobj(CTI_ERROR, true, info,
                                "Expected array for argument '%s', but got scalar '%s'.",
-                               VAR_NAME(ARRAYVAR_VAR(paramvar)), VAR_NAME(expr));
+                               get_pretty_name(VAR_NAME(ARRAYVAR_VAR(paramvar))),
+                               get_pretty_name(VAR_NAME(expr)));
                         free(info.filename);
                     }
                 }
@@ -670,7 +671,7 @@ node_st *CA_TCproccall(node_st *node)
                     info.filename = STRcpy(global.input_file);
                     CTIobj(CTI_ERROR, true, info,
                            "Expected array for argument '%s', but got scalar expression.",
-                           VAR_NAME(ARRAYVAR_VAR(paramvar)));
+                           get_pretty_name(VAR_NAME(ARRAYVAR_VAR(paramvar))));
                     free(info.filename);
                 }
             }
