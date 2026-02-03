@@ -220,19 +220,19 @@ fuzz_context_grammar: check_tmpfs generate_seeds
 # syntax and context correct civicc programs
 .PHONY: fuzz_codegenprep_grammar_multi
 fuzz_codegenprep_grammar_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_multicore,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1 AFL_FAST_CAL=1)
 
 .PHONY: fuzz_codegenprep_grammar
 fuzz_codegenprep_grammar: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_single,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1 AFL_FAST_CAL=1)
 
 .PHONY: fuzz_codegen_grammar_multi
 fuzz_codegen_grammar_multi: check_tmpfs generate_seeds
-	$(call fuzz_multicore,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_multicore,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1 AFL_FAST_CAL=1)
 
 .PHONY: fuzz_codegen_grammar
 fuzz_codegen_grammar: check_tmpfs generate_seeds
-	$(call fuzz_single,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+	$(call fuzz_single,civicc_codegen,civiccfixedids,civicc_codegen_grammar,AFL_CUSTOM_MUTATOR_ONLY=1 AFL_FAST_CAL=1)
 
 .PHONY: dist
 dist:

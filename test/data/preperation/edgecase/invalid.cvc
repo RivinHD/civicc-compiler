@@ -1,0 +1,5 @@
+extern void fun(int [a] a);
+
+void test() {
+    int [a] a;
+}

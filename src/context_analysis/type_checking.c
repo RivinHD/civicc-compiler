@@ -1,7 +1,6 @@
 #include "ccngen/ast.h"
 #include "global/globals.h"
 #include "palm/ctinfo.h"
-#include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
 #include "to_string.h"
@@ -13,7 +12,6 @@
 #include <string.h>
 
 static htable_stptr current = NULL;
-static htable_stptr process_vardecs = NULL;
 static bool anytype = false; // Allows an expression to set the type
 static enum DataType type = DT_NULL;
 static enum DataType rettype = DT_NULL;
@@ -22,7 +20,6 @@ static bool has_return = false;
 static void reset_state()
 {
     current = NULL;
-    process_vardecs = NULL;
     anytype = false;
     type = DT_NULL;
     rettype = DT_NULL;
@@ -171,32 +168,6 @@ static void arrexpr_dimension_check(node_st *node, const char *name, node_st *ex
     }
 }
 
-static node_st *processed_deep_lookup(htable_stptr symbols, htable_stptr processed,
-                                      const char *name)
-{
-    release_assert(symbols != NULL);
-    release_assert(processed != NULL);
-
-    node_st *entry = HTlookup(symbols, (void *)name);
-    if (entry != NULL && HTlookup(processed, (void *)name) == NULL)
-    {
-        // Was not defined yet look in higher tables.
-        entry = NULL;
-    }
-
-    if (entry == NULL)
-    {
-        htable_stptr parent = HTlookup(symbols, htable_parent_name);
-        if (parent == NULL)
-        {
-            return NULL;
-        }
-        entry = deep_lookup(parent, name);
-    }
-
-    return entry;
-}
-
 node_st *CA_TCbool(node_st *node)
 {
     if (anytype)
@@ -255,7 +226,7 @@ node_st *CA_TCint(node_st *node)
 node_st *CA_TCvar(node_st *node)
 {
     char *name = VAR_NAME(node);
-    node_st *entry = processed_deep_lookup(current, process_vardecs, name);
+    node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
@@ -334,7 +305,7 @@ node_st *CA_TCarrayexpr(node_st *node)
 {
     node_st *var = ARRAYEXPR_VAR(node);
     char *name = VAR_NAME(var);
-    node_st *entry = processed_deep_lookup(current, process_vardecs, name);
+    node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
@@ -666,8 +637,7 @@ node_st *CA_TCproccall(node_st *node)
             {
                 if (NODE_TYPE(expr) == NT_VAR)
                 {
-                    node_st *exprentry =
-                        processed_deep_lookup(current, process_vardecs, VAR_NAME(expr));
+                    node_st *exprentry = deep_lookup(current, VAR_NAME(expr));
                     if (exprentry == NULL && CTIgetErrors() > 0)
                     {
                         // Missing entry due to error, skip check.
@@ -806,7 +776,7 @@ node_st *CA_TCforloop(node_st *node)
 node_st *CA_TCassign(node_st *node)
 {
     release_assert(anytype == false); // no anytype in statement
-    node_st *entry = processed_deep_lookup(current, process_vardecs, VAR_NAME(ASSIGN_VAR(node)));
+    node_st *entry = deep_lookup(current, VAR_NAME(ASSIGN_VAR(node)));
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
@@ -856,7 +826,7 @@ node_st *CA_TCarrayassign(node_st *node)
 {
     release_assert(anytype == false); // no anytype in statement
     char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
-    node_st *entry = processed_deep_lookup(current, process_vardecs, name);
+    node_st *entry = deep_lookup(current, name);
     if (entry == NULL && CTIgetErrors() > 0)
     {
         // Missing entry due to error, skip check.
@@ -904,23 +874,6 @@ node_st *CA_TCarrayvar(node_st *node)
 node_st *CA_TCglobaldec(node_st *node)
 {
     // Global dec are extern, we can not check them
-
-    node_st *var = GLOBALDEC_VAR(node);
-    if (NODE_TYPE(var) == NT_ARRAYVAR)
-    {
-        node_st *dim = ARRAYVAR_DIMS(var);
-        while (dim != NULL)
-        {
-            char *dim_name = VAR_NAME(DIMENSIONVARS_DIM(dim));
-            bool success = HTinsert(process_vardecs, dim_name, (void *)1);
-            release_assert(success);
-            dim = DIMENSIONVARS_NEXT(dim);
-        }
-    }
-
-    char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
-    bool success = HTinsert(process_vardecs, name, (void *)1);
-    release_assert(success);
     return node;
 }
 
@@ -942,9 +895,6 @@ node_st *CA_TCvardec(node_st *node)
     node_st *expr = VARDEC_EXPR(node);
     if (expr == NULL)
     {
-        release_assert(process_vardecs != NULL);
-        bool success = HTinsert(process_vardecs, name, (void *)1); // Value does not matter
-        release_assert(success);
         type = parent_type;
         return node; // Nothing to check
     }
@@ -988,8 +938,6 @@ node_st *CA_TCvardec(node_st *node)
         release_assert(false);
     }
 
-    bool success = HTinsert(process_vardecs, name, (void *)1); // Value does not matter
-    release_assert(success);
     type = parent_type;
     return node;
 }
@@ -1002,7 +950,6 @@ node_st *CA_TCfundec(node_st *node)
 node_st *CA_TCfundef(node_st *node)
 {
     htable_stptr parent_current = current;
-    htable_stptr parent_process_vardecs = process_vardecs;
     enum DataType parent_type = type;
     enum DataType parent_rettype = rettype;
     bool parent_has_return = has_return;
@@ -1010,29 +957,7 @@ node_st *CA_TCfundef(node_st *node)
     has_return = false;
     rettype = FUNHEADER_TYPE(FUNDEF_FUNHEADER(node));
     current = FUNDEF_SYMBOLS(node);
-    process_vardecs = HTnew_String(2 << 8);
-
-    node_st *param = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
-    while (param != NULL)
-    {
-        node_st *var = PARAMS_VAR(param);
-        if (NODE_TYPE(var) == NT_ARRAYVAR)
-        {
-            node_st *dim = ARRAYVAR_DIMS(var);
-            while (dim != NULL)
-            {
-                char *dim_name = VAR_NAME(DIMENSIONVARS_DIM(dim));
-                bool success = HTinsert(process_vardecs, dim_name, (void *)1);
-                release_assert(success);
-                dim = DIMENSIONVARS_NEXT(dim);
-            }
-        }
-
-        char *param_name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
-        bool success = HTinsert(process_vardecs, param_name, (void *)1);
-        release_assert(success);
-        param = PARAMS_NEXT(param);
-    }
+    release_assert(current != NULL);
 
     // FUNHEADER does not need to be type checked
     TRAVopt(FUNDEF_FUNBODY(node));
@@ -1049,8 +974,6 @@ node_st *CA_TCfundef(node_st *node)
     type = parent_type;
     rettype = parent_rettype;
     has_return = parent_has_return;
-    HTdelete(process_vardecs);
-    process_vardecs = parent_process_vardecs;
     current = parent_current;
     release_assert(current != NULL);
     return node;
@@ -1059,14 +982,11 @@ node_st *CA_TCfundef(node_st *node)
 node_st *CA_TCprogram(node_st *node)
 {
     reset_state();
-    process_vardecs = HTnew_String(1 << 8);
     current = PROGRAM_SYMBOLS(node);
     TRAVopt(PROGRAM_DECLS(node));
     release_assert(type == DT_NULL);
     release_assert(rettype == DT_NULL);
     release_assert(has_return == false);
     release_assert(anytype == false);
-    release_assert(process_vardecs != NULL);
-    HTdelete(process_vardecs);
     return node;
 }

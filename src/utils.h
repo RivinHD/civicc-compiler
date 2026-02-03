@@ -12,7 +12,6 @@
 #include <stdint.h>
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
 
 #ifdef DEBUG_SCANPARSE
@@ -206,8 +205,9 @@ static inline const char *get_pretty_name(const char *name)
     {
         return name + 5; // remove the '@fun_' part
     }
-    else if (STRprefix("@for", name))
+    else if (STRprefix("@", name))
     {
+        // Find var name of syntax @<prefix>_<varname>
         unsigned int start = 0;
         while (name[start] != '_' && name[start] != '\0')
         {
@@ -221,5 +221,48 @@ static inline const char *get_pretty_name(const char *name)
     else
     {
         return name;
+    }
+}
+
+/// Addes a vardec after the last vardecs in the current funbdoy
+/// and returns the new last vardecs.
+static node_st *add_vardec(node_st *vardec, node_st *last_vardec, node_st *funbody)
+{
+    release_assert(NODE_TYPE(vardec) == NT_VARDEC);
+    release_assert(last_vardec == NULL || NODE_TYPE(last_vardec) == NT_VARDECS);
+    release_assert(NODE_TYPE(funbody) == NT_FUNBODY);
+
+    if (last_vardec == NULL)
+    {
+        node_st *new_vardec = ASTvardecs(vardec, FUNBODY_VARDECS(funbody));
+        FUNBODY_VARDECS(funbody) = new_vardec;
+        return new_vardec;
+    }
+    else
+    {
+        node_st *new_vardec = ASTvardecs(vardec, VARDECS_NEXT(last_vardec));
+        VARDECS_NEXT(last_vardec) = new_vardec;
+        return new_vardec;
+    }
+}
+
+/// Addes a statment after the last statments in the current funbdoy
+/// and returns the new last statments
+static node_st *add_stmt(node_st *stmt, node_st *last_stmts, node_st *funbody)
+{
+    release_assert(last_stmts == NULL || NODE_TYPE(last_stmts) == NT_STATEMENTS);
+    release_assert(NODE_TYPE(funbody) == NT_FUNBODY);
+
+    if (last_stmts == NULL)
+    {
+        node_st *new_stmts = ASTstatements(stmt, FUNBODY_STMTS(funbody));
+        FUNBODY_STMTS(funbody) = new_stmts;
+        return new_stmts;
+    }
+    else
+    {
+        node_st *new_stmts = ASTstatements(stmt, STATEMENTS_NEXT(last_stmts));
+        STATEMENTS_NEXT(last_stmts) = new_stmts;
+        return new_stmts;
     }
 }

@@ -1,0 +1,18 @@
+extern float m;
+export int nine;
+extern float e;
+extern int t;
+bool b = (bool)e;
+export void e(){
+    bool[(nine)]nine = b;
+    bool a = nine[0];
+}
+
+export float[0]p=0.0;
+void m(){              
+}
+export int[0]f=0;     
+extern float c ;
+
+int bef = 0;
+int after = bef;

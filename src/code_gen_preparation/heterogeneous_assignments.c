@@ -4,6 +4,7 @@
 #include "palm/str.h"
 #include "release_assert.h"
 #include "user_types.h"
+#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
@@ -18,6 +19,7 @@ static htable_stptr current = NULL;
 static node_st *last_vardecs = NULL;
 static node_st *current_statements = NULL;
 static bool is_exported = false;
+static node_st *init_stmts = NULL;
 
 static void reset_state()
 {
@@ -29,6 +31,7 @@ static void reset_state()
     last_vardecs = NULL;
     current_statements = NULL;
     is_exported = false;
+    init_stmts = NULL;
 }
 
 node_st *new_temp_assign(enum DataType type, node_st *expr)
@@ -41,18 +44,8 @@ node_st *new_temp_assign(enum DataType type, node_st *expr)
 
     release_assert(last_fundef != NULL);
     node_st *cur_funbody = FUNDEF_FUNBODY(last_fundef);
-    if (last_vardecs == NULL)
-    {
-        node_st *temp_vardecs = ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
-        FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
-        last_vardecs = temp_vardecs;
-    }
-    else
-    {
-        node_st *temp_vardecs = ASTvardecs(temp_vardec, VARDECS_NEXT(last_vardecs));
-        VARDECS_NEXT(last_vardecs) = temp_vardecs;
-        last_vardecs = temp_vardecs;
-    }
+
+    last_vardecs = add_vardec(temp_vardec, last_vardecs, cur_funbody);
 
     release_assert(current_statements != NULL);
     node_st *curr_stmt = STATEMENTS_STMT(current_statements);
@@ -113,8 +106,7 @@ node_st *CGP_AAarrayexpr(node_st *node)
 
                 // Step 3: Add varAssign to init fun (+ expr)
                 node_st *new_assign = ASTassign(CCNcopy(temp_var), cur_expr);
-                node_st *new_stmts = ASTstatements(new_assign, FUNBODY_STMTS(cur_funbody));
-                FUNBODY_STMTS(cur_funbody) = new_stmts;
+                init_stmts = add_stmt(new_assign, init_stmts, cur_funbody);
             }
             else
             {
@@ -129,19 +121,7 @@ node_st *CGP_AAarrayexpr(node_st *node)
                     release_assert(success);
 
                     // Step 2: Append above of the current
-                    if (last_vardecs == NULL)
-                    {
-                        node_st *temp_vardecs =
-                            ASTvardecs(temp_vardec, FUNBODY_VARDECS(cur_funbody));
-                        FUNBODY_VARDECS(cur_funbody) = temp_vardecs;
-                        last_vardecs = temp_vardecs;
-                    }
-                    else
-                    {
-                        node_st *temp_vardecs = ASTvardecs(temp_vardec, VARDECS_NEXT(last_vardecs));
-                        VARDECS_NEXT(last_vardecs) = temp_vardecs;
-                        last_vardecs = temp_vardecs;
-                    }
+                    last_vardecs = add_vardec(temp_vardec, last_vardecs, cur_funbody);
                 }
                 else
                 {

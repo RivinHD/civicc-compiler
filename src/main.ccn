@@ -142,7 +142,8 @@ phase CodeGenPreparation
 
                 // Nodes to update
                 Funbody,
-                VarDec
+                VarDec,
+                VarDecs
             }
         };
         traversal ToTernary {

@@ -5,16 +5,19 @@
 #include "palm/str.h"
 #include "release_assert.h"
 #include "stdio.h"
+#include "utils.h"
 
 #include <ccn/dynamic_core.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
 
 static node_st *init_fun = NULL;
+static node_st *init_stmts = NULL;
 
 static void reset_state()
 {
     init_fun = NULL;
+    init_stmts = NULL;
 }
 
 node_st *CGP_IFglobaldef(node_st *node)
@@ -28,7 +31,6 @@ node_st *CGP_IFglobaldef(node_st *node)
     if (expr != NULL)
     {
         node_st *init_funbody = FUNDEF_FUNBODY(init_fun);
-        node_st *init_stmts = FUNBODY_STMTS(init_funbody);
 
         // init_fun -> FunBody -> Statements -> Statement -> Assign
         node_st *new_assign = NULL;
@@ -37,8 +39,7 @@ node_st *CGP_IFglobaldef(node_st *node)
         {
             new_assign = ASTassign(CCNcopy(var), expr);
             VARDEC_EXPR(cur_vardec) = NULL;
-            node_st *new_stmts = ASTstatements(new_assign, init_stmts);
-            FUNBODY_STMTS(init_funbody) = new_stmts;
+            init_stmts = add_stmt(new_assign, init_stmts, init_funbody);
         }
         else
         {
@@ -54,8 +55,18 @@ node_st *CGP_IFglobaldef(node_st *node)
                     release_assert(last_stmts != NULL);
                     release_assert(STATEMENTS_NEXT(last_stmts) == NULL);
 
-                    STATEMENTS_NEXT(last_stmts) = init_stmts;
-                    FUNBODY_STMTS(init_funbody) = top_stmts;
+                    if (init_stmts == NULL)
+                    {
+                        STATEMENTS_NEXT(last_stmts) = FUNBODY_STMTS(init_funbody);
+                        FUNBODY_STMTS(init_funbody) = top_stmts;
+                        init_stmts = last_stmts;
+                    }
+                    else
+                    {
+                        STATEMENTS_NEXT(last_stmts) = STATEMENTS_NEXT(init_stmts);
+                        STATEMENTS_NEXT(init_stmts) = top_stmts;
+                        init_stmts = last_stmts;
+                    }
                 }
                 else
                 {
@@ -66,14 +77,10 @@ node_st *CGP_IFglobaldef(node_st *node)
                 VARDEC_EXPR(cur_vardec) = NULL;
                 CCNfree(expr);
 
-                TRAVopt(cur_vardec);
-
                 return node;
             }
         }
     }
-
-    TRAVopt(cur_vardec);
 
     return node;
 }

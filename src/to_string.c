@@ -553,9 +553,16 @@ char *_symbols_to_string(node_st *node, htable_stptr htable, uint32_t counter)
         if (parent != NULL)
         {
             const char *parent_name = HTlookup(htable, parent);
-            release_assert(parent_name != NULL);
-            output = STRfmt("┌─ %d: %s -- parent: '%s'\n%s└────────────────────\n\n", counter,
-                            node_name, parent_name, output_old);
+            if (parent_name == NULL)
+            {
+                output = STRfmt("┌─ %d: %s -- parent: '%p'\n%s└────────────────────\n\n", counter,
+                                node_name, parent, output_old);
+            }
+            else
+            {
+                output = STRfmt("┌─ %d: %s -- parent: '%s'\n%s└────────────────────\n\n", counter,
+                                node_name, parent_name, output_old);
+            }
         }
         else
         {

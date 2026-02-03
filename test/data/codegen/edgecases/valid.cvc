@@ -1,0 +1,8 @@
+void s(){
+    return;
+    n0me=0;
+}
+
+extern int m; 
+extern bool s;
+extern int[n0me]t;

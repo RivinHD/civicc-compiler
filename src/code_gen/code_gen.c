@@ -473,6 +473,7 @@ node_st *CG_CGglobaldec(node_st *node)
 {
     node_st *var = GLOBALDEC_VAR(node);
     char *globaldec_name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
+    const char *pretty_name = get_pretty_name(globaldec_name);
 
     // Add dims to import table if array
     if (NODE_TYPE(var) == NT_ARRAYVAR)
@@ -484,7 +485,7 @@ node_st *CG_CGglobaldec(node_st *node)
             char *name = VAR_NAME(DIMENSIONVARS_DIM(dim));
             // With this naming we ensure that name of the dimension does not matter in the
             // export/import and only the array name need to be correct.
-            char *import_name = STRfmt("__dim%d_%s", dim_counter++, globaldec_name);
+            char *import_name = STRfmt("__dim%d_%s", dim_counter++, pretty_name);
             bool success = IDXinsert(import_table, name, var_import_counter++);
             release_assert(success);
             importvar(import_name, dim);
@@ -495,7 +496,7 @@ node_st *CG_CGglobaldec(node_st *node)
 
     bool success = IDXinsert(import_table, globaldec_name, var_import_counter++);
     release_assert(success);
-    importvar(globaldec_name, node);
+    importvar(pretty_name, node);
     return node;
 }
 
@@ -510,6 +511,7 @@ node_st *CG_CGglobaldef(node_st *node)
     {
         node_st *var = VARDEC_VAR(GLOBALDEF_VARDEC(node));
         char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+        const char *pretty_name = get_pretty_name(name);
 
         // Add dims to import table if array
         if (NODE_TYPE(var) == NT_ARRAYEXPR)
@@ -526,7 +528,7 @@ node_st *CG_CGglobaldef(node_st *node)
                 void *entry = HTlookup(index_table, lookup_name);
                 ptrdiff_t idx = IDXlookup(entry == NULL ? import_table : index_table, lookup_name);
                 release_assert(idx >= 0);
-                char *export_name = STRfmt("__dim%d_%s", dim_counter++, name);
+                char *export_name = STRfmt("__dim%d_%s", dim_counter++, pretty_name);
                 exportvar(export_name, idx);
                 dim = EXPRS_NEXT(dim);
                 free(export_name);
@@ -534,7 +536,7 @@ node_st *CG_CGglobaldef(node_st *node)
         }
 
         ptrdiff_t idx = IDXlookup(index_table, name);
-        exportvar(name, idx);
+        exportvar(pretty_name, idx);
     }
     return node;
 }
@@ -790,6 +792,21 @@ node_st *CG_CGassign(node_st *node)
                     release_assert(false);
                     break;
                 }
+            }
+        }
+        else if (NODE_TYPE(entry) == NT_DIMENSIONVARS) // Could be in import table or index tabel
+        {
+            void *entry = HTlookup(import_table, name);
+            if (entry != NULL)
+            {
+                // Found in import table
+                ptrdiff_t index = IDXlookup(import_table, name);
+                inst1("istoree", index);
+            }
+            else
+            {
+                ptrdiff_t index = IDXdeep_lookup(index_table, name);
+                inst1("istoreg", index);
             }
         }
         else
@@ -1076,27 +1093,7 @@ node_st *CG_CGvardec(node_st *node)
     is_expr = parent_is_expr;
     TRAVopt(VARDEC_EXPR(node));
 
-    if (VARDEC_EXPR(node) != NULL)
-    {
-        release_assert(NODE_TYPE(var) == NT_VAR);
-        ptrdiff_t index = IDXdeep_lookup(index_table, name);
-        switch (type)
-        {
-        case DT_NULL:
-        case DT_void:
-            release_assert(false);
-            break;
-        case DT_int:
-            inst1("istore", index);
-            break;
-        case DT_float:
-            inst1("fstore", index);
-            break;
-        case DT_bool:
-            inst1("bstore", index);
-            break;
-        }
-    }
+    release_assert(VARDEC_EXPR(node) == NULL);
 
     type = parent_type;
     return node;
