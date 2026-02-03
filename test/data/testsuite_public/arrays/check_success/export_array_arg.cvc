@@ -1,0 +1,11 @@
+int a = 5;
+export int[1 * 12 + a] arr = 0;
+
+void f() {
+    int a = 5;
+    int[1 * 12 + a] arr = 0;
+}
+
+void g() {
+    int[1 * 12 + a] arr = 0;
+}

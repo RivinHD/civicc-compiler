@@ -266,3 +266,53 @@ static node_st *add_stmt(node_st *stmt, node_st *last_stmts, node_st *funbody)
         return new_stmts;
     }
 }
+
+/// Finds the correct stmts position to insert the find_name assign in the __init function
+static node_st *search_last_init_stmts(bool use_arrayexpr, node_st *stmts, node_st *decls,
+                                       const char *find_name, node_st **out_decls)
+{
+    if (stmts == NULL)
+    {
+        return NULL;
+    }
+
+    node_st *last_stmts = NULL;
+    while (decls != NULL)
+    {
+        node_st *decl = DECLARATIONS_DECL(decls);
+        if (NODE_TYPE(decl) == NT_GLOBALDEF)
+        {
+            node_st *var = VARDEC_VAR(GLOBALDEF_VARDEC(decl));
+            if (!use_arrayexpr && NODE_TYPE(var) == NT_ARRAYEXPR)
+            {
+                decls = DECLARATIONS_NEXT(decls);
+                continue;
+            }
+
+            char *decl_name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+            if (STReq(decl_name, find_name) || stmts == NULL)
+            {
+                *out_decls = decls;
+                return last_stmts;
+            }
+
+            node_st *stmt = STATEMENTS_STMT(stmts);
+            if (NODE_TYPE(stmt) == NT_FORLOOP || NODE_TYPE(stmt) == NT_ARRAYASSIGN)
+            {
+                last_stmts = stmts;
+                stmts = STATEMENTS_NEXT(stmts);
+                continue;
+            }
+
+            char *stmt_name = VAR_NAME(ASSIGN_VAR(stmt));
+            if (STReq(decl_name, stmt_name))
+            {
+                last_stmts = stmts;
+                stmts = STATEMENTS_NEXT(stmts);
+            }
+        }
+        decls = DECLARATIONS_NEXT(decls);
+    }
+
+    return NULL;
+}

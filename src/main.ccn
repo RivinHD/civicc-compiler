@@ -130,7 +130,8 @@ phase CodeGenPreparation
                 ArrayExpr,
                 VarDecs,
                 ForLoop,
-                Statements
+                Statements,
+                Declarations
             }
         };
         traversal HomogeneousAssignments {

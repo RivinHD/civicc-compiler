@@ -41,45 +41,6 @@ node_st *CGP_IFglobaldef(node_st *node)
             VARDEC_EXPR(cur_vardec) = NULL;
             init_stmts = add_stmt(new_assign, init_stmts, init_funbody);
         }
-        else
-        {
-            if (NODE_TYPE(expr) == NT_ARRAYINIT)
-            {
-                node_st *top_stmts = NULL;
-                node_st *last_stmts =
-                    init_index_calculation(cur_vardec, VAR_NAME(ARRAYEXPR_VAR(var)), &top_stmts);
-
-                if (ARRAYINIT_EXPR(expr) != NULL)
-                {
-                    release_assert(top_stmts != NULL);
-                    release_assert(last_stmts != NULL);
-                    release_assert(STATEMENTS_NEXT(last_stmts) == NULL);
-
-                    if (init_stmts == NULL)
-                    {
-                        STATEMENTS_NEXT(last_stmts) = FUNBODY_STMTS(init_funbody);
-                        FUNBODY_STMTS(init_funbody) = top_stmts;
-                        init_stmts = last_stmts;
-                    }
-                    else
-                    {
-                        STATEMENTS_NEXT(last_stmts) = STATEMENTS_NEXT(init_stmts);
-                        STATEMENTS_NEXT(init_stmts) = top_stmts;
-                        init_stmts = last_stmts;
-                    }
-                }
-                else
-                {
-                    release_assert(top_stmts == NULL);
-                    release_assert(last_stmts == NULL);
-                }
-
-                VARDEC_EXPR(cur_vardec) = NULL;
-                CCNfree(expr);
-
-                return node;
-            }
-        }
     }
 
     return node;

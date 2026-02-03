@@ -51,14 +51,14 @@ template <size_t TCount> class BehaviorTest : public testing::Test
             path filepath = filepaths[i];
             input_filepath[i] = input_folder / filepath;
             ASSERT_TRUE(exists(input_filepath[i]))
-                << "File does not exist at path '" << input_filepath << "'";
+                << "File does not exist at path '" << input_filepath[i] << "'";
 
             filepath.replace_extension(".s");
             output_filepath[i] = output_folder / filepath.filename();
         }
     }
 
-    void SetUp(std::string filepaths[TCount])
+    void SetUp(std::string (&filepaths)[TCount])
     {
         SetUpNoExecute(filepaths);
         testing::internal::CaptureStdout();
@@ -155,6 +155,7 @@ template <size_t TCount> class BehaviorTest : public testing::Test
             size_t size = std::strtoul(line.substr(start + 1, end - start).c_str(), nullptr, 10);
             EXPECT_NE(ERANGE, errno);
             EXPECT_NE(size, 0);
+            EXPECT_TRUE(size >= 28); // CivicC VM bytes code has a fixed 28 bytes infill
             code_sizes[i] = size;
         }
 
@@ -164,7 +165,6 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         size_t size = std::strtoul(line.substr(start + 1).c_str(), nullptr, 10);
         EXPECT_NE(ERANGE, errno);
         EXPECT_NE(size, 0);
-        EXPECT_TRUE(size >= 28); // CivicC VM bytes code has a fixed 28 bytes infill
         instruction_count = size;
 #else
         GTEST_SKIP() << "Missing civas or civvm to execute. Test is skipped!";
@@ -239,6 +239,10 @@ class BehaviorTest_1 : public BehaviorTest<1>
 {
 };
 
+class BehaviorTest_2 : public BehaviorTest<2>
+{
+};
+
 TEST_F(BehaviorTest_1, WhileLoops)
 {
     std::string filepaths[] = {"codegen/while_loops/main.cvc"};
@@ -249,4 +253,90 @@ TEST_F(BehaviorTest_1, WhileLoops)
     ASSERT_EQ(1698, instruction_count);
 
     ASSERT_EQ(166, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, ArrayInit)
+{
+    std::string filepaths[] = {"codegen/array_init/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(237, instruction_count);
+
+    ASSERT_EQ(466, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, Binops)
+{
+    std::string filepaths[] = {"codegen/binops/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(43, instruction_count);
+
+    ASSERT_EQ(183, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, Casts)
+{
+    std::string filepaths[] = {"codegen/casts/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(14, instruction_count);
+
+    ASSERT_EQ(89, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, DoWhileLoops)
+{
+    std::string filepaths[] = {"codegen/do_while_loops/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(2517, instruction_count);
+
+    ASSERT_EQ(166, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, ForLoops)
+{
+    std::string filepaths[] = {"codegen/for_loops/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(3384, instruction_count);
+
+    ASSERT_EQ(174, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_1, Monops)
+{
+    std::string filepaths[] = {"codegen/monops/main.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(23, instruction_count);
+
+    ASSERT_EQ(118, code_sizes[0]);
+}
+
+TEST_F(BehaviorTest_2, Suite_Arrays_ExternArrayArg)
+{
+    std::string filepaths[] = {"testsuite_public/arrays/check_success/extern_array_arg.cvc",
+                               "testsuite_public/arrays/check_success/export_array_arg.cvc"};
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+
+    ASSERT_EQ(201, instruction_count);
+
+    ASSERT_EQ(92, code_sizes[0]);
+    ASSERT_EQ(225, code_sizes[1]);
 }

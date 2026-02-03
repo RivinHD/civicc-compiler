@@ -9,7 +9,6 @@
 #include <ccngen/enum.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 static node_st *program_decls = NULL;
 static node_st *last_fundef = NULL;
@@ -20,6 +19,8 @@ static node_st *last_vardecs = NULL;
 static node_st *current_statements = NULL;
 static bool is_exported = false;
 static node_st *init_stmts = NULL;
+static node_st *last_decls = NULL;
+static node_st *last_init_decls = NULL;
 
 static void reset_state()
 {
@@ -32,6 +33,7 @@ static void reset_state()
     current_statements = NULL;
     is_exported = false;
     init_stmts = NULL;
+    last_init_decls = NULL;
 }
 
 node_st *new_temp_assign(enum DataType type, node_st *expr)
@@ -101,12 +103,29 @@ node_st *CGP_AAarrayexpr(node_st *node)
                 release_assert(success);
 
                 // Step 2: Append to before the current globalDef (decls)
-                node_st *temp_decls = ASTdeclarations(temp_globaldef, program_decls);
-                program_decls = temp_decls;
+                if (last_decls == NULL)
+                {
+                    node_st *temp_decls = ASTdeclarations(temp_globaldef, program_decls);
+                    program_decls = temp_decls;
+                    last_decls = temp_decls;
+                }
+                else
+                {
+                    node_st *temp_decls =
+                        ASTdeclarations(temp_globaldef, DECLARATIONS_NEXT(last_decls));
+                    DECLARATIONS_NEXT(last_decls) = temp_decls;
+                    last_decls = temp_decls;
+                }
+
+                init_stmts = search_last_init_stmts(
+                    false, init_stmts == NULL ? FUNBODY_STMTS(cur_funbody) : init_stmts,
+                    last_init_decls == NULL ? program_decls : last_init_decls, VAR_NAME(temp_var),
+                    &last_init_decls);
 
                 // Step 3: Add varAssign to init fun (+ expr)
                 node_st *new_assign = ASTassign(CCNcopy(temp_var), cur_expr);
                 init_stmts = add_stmt(new_assign, init_stmts, cur_funbody);
+                last_init_decls = last_decls;
             }
             else
             {
@@ -236,6 +255,14 @@ node_st *CGP_AAfundef(node_st *node)
     last_fundef = parent_fundef;
     last_vardecs = parent_last_vardecs;
     temp_counter = parent_temp_counter;
+    return node;
+}
+
+node_st *CGP_AAdeclarations(node_st *node)
+{
+    TRAVopt(DECLARATIONS_DECL(node));
+    last_decls = node;
+    TRAVopt(DECLARATIONS_NEXT(node));
     return node;
 }
 

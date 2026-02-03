@@ -1,7 +1,7 @@
 
 export int main() {
     int i = 5;
-    int c;
+    int c = 0;
     
     do
     {

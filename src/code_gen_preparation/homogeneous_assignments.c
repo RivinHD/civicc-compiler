@@ -11,21 +11,23 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static node_st *first_decls = NULL;
+static node_st *program_decls = NULL;
 static node_st *last_fundef = NULL;
 static htable_stptr current = NULL;
 static uint32_t loop_counter = 0;
 static node_st *last_vardecs = NULL;
 static node_st *last_stmts = NULL;
+static node_st *last_init_decls = NULL;
 
 static void reset_state()
 {
-    first_decls = NULL;
+    program_decls = NULL;
     last_fundef = NULL;
     current = NULL;
     loop_counter = 0;
     last_vardecs = NULL;
     last_stmts = NULL;
+    last_init_decls = NULL;
 }
 
 node_st *CGP_HAvardecs(node_st *node)
@@ -46,6 +48,14 @@ node_st *CGP_HAvardec(node_st *node)
 
     if (NODE_TYPE(var) == NT_ARRAYEXPR)
     {
+        if (STReq(global_init_func, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(last_fundef)))))
+        {
+            char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+            last_stmts = search_last_init_stmts(
+                true, last_stmts == NULL ? FUNBODY_STMTS(funbody) : last_stmts,
+                last_init_decls == NULL ? program_decls : last_init_decls, name, &last_init_decls);
+        }
+
         // Step 0: Count iteration length
         node_st *dim = ARRAYEXPR_DIMS(var);
         node_st *alloc_expr = CCNcopy(EXPRS_EXPR(dim));
@@ -91,18 +101,10 @@ node_st *CGP_HAvardec(node_st *node)
                     release_assert(ilast_stmts != NULL);
                     release_assert(STATEMENTS_NEXT(ilast_stmts) == NULL);
 
-                    if (last_stmts != NULL)
-                    {
-                        STATEMENTS_NEXT(ilast_stmts) = FUNBODY_STMTS(funbody);
-                        FUNBODY_STMTS(funbody) = itop_stmts;
-                        last_stmts = ilast_stmts;
-                    }
-                    else
-                    {
-                        STATEMENTS_NEXT(ilast_stmts) = STATEMENTS_NEXT(last_stmts);
-                        STATEMENTS_NEXT(last_stmts) = itop_stmts;
-                        last_stmts = ilast_stmts;
-                    }
+                    release_assert(last_stmts != NULL);
+                    STATEMENTS_NEXT(ilast_stmts) = STATEMENTS_NEXT(last_stmts);
+                    STATEMENTS_NEXT(last_stmts) = itop_stmts;
+                    last_stmts = ilast_stmts;
                 }
                 else
                 {
@@ -206,7 +208,7 @@ node_st *CGP_HAprogram(node_st *node)
     reset_state();
     htable_stptr symbols = PROGRAM_SYMBOLS(node);
     current = symbols;
-    first_decls = PROGRAM_DECLS(node);
+    program_decls = PROGRAM_DECLS(node);
 
     // Global arrays unpack assignment into the __init function
     node_st *entry = HTlookup(symbols, global_init_func);
@@ -216,8 +218,6 @@ node_st *CGP_HAprogram(node_st *node)
     current = FUNDEF_SYMBOLS(entry);
 
     TRAVopt(PROGRAM_DECLS(node));
-
-    PROGRAM_DECLS(node) = first_decls;
 
     return node;
 }
