@@ -48,6 +48,7 @@ node_st *CGP_DRarrayexpr(node_st *node)
     if (NODE_TYPE(arrdef) == NT_ARRAYVAR)
     {
         node_st *dim = ARRAYVAR_DIMS(arrdef);
+        dim = DIMENSIONVARS_NEXT(dim); // Skip the first dim, as not relevant for the stride
         while (expr != NULL && dim != NULL)
         {
             start_expr =
@@ -59,12 +60,12 @@ node_st *CGP_DRarrayexpr(node_st *node)
         }
 
         release_assert(expr == NULL);
-        release_assert(dim != NULL);
-        release_assert(DIMENSIONVARS_NEXT(dim) == NULL);
+        release_assert(dim == NULL);
     }
     else if (NODE_TYPE(arrdef) == NT_ARRAYEXPR)
     {
         node_st *dim = ARRAYEXPR_DIMS(arrdef);
+        dim = EXPRS_NEXT(dim); // Skip the first dim, as not relevant for the stride
         while (expr != NULL && dim != NULL)
         {
             start_expr = ASTbinop(ASTbinop(start_expr, CCNcopy(EXPRS_EXPR(dim)), BO_mul, DT_int),
@@ -75,8 +76,7 @@ node_st *CGP_DRarrayexpr(node_st *node)
         }
 
         release_assert(expr == NULL);
-        release_assert(dim != NULL);
-        release_assert(EXPRS_NEXT(dim) == NULL);
+        release_assert(dim == NULL);
     }
     else
     {

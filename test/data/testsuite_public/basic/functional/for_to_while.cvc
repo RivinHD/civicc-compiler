@@ -29,6 +29,8 @@ export int main() {
         printSpaces(1);
     }
 
+    printNewlines(1);
+
     for(int i=0, 5) {
         for(int j=0, 4) {
             printInt(i);

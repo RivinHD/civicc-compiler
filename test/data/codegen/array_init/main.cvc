@@ -4,7 +4,7 @@ export int main() {
 
     float[2, 3] arr2 = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
 
-    bool[2,2,3] arr3 = [
+    bool[2,3,2] arr3 = [
                         [
                             [true, false],
                             [false, false],

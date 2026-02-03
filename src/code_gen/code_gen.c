@@ -1320,6 +1320,7 @@ node_st *CG_CGforloop(node_st *node)
 
     if (iter == NULL || (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 1))
     {
+        // Step size is 1
         label(start_label);
         TRAVopt(ASSIGN_VAR(assign));
         TRAVopt(FORLOOP_COND(node));
@@ -1334,8 +1335,26 @@ node_st *CG_CGforloop(node_st *node)
         instL("jump", start_label);
         label(end_label);
     }
-    else if (NODE_TYPE(iter) == NT_INT)
+    else if (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == -1)
     {
+        // Step size is -1
+        label(start_label);
+        TRAVopt(ASSIGN_VAR(assign));
+        TRAVopt(FORLOOP_COND(node));
+        inst0("igt");
+        instL("branch_f", end_label);
+        type = parent_type;
+        TRAVopt(FORLOOP_BLOCK(node));
+        type = DT_int;
+        TRAVopt(iter);
+        type = parent_type;
+        inst1("idec_1", IDXlookup(index_table, assign_name));
+        instL("jump", start_label);
+        label(end_label);
+    }
+    else if (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) > 0)
+    {
+        // Step size is positivie int
         label(start_label);
         TRAVopt(ASSIGN_VAR(assign));
         TRAVopt(FORLOOP_COND(node));
@@ -1355,21 +1374,60 @@ node_st *CG_CGforloop(node_st *node)
         instL("jump", start_label);
         label(end_label);
     }
+    else if (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) < 0)
+    {
+        // Step size is negative int
+        label(start_label);
+        TRAVopt(ASSIGN_VAR(assign));
+        TRAVopt(FORLOOP_COND(node));
+        inst0("igt");
+        instL("branch_f", end_label);
+        type = parent_type;
+        TRAVopt(FORLOOP_BLOCK(node));
+        bool parent_is_expr = is_expr;
+        is_expr = false;
+        type = DT_int;
+        TRAVopt(iter); // only add to constant table if not available
+        type = parent_type;
+        is_expr = parent_is_expr;
+        char *val_str = int_to_str(INT_VAL(iter));
+        inst2("idec", IDXlookup(index_table, assign_name), IDXlookup(constant_table, val_str));
+        free(val_str);
+        instL("jump", start_label);
+        label(end_label);
+    }
     else
     {
         // general case
         release_assert(NODE_TYPE(iter) == NT_VAR);
         release_assert(NODE_TYPE(FORLOOP_COND(node)) == NT_VAR);
-        ptrdiff_t cond_idx = IDXlookup(index_table, VAR_NAME(FORLOOP_COND(node)));
+        node_st *cond = FORLOOP_COND(node);
+        ptrdiff_t cond_idx = IDXlookup(index_table, VAR_NAME(cond));
 
-        TRAVopt(FORLOOP_COND(node));
+        // cond = (cond - assign) / iter
+        // if (cond % iter) != 0
+        //      cond ++
+        // while (cond > 0) {
+        //      <code>
+        //      cond --
+        //      assign = assign + iter
+        // }
+
+        TRAVopt(cond);
         TRAVopt(ASSIGN_VAR(assign));
         inst0("isub");
         TRAVopt(iter);
         inst0("idiv");
         inst1("istore", cond_idx);
-        label(start_label);
+        TRAVopt(cond);
         TRAVopt(iter);
+        inst0("irem");
+        inst0("iloadc_0");
+        inst0("ieq");
+        instL("branch_t", start_label);
+        inst1("iinc_1", cond_idx);
+        label(start_label);
+        TRAVopt(cond);
         inst0("iloadc_0");
         inst0("igt");
         instL("branch_f", end_label);
@@ -1381,7 +1439,7 @@ node_st *CG_CGforloop(node_st *node)
         TRAVopt(iter);
         type = parent_type;
         inst0("iadd");
-        inst1("istore", IDXlookup(index_table, VAR_NAME(iter)));
+        inst1("istore", IDXlookup(index_table, VAR_NAME(ASSIGN_VAR(assign))));
         instL("jump", start_label);
         label(end_label);
     }

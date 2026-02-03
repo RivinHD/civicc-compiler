@@ -33,6 +33,7 @@ static void reset_state()
     current_statements = NULL;
     is_exported = false;
     init_stmts = NULL;
+    last_decls = NULL;
     last_init_decls = NULL;
 }
 
