@@ -6,7 +6,6 @@ set(SOURCE_FILES
     src/print/print.c
     src/scanparse/scanParse.c
     src/scanparse/preprocessor.c
-    src/optimization/opt_sub.c
     src/optimization/algebraic_simplification.c
     src/optimization/constant_folding.c
     src/context_analysis/function_header.c
