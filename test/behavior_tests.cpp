@@ -804,6 +804,38 @@ TEST_F(BehaviorTest_1, Suite_NestedFuns_Scpose)
     ASSERT_THAT(vm_output, testing::HasSubstr(expected));
 }
 
+TEST_F(BehaviorTest_1, ArrayIndexPrint)
+{
+    std::string filepaths[] = {"array_index/main.cvc"};
+
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+    ASSERT_EQ(0, vm_status);
+
+    ASSERT_EQ(201, code_sizes[0]);
+
+    ASSERT_EQ(409, instruction_count);
+
+    const char *expected = "2\n"
+                           "3\n"
+                           "4\n"
+                           "5\n"
+                           "6\n"
+                           "7\n"
+                           "8\n"
+                           "9\n"
+                           "10\n"
+                           "11\n"
+                           "12\n"
+                           "13\n"
+                           "14\n"
+                           "15\n"
+                           "16\n";
+
+    ASSERT_THAT(vm_output, testing::HasSubstr(expected));
+}
+
 TEST_F(BehaviorTest_3, Functional_Assignment01_Test)
 {
     std::string filepaths[] = {"functional/assignment_01/test.cvc",

@@ -1,0 +1,29 @@
+int m = 15;
+int[m] arr1;
+
+extern void printInt(int val);
+extern void printNewlines(int val);
+
+export int main()
+{
+    int a = 2;
+
+    void localFun()
+    {
+        for (int i = 0, m)
+        {
+            printInt( arr1[i] );
+            printNewlines( 1 );
+        }
+    }
+
+    for (int i = 0, m)
+    {
+        arr1[i] = a;
+        a = a + 1;
+    }
+
+    localFun();
+
+    return 0;
+}
