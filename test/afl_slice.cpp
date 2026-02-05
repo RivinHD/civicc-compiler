@@ -101,11 +101,17 @@ int main(int argc, char *argv[])
 #endif // __AFL_COMPILER
 #elif SLICE_TARGET == 3
 #ifdef __AFL_COMPILER
+        node_st *root = run_optimization_buf(filepath, src, (uint32_t)len);
+#else
+        node_st *root = run_optimization(filepath);
+#endif // __AFL_COMPILER
+#elif SLICE_TARGET == 4
+#ifdef __AFL_COMPILER
         node_st *root = run_code_gen_preparation_buf(filepath, src, (uint32_t)len);
 #else
         node_st *root = run_code_gen_preparation(filepath);
 #endif // __AFL_COMPILER
-#elif SLICE_TARGET == 4
+#elif SLICE_TARGET == 5
 #ifdef __AFL_COMPILER
         node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0);
 #else

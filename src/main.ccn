@@ -17,9 +17,19 @@ traversal Print {
 
 phase Optimization {
     actions {
-        traversal OptSubstraction {
-            uid = OS,
-            nodes = { Binop }
+        traversal AlgebraicSimplification {
+            uid = OPT_AS,
+            nodes = {
+                Program,
+                Binop
+            }
+        };
+        traversal ConstantFolding {
+            uid = OPT_CF,
+            nodes = {
+                Program,
+                Binop
+            }
         };
     }
 };

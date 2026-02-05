@@ -7,6 +7,8 @@ set(SOURCE_FILES
     src/scanparse/scanParse.c
     src/scanparse/preprocessor.c
     src/optimization/opt_sub.c
+    src/optimization/algebraic_simplification.c
+    src/optimization/constant_folding.c
     src/context_analysis/function_header.c
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c
@@ -27,6 +29,7 @@ set(TEST_FILES
     test/test_interface.c
     test/scanparse_tests.cpp
     test/context_tests.cpp
+    test/optimization_tests.cpp
     test/codegenprep_tests.cpp
     test/behavior_tests.cpp
     test/generation_tests.cpp
@@ -246,9 +249,18 @@ target_include_directories("civicc_codegenprep${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
+add_executable("civicc_optimization${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
+target_compile_definitions("civicc_optimization${AFL_EXT}"
+    PRIVATE SLICE_TARGET=4)
+target_link_libraries("civicc_optimization${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_optimization${AFL_EXT}")
+target_include_directories("civicc_optimization${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
 add_executable("civicc_codegen${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
 target_compile_definitions("civicc_codegen${AFL_EXT}"
-    PRIVATE SLICE_TARGET=4)
+    PRIVATE SLICE_TARGET=5)
 target_link_libraries("civicc_codegen${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
 coconut_add_includes("civicc_codegen${AFL_EXT}")
 target_include_directories("civicc_codegen${AFL_EXT}"

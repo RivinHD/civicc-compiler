@@ -55,6 +55,20 @@ node_st *run_context_analysis(const char *filepath)
     return run_context_analysis_buf(filepath, NULL, 0);
 }
 
+node_st *run_optimization_buf(const char *filepath, char *buffer, uint32_t buffer_length)
+{
+    node_st *node = run_code_gen_preparation_buf(filepath, buffer, buffer_length);
+    node = CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_OPTIMIZATION), CCN_ROOT_TYPE, node, true);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    CTIabortOnError();
+    return node;
+}
+
+node_st *run_optimization(const char *filepath)
+{
+    return run_optimization_buf(filepath, NULL, 0);
+}
+
 node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32_t buffer_length)
 {
     node_st *node = run_context_analysis_buf(filepath, buffer, buffer_length);
