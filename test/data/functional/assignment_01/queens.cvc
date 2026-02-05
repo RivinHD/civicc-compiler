@@ -1,0 +1,120 @@
+#include "civic.h"
+#include "array.h"
+#include "coreio.h"
+#include "core.h"
+
+export int main() {
+    test_queens();
+    printNewlines(2);
+    test_fibs();
+    printNewlines(2);
+    test_primes();
+    printNewlines(2);
+    test_vecprint();
+    return 1;
+}
+
+/// Prints a 2D array of int to the stdout.
+void printBoolMat(bool[m,n] mat){
+    for (int i = 0, m, 1) {
+        for (int j = 0, n, 1) {
+            printInt((int)mat[i, j]);
+            printSpaces(1);
+        }
+        printNewlines(1);
+    }
+}
+
+void test_fibs() {
+    void test(int n) {
+        printInt(n);
+        printNewlines(1);
+        fibs(n);
+        printNewlines(2);
+    }
+
+    test(0);
+    test(-1);
+    test(30);
+}
+
+void test_primes() {
+    void test(int n) {
+        printInt(n);
+        printNewlines(1);
+        primes(n);
+        printNewlines(2);
+    }
+
+    test(20);
+    test(0);
+    test(-1);
+}
+
+void test_vecprint() {
+    int[7] vecInt = [12, 123, 12, 3, 23, 12, -1];
+    float[5] vecFloat = [12.0, 12.0, 32.0, 0.0, -1.0];
+    int[3,3] matInt = [[3, 3, 3], [1, 2, 3], [5, 7, 9]];
+    float[3,3] matFloat = [[3.0, 3.0, 3.0], [1.0, 2.0, 3.0], [5.0, 7.0, 9.0]];
+
+    printIntVec(vecInt);
+    printNewlines(1);
+    printFloatVec(vecFloat);
+    printNewlines(1);
+    printIntMat(matInt);
+    printNewlines(1);
+    printFloatMat(matFloat);
+    printNewlines(2);
+}
+
+void test_queens() {
+    bool[8,8] field1 = false;
+    bool[4,4] field2 = false;
+    bool[3,3] field3 = false; // no possible solution
+    bool[8,8] field4 = false;
+    bool[8,8] field5 = false;
+    bool[15,15] field6 = false;
+    bool[8,8] field7 = false;
+
+
+    void test(bool[m,n] field) {
+        bool success;
+        success = queens(field);
+        printInt((int)success);
+        printNewlines(1);
+        printBoolMat(field);
+        printNewlines(1);
+    }
+
+    // Test solving
+    test(field1);
+    test(field2);
+    test(field3);
+    test(field6);
+    
+    // Test validation
+    field4[0,0] = true;
+    field4[1,2] = true;
+    field4[2,4] = true;
+    field4[3,2] = true;
+    field4[4,7] = true;
+    field4[6,3] = true;
+    field4[7,6] = true;
+    test(field4); // Should be false i.e. 0
+    field7[0,2] = true;
+    field7[1,4] = true;
+    field7[2,1] = true;
+    field7[3,7] = true;
+    field7[4,0] = true;
+    field7[5,6] = true;
+    field7[6,3] = true;
+    field7[7,5] = true;
+    test(field7); // Should be true i.e. 1
+
+    // Test Completion
+    field5[0,2] = true;
+    field5[1,4] = true;
+    test(field5);
+}
+
+

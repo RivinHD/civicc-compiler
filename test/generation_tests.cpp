@@ -5829,3 +5829,63 @@ TEST_F(GenerationTest, PreperationEdgeCasesValid)
 
     ASSERT_MLSTREQ(expected, output_buffer);
 }
+
+TEST_F(GenerationTest, EdgeCasesValid2)
+{
+    SetUp("codegen/edgecases/valid2.cvc");
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = ".importfun \"exIntFun\" int int int int int int bool[]\n"
+                           ".importfun \"printInt\" void int\n"
+                           "test:\n"
+                           "    esr 4\n"
+                           ".const int 0x7a  ; 122\n"
+                           "    iloadc 0\n"
+                           ".const int 0x17  ; 23\n"
+                           "    iloadc 1\n"
+                           "    imul\n"
+                           ".const int 0x7b  ; 123\n"
+                           "    iloadc 2\n"
+                           "    imul\n"
+                           "    iloadc_1\n"
+                           "    imul\n"
+                           "    istore 0\n"
+                           "    iload_0\n"
+                           "    bnewa\n"
+                           "    astore 3\n"
+                           "    bloadc_t\n"
+                           "    bstore 1\n"
+                           "    iloadc_0\n"
+                           "    istore 2\n"
+                           "_for0:\n"
+                           "    iload_2\n"
+                           "    iload_0\n"
+                           "    ilt\n"
+                           "    branch_f _endfor0\n"
+                           "    bload_1\n"
+                           "    iload_2\n"
+                           "    aload_3\n"
+                           "    bstorea\n"
+                           "    iinc_1 2\n"
+                           "    jump _for0\n"
+                           "_endfor0:\n"
+                           "    isrg\n"
+                           "    isrg\n"
+                           "    iloadc_1\n"
+                           "    iloadc 2\n"
+                           "    iloadc 1\n"
+                           "    iloadc 0\n"
+                           ".const int 0x15c95  ; 89237\n"
+                           "    iloadc 3\n"
+                           "    iloadc_1\n"
+                           "    iadd\n"
+                           "    aload_3\n"
+                           "    jsre 0\n"
+                           "    jsre 1\n"
+                           "    return\n"
+                           ".exportfun \"__init\" void __init\n"
+                           "__init:\n"
+                           "    return\n";
+
+    ASSERT_MLSTREQ(expected, output_buffer);
+}

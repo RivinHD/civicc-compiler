@@ -31,20 +31,7 @@ node_st *CGP_PPproccall(node_st *node)
     {
         node_st *cur_expr = EXPRS_EXPR(proccall_exprs);
 
-        if (NODE_TYPE(cur_expr) == NT_PROCCALL)
-        {
-            TRAVopt(PROCCALL_EXPRS(cur_expr));
-        }
-        else if (NODE_TYPE(cur_expr) == NT_CAST)
-        {
-            TRAVopt(CAST_EXPR(cur_expr));
-        }
-        else if (NODE_TYPE(cur_expr) == NT_ARRAYEXPR)
-        {
-            TRAVopt(EXPRS_EXPR(ARRAYEXPR_DIMS(cur_expr)));
-            TRAVopt(EXPRS_NEXT(ARRAYEXPR_DIMS(cur_expr)));
-        }
-        else if (NODE_TYPE(cur_expr) == NT_VAR)
+        if (NODE_TYPE(cur_expr) == NT_VAR)
         {
             node_st *entry = deep_lookup(current, VAR_NAME(cur_expr));
             release_assert(entry != NULL);
@@ -72,6 +59,10 @@ node_st *CGP_PPproccall(node_st *node)
                     cur_arrayexpr_dim_vars = EXPRS_NEXT(cur_arrayexpr_dim_vars);
                 }
             }
+        }
+        else
+        {
+            TRAVopt(cur_expr);
         }
 
         proccall_exprs = EXPRS_NEXT(proccall_exprs);

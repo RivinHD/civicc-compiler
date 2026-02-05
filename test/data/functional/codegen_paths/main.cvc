@@ -1,0 +1,157 @@
+#include "civic.h"
+
+extern int exIntFun(int m, bool[a,b,c,d] q);
+extern int yolo;
+extern float[a, b, c] yolo1;
+extern float[d, e, f, g] yolo2; 
+
+float asdf = 12.12;
+bool ds = (bool)asdf;
+
+int[12] name  = 1;
+bool[234, 1] test = false;
+
+export int main() {
+    bool[12,23,12,(int)(bool)((int)test[21,0] + name[2] + (int)asdf - (int)ds)] test= true + false + (true * (bool)yolo);
+    int name = (int)test[0,0,0,0];
+    int abc = 123;
+    int def = abc;
+
+    void test(int a) {
+        void test1(int b) {
+            int name(bool a) {
+                bool yolo(float[a, b, c] yolo1) {
+                    float yolo2(float[d, e, f, g] yolo2) {
+                        return yolo2[d-1, e-1, f-1, g-1];
+                    }
+
+                    return (bool)(float)(int)(
+                    (bool)yolo2(yolo2) 
+                    || (bool)(yolo2(yolo2) + (float)yolo(yolo1)));
+                }
+
+                test(2);
+                if (a != true) {
+                    name(true);
+                }
+                
+                printInt((int)yolo(yolo1));
+                printNewlines(1);
+                return (int)a;
+            }
+
+            name(false);
+            printNewlines(2);
+            printFloat(yolo1[a-1,0,0]);
+            printNewlines(2);
+        }
+
+        if (a == 2) {
+            return;
+        }
+
+        test1(2);
+        return;
+        test1(3);
+    }
+
+    yolo2[0,0,0,0] = 123.10;
+    yolo1[11,yolo,yolo] = yolo2[0,1,1,1];
+
+    printInt(exIntFun(89237, test));
+    test(a);
+
+    yolo1[0,1,1] = 1341.0 - 123.32e12 + (float)0x234 / 0.23;
+    name = name / name;
+    printInt(name);
+    printNewlines(2);
+
+    name = name * 23;
+    printInt(name);
+    printNewlines(2);
+
+    name = name % 5;
+    printInt(name);
+    printNewlines(2);
+    
+    test[0,1,1,0] = (132 < 123) + (123.0 < yolo2[0,0,0,0]);
+    test[0,2,1,0] = (132 <= 123) + (123.0 <= yolo2[0,0,0,0]);
+    test[0,3,1,0] = (132 > 123) + (123.0 > yolo2[0,1,0,0]);
+    test[0,4,1,0] = (132 >= 123) + (123.0 >= yolo2[0,1,1,0]);
+    test[0,5,1,0] = (132 == 123) == (123.0 == yolo2[0,1,0,0]);
+    test[0,6,1,0] = (132 != 123) != (123.0 != yolo2[0,1,1,0]);
+    test[0,7,1,0] = !!!((132 >= 123) + (123.0 >= yolo2[0,1,1,0]));
+    test[0,8,1,0] = (-132 == 132);
+    test[0,9,1,0] = (-132.0 != 123.0);
+    for (int i = 1, 10)  {
+        printInt((int)test[0, i, 1, 0]);
+        printNewlines(1);
+    }
+
+    controlflow();
+
+    return 0;
+}
+
+float controlflow() {
+    int abc = 123;
+
+    if(true)
+        if (false) {}
+        else
+            printFloat(3.14);
+    printNewlines(1);
+
+    if (true)
+        if(true)
+            if(true)
+                if(true)
+                    printFloat(7.14);
+    printNewlines(1);
+
+    if (false)
+        if(false)
+            if(false) {}
+            else {}
+        else {}
+    else
+        printFloat(7.14);
+    printNewlines(1);
+
+    if (true) {
+        for(int i = 0, 122) {
+            printInt(i);
+            printSpaces(2);
+        }
+        printNewlines(1);
+    } else {
+        printInt(1234567);
+        return -12.03;
+    }
+
+    for (int i = 0, 12, 3) {
+        for (int j = 12, 5, -3) {
+            printInt(i);
+            printSpaces(2);
+            printInt(j);
+            printNewlines(1);
+        }
+        printInt(i);
+        printNewlines(2);
+    }
+
+    while(abc > 12) {
+        abc = 12;
+        printInt(abc);
+        printNewlines(2);
+    }
+
+    do
+    {
+        abc = 11;
+        printInt(abc);
+        printNewlines(2);
+    } while(abc > 12);
+
+    return yolo1[0,0,0];
+}

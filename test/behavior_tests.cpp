@@ -256,6 +256,10 @@ class BehaviorTest_3 : public BehaviorTest<3>
 {
 };
 
+class BehaviorTest_4 : public BehaviorTest<4>
+{
+};
+
 TEST_F(BehaviorTest_1, WhileLoops)
 {
     std::string filepaths[] = {"codegen/while_loops/main.cvc"};
@@ -854,6 +858,203 @@ TEST_F(BehaviorTest_3, Functional_Assignment01_Test)
     ASSERT_EQ(6473, instruction_count);
 
     const char *expected = "25 25\n";
+
+    ASSERT_THAT(vm_output, testing::HasSubstr(expected));
+}
+
+TEST_F(BehaviorTest_4, Functional_Assignment01_Queens)
+{
+    std::string filepaths[] = {
+        "functional/assignment_01/queens.cvc", "functional/assignment_01/array.cvc",
+        "functional/assignment_01/coreio.cvc", "functional/assignment_01/core.cvc"};
+
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+    ASSERT_EQ(1, vm_status);
+
+    ASSERT_EQ(1847, code_sizes[0]);
+    ASSERT_EQ(1499, code_sizes[1]);
+    ASSERT_EQ(514, code_sizes[2]);
+    ASSERT_EQ(450, code_sizes[3]);
+
+    ASSERT_EQ(61536242, instruction_count);
+
+    const char *expected = "1\n"
+                           "1 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 1 0 0 0 \n"
+                           "0 0 0 0 0 0 0 1 \n"
+                           "0 0 0 0 0 1 0 0 \n"
+                           "0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 1 0 \n"
+                           "0 1 0 0 0 0 0 0 \n"
+                           "0 0 0 1 0 0 0 0 \n"
+                           "\n"
+                           "1\n"
+                           "0 1 0 0 \n"
+                           "0 0 0 1 \n"
+                           "1 0 0 0 \n"
+                           "0 0 1 0 \n"
+                           "\n"
+                           "0\n"
+                           "0 0 0 \n"
+                           "0 0 0 \n"
+                           "0 0 0 \n"
+                           "\n"
+                           "1\n"
+                           "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 \n"
+                           "0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 \n"
+                           "0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 \n"
+                           "0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 \n"
+                           "0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 \n"
+                           "0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 \n"
+                           "\n"
+                           "0\n"
+                           "1 0 0 0 0 0 0 0 \n"
+                           "0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 1 0 0 0 \n"
+                           "0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 1 \n"
+                           "0 0 0 0 0 0 0 0 \n"
+                           "0 0 0 1 0 0 0 0 \n"
+                           "0 0 0 0 0 0 1 0 \n"
+                           "\n"
+                           "1\n"
+                           "0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 1 0 0 0 \n"
+                           "0 1 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 1 \n"
+                           "1 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 1 0 \n"
+                           "0 0 0 1 0 0 0 0 \n"
+                           "0 0 0 0 0 1 0 0 \n"
+                           "\n"
+                           "1\n"
+                           "0 0 1 0 0 0 0 0 \n"
+                           "0 0 0 0 1 0 0 0 \n"
+                           "0 1 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 0 1 \n"
+                           "1 0 0 0 0 0 0 0 \n"
+                           "0 0 0 0 0 0 1 0 \n"
+                           "0 0 0 1 0 0 0 0 \n"
+                           "0 0 0 0 0 1 0 0 \n"
+                           "\n"
+                           "\n"
+                           "\n"
+                           "0\n"
+                           "0\n"
+                           "\n"
+                           "-1\n"
+                           "0\n"
+                           "\n"
+                           "30\n"
+                           "1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765 "
+                           "10946 17711 28657 46368 75025 121393 196418 317811 514229 832040 \n"
+                           "\n"
+                           "\n"
+                           "\n"
+                           "20\n"
+                           "2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59 61 67 71 \n"
+                           "\n"
+                           "0\n"
+                           "\n"
+                           "\n"
+                           "-1\n"
+                           "\n"
+                           "\n"
+                           "\n"
+                           "\n"
+                           "12 123 12 3 23 12 -1 \n"
+                           "12.000000 12.000000 32.000000 0.000000 -1.000000 \n"
+                           "3 3 3 \n"
+                           "1 2 3 \n"
+                           "5 7 9 \n"
+                           "\n"
+                           "3.0000003.0000003.000000\n"
+                           "1.0000002.0000003.000000\n"
+                           "5.0000007.0000009.000000\n";
+
+    ASSERT_THAT(vm_output, testing::HasSubstr(expected));
+}
+
+TEST_F(BehaviorTest_2, Functional_Codegen_Paths)
+{
+    std::string filepaths[] = {"functional/codegen_paths/main.cvc",
+                               "functional/codegen_paths/exports.cvc"};
+
+    SetUp(filepaths);
+    ASSERT_NE(nullptr, root);
+    Execute();
+    ASSERT_EQ(0, vm_status);
+
+    ASSERT_EQ(2059, code_sizes[0]);
+    ASSERT_EQ(1409, code_sizes[1]);
+
+    ASSERT_EQ(30003895, instruction_count);
+
+    const char *expected =
+        "896091\n"
+        "1\n"
+        "\n"
+        "\n"
+        "460.986740\n"
+        "\n"
+        "1\n"
+        "\n"
+        "23\n"
+        "\n"
+        "3\n"
+        "\n"
+        "1\n"
+        "1\n"
+        "1\n"
+        "1\n"
+        "1\n"
+        "0\n"
+        "0\n"
+        "0\n"
+        "1\n"
+        "3.140000\n"
+        "7.140000\n"
+        "7.140000\n"
+        "0  1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  "
+        "25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  "
+        "47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  "
+        "69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  "
+        "91  92  93  94  95  96  97  98  99  100  101  102  103  104  105  106  107  108  109  110 "
+        " 111  112  113  114  115  116  117  118  119  120  121  \n"
+        "0  12\n"
+        "0  9\n"
+        "0  6\n"
+        "0\n"
+        "\n"
+        "3  12\n"
+        "3  9\n"
+        "3  6\n"
+        "3\n"
+        "\n"
+        "6  12\n"
+        "6  9\n"
+        "6  6\n"
+        "6\n"
+        "\n"
+        "9  12\n"
+        "9  9\n"
+        "9  6\n"
+        "9\n"
+        "\n"
+        "12\n"
+        "\n"
+        "11\n";
 
     ASSERT_THAT(vm_output, testing::HasSubstr(expected));
 }

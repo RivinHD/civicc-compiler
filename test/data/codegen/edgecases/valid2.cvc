@@ -1,0 +1,7 @@
+extern int exIntFun(int m, bool[a,b,c,d] q);
+extern void printInt(int val);
+
+void test() {
+    bool[122,23,123,1] test = true;
+    printInt(exIntFun(89237 + 1, test));
+}
