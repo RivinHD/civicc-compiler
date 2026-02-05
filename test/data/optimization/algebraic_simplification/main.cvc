@@ -1,6 +1,15 @@
 
 export int main() {
+    bool bo3;
+    bool bo4;
+    bool bo5;
+    bool bo6;
+
     int a;
+    int a3;
+    int a4;
+    int a5;
+    int a6;
     int b;
     int c;
     int d;
@@ -8,6 +17,8 @@ export int main() {
     int f;
     float g1;
     float g2;
+    float g5;
+    float g6;
     float h1;
     float h2;
     float i;
@@ -15,16 +26,51 @@ export int main() {
     a = a * 1;
     b = a * 0;
 
+    a3 = 5 + 0;
+    a4 = 0 + 5;
+    a5 = 5 + 5;
+    a6 = 0 + 0;
+
+    a3 = 5 - 0;
+    a4 = 0 - 5;
+    a5 = 5 - 5;
+    a6 = 0 - 0;
+
     c = (a * 2 + 3) * 0;
     d = 1 * 2 * 5 + 4;
     e = 0 * 2 * 5 + 4;
     f = e * 1 + d * 0;
+
+    bo3 = true * false;
+    bo4 = false * true;
+    bo5 = true * true;
+    bo6 = false * false;
+    
+    bo3 = true + false;
+    bo4 = false + true;
+    bo5 = true + true;
+    bo6 = false + false;
 
     g1 = 3.0 * 0.0;
     g2 = 0.0 * 7.2;
     h1 = 1.0 * g1;
     h2 = g2 * 1.0;
     i = (0.0 * 4.0) + (1.0 * 1.0);
+
+    g1 = 1.0 + 5.0;
+    g2 = 5.0 + 1.0;
+    g5 = 1.0 + 1.0;
+    g6 = 5.0 + 5.0;
+
+    // Div | mod
+    b = b / 1;
+    b = b % 1;
+
+    b = b / -1;
+    b = b % -1;
+
+    g5 = g5 / 1.0;
+    g5 = g5 / -1.0;
 
     return 0;
 }
