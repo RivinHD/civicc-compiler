@@ -1352,13 +1352,13 @@ node_st *CG_CGforloop(node_st *node)
         instL("jump", start_label);
         label(end_label);
     }
-    else if (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) > 0)
+    else if (NODE_TYPE(iter) == NT_INT)
     {
-        // Step size is positivie int
+        // Step size is a constant
         label(start_label);
         TRAVopt(ASSIGN_VAR(assign));
         TRAVopt(FORLOOP_COND(node));
-        inst0("ilt");
+        inst0(INT_VAL(iter) > 0 ? "ilt" : "igt");
         instL("branch_f", end_label);
         type = parent_type;
         TRAVopt(FORLOOP_BLOCK(node));
@@ -1370,28 +1370,6 @@ node_st *CG_CGforloop(node_st *node)
         is_expr = parent_is_expr;
         char *val_str = int_to_str(INT_VAL(iter));
         inst2("iinc", IDXlookup(index_table, assign_name), IDXlookup(constant_table, val_str));
-        free(val_str);
-        instL("jump", start_label);
-        label(end_label);
-    }
-    else if (NODE_TYPE(iter) == NT_INT && INT_VAL(iter) < 0)
-    {
-        // Step size is negative int
-        label(start_label);
-        TRAVopt(ASSIGN_VAR(assign));
-        TRAVopt(FORLOOP_COND(node));
-        inst0("igt");
-        instL("branch_f", end_label);
-        type = parent_type;
-        TRAVopt(FORLOOP_BLOCK(node));
-        bool parent_is_expr = is_expr;
-        is_expr = false;
-        type = DT_int;
-        TRAVopt(iter); // only add to constant table if not available
-        type = parent_type;
-        is_expr = parent_is_expr;
-        char *val_str = int_to_str(INT_VAL(iter));
-        inst2("idec", IDXlookup(index_table, assign_name), IDXlookup(constant_table, val_str));
         free(val_str);
         instL("jump", start_label);
         label(end_label);
