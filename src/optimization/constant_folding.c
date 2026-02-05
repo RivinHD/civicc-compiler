@@ -153,13 +153,10 @@ node_st *OPT_CFbinop(node_st *node)
             CCNfree(node);
             return ASTbool(bresult);
         case BO_and:
-            bresult = BOOL_VAL(BINOP_LEFT(node)) && BOOL_VAL(BINOP_RIGHT(node));
-            CCNfree(node);
-            return ASTbool(bresult);
         case BO_or:
-            bresult = BOOL_VAL(BINOP_LEFT(node)) || BOOL_VAL(BINOP_RIGHT(node));
-            CCNfree(node);
-            return ASTbool(bresult);
+            // Should be a terneray
+            release_assert(false);
+            break;
         case BO_sub:
         case BO_div:
         case BO_mod:
@@ -175,7 +172,31 @@ node_st *OPT_CFbinop(node_st *node)
     return node;
 }
 
-// TODO Monop
+node_st *OPT_CFternary(node_st *node)
+{
+    TRAVchildren(node);
+
+    node_st *pred = TERNARY_PRED(node);
+    if (NODE_TYPE(pred) == NT_BOOL)
+    {
+        if (BOOL_VAL(pred) == true)
+        {
+            node_st *child = TERNARY_PTRUE(node);
+            TERNARY_PTRUE(node) = NULL;
+            CCNfree(node);
+            return child;
+        }
+        else
+        {
+            node_st *child = TERNARY_PFALSE(node);
+            TERNARY_PFALSE(node) = NULL;
+            CCNfree(node);
+            return child;
+        }
+    }
+
+    return node;
+}
 
 node_st *OPT_CFprogram(node_st *node)
 {

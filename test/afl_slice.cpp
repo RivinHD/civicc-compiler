@@ -1,4 +1,5 @@
 #include "release_assert.h"
+#include <ccngen/action_handling.h>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -101,15 +102,15 @@ int main(int argc, char *argv[])
 #endif // __AFL_COMPILER
 #elif SLICE_TARGET == 3
 #ifdef __AFL_COMPILER
-        node_st *root = run_optimization_buf(filepath, src, (uint32_t)len);
-#else
-        node_st *root = run_optimization(filepath);
-#endif // __AFL_COMPILER
-#elif SLICE_TARGET == 4
-#ifdef __AFL_COMPILER
         node_st *root = run_code_gen_preparation_buf(filepath, src, (uint32_t)len);
 #else
         node_st *root = run_code_gen_preparation(filepath);
+#endif // __AFL_COMPILER
+#elif SLICE_TARGET == 4
+#ifdef __AFL_COMPILER
+        node_st *root = run_optimization_buf(filepath, src, (uint32_t)len, CCNAC_ID_OPTIMIZATION);
+#else
+        node_st *root = run_optimization(filepath, CCNAC_ID_OPTIMIZATION);
 #endif // __AFL_COMPILER
 #elif SLICE_TARGET == 5
 #ifdef __AFL_COMPILER

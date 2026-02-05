@@ -5,23 +5,31 @@ export int main() {
     bool bo5;
     bool bo6;
 
-    int a;
-    int a3;
-    int a4;
-    int a5;
-    int a6;
-    int b;
-    int c;
-    int d;
-    int e;
-    int f;
-    float g1;
-    float g2;
-    float g5;
-    float g6;
-    float h1;
-    float h2;
-    float i;
+    int a = -3;
+    int b = -2;
+    int c = -1;
+    int d = 1;
+    int e = 2;
+    int f = 3;
+    int a3 = 0;
+    int a4 = 0;
+    int a5 = 0;
+    int a6 = 0;
+    float g1 = 4.2;
+    float g2 = 3.1;
+    float g5 = 1.2;
+    float g6 = 31.2;
+    float h1 = 2.0;
+    float h2 = 1.0;
+    float i = 0.0;
+    bool j = true;
+
+    int mi1 = ----a; // a 
+    int mi2 = -----1; // -1
+    float mf1 = -----g1; // -g1
+    float mf2 = ----1.0; // 1.0
+    bool mb1 = !!!!!j; // -1.0
+    bool mb2 = !!!!!true; // false
 
     a = a * 1;
     b = a * 0;

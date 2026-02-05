@@ -166,10 +166,10 @@ node_st *OPT_ASbinop(node_st *node)
             {
                 if (BOOL_VAL(BINOP_LEFT(node)) == true)
                 {
-                    node_st *right = BINOP_RIGHT(node);
-                    BINOP_RIGHT(node) = NULL;
+                    node_st *left = BINOP_LEFT(node);
+                    BINOP_LEFT(node) = NULL;
                     CCNfree(node);
-                    return right;
+                    return left;
                 }
             }
 
@@ -177,10 +177,10 @@ node_st *OPT_ASbinop(node_st *node)
             {
                 if (BOOL_VAL(BINOP_RIGHT(node)) == true)
                 {
-                    node_st *left = BINOP_LEFT(node);
-                    BINOP_LEFT(node) = NULL;
+                    node_st *right = BINOP_RIGHT(node);
+                    BINOP_RIGHT(node) = NULL;
                     CCNfree(node);
-                    return left;
+                    return right;
                 }
             }
         }
@@ -244,6 +244,63 @@ node_st *OPT_ASbinop(node_st *node)
     else if (BINOP_OP(node) == BO_and || BINOP_OP(node) == BO_or)
     {
         release_assert(false);
+    }
+
+    return node;
+}
+
+node_st *OPT_ASmonop(node_st *node)
+{
+    TRAVchildren(node);
+    node_st *child = MONOP_LEFT(node);
+    enum ccn_nodetype child_type = NODE_TYPE(child);
+
+    switch (MONOP_OP(node))
+    {
+    case MO_NULL:
+        release_assert(false);
+        break;
+    case MO_neg:
+        if (child_type == NT_INT)
+        {
+            MONOP_LEFT(node) = NULL;
+            CCNfree(node);
+            INT_VAL(child) = -INT_VAL(child);
+            return child;
+        }
+        else if (child_type == NT_FLOAT)
+        {
+            MONOP_LEFT(node) = NULL;
+            CCNfree(node);
+            FLOAT_VAL(child) = -FLOAT_VAL(child);
+            return child;
+        }
+        else if (child_type == NT_MONOP)
+        {
+            release_assert(MONOP_OP(child) == MO_neg);
+            node_st *child_child = MONOP_LEFT(child);
+            MONOP_LEFT(child) = NULL;
+            CCNfree(node);
+            return child_child;
+        }
+        break;
+    case MO_not:
+        if (child_type == NT_BOOL)
+        {
+            MONOP_LEFT(node) = NULL;
+            CCNfree(node);
+            BOOL_VAL(child) = !BOOL_VAL(child);
+            return child;
+        }
+        else if (child_type == NT_MONOP)
+        {
+            release_assert(MONOP_OP(child) == MO_not);
+            node_st *child_child = MONOP_LEFT(child);
+            MONOP_LEFT(child) = NULL;
+            CCNfree(node);
+            return child_child;
+        }
+        break;
     }
 
     return node;

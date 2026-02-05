@@ -21,14 +21,16 @@ phase Optimization {
             uid = OPT_AS,
             nodes = {
                 Program,
-                Binop
+                Binop,
+                Monop
             }
         };
         traversal ConstantFolding {
             uid = OPT_CF,
             nodes = {
                 Program,
-                Binop
+                Binop,
+                Ternary
             }
         };
     }

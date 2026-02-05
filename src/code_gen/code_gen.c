@@ -693,6 +693,18 @@ node_st *CG_CGassign(node_st *node)
                             inst1("idec_1", index);
                         }
                     }
+                    else if (val == -1)
+                    {
+                        if (BINOP_OP(expr) == BO_add)
+                        {
+                            inst1("idec_1", index);
+                        }
+                        else
+                        {
+                            release_assert(BINOP_OP(expr) == BO_sub);
+                            inst1("iinc_1", index);
+                        }
+                    }
                     else
                     {
                         bool parent_is_expr = is_expr;

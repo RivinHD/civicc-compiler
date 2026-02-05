@@ -1,13 +1,15 @@
 #pragma once
 
+#include <ccngen/action_handling.h>
 #include <ccngen/ast.h>
 
 node_st *run_scan_parse_buf(const char *filepath, char *buffer, uint32_t buffer_length);
 node_st *run_scan_parse(const char *filepath);
 node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t buffer_length);
 node_st *run_context_analysis(const char *filepath);
-node_st *run_optimization_buf(const char *filepath, char *buffer, uint32_t buffer_length);
-node_st *run_optimization(const char *filepath);
+node_st *run_optimization_buf(const char *filepath, char *buffer, uint32_t buffer_length,
+                              enum ccn_action_id opt_id);
+node_st *run_optimization(const char *filepath, enum ccn_action_id opt_id);
 node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32_t buffer_length);
 node_st *run_code_gen_preparation(const char *filepath);
 node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint32_t buffer_length,
