@@ -4,8 +4,10 @@
 #include "palm/str.h"
 #include <ccngen/ast.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 FILE *preprocessorStart()
 {
@@ -74,4 +76,35 @@ void preprocessorEnd(FILE *fd)
             CTIabortOnError();
         }
     }
+}
+// See https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
+bool parse_linemarker(char *linemarker, int *out_linenum, char **filename)
+{
+    if (linemarker == NULL)
+    {
+        return false;
+    }
+    // linemaker is of structur # linenum "filename" flags
+    char *token = strtok(linemarker, " ");
+    if (!STReq(token, "#"))
+    {
+        return false;
+    }
+
+    token = strtok(NULL, " ");
+    char *end;
+    long value = strtol(token, &end, 10);
+    if (token == end || errno == ERANGE || value > INT_MAX || value < INT_MIN)
+    {
+        return false;
+    }
+
+    *out_linenum = (int)value;
+
+    token = strtok(NULL, "\""); // start of filename
+    token = strtok(NULL, "\""); // end of filename
+
+    *filename = token;
+
+    return true;
 }

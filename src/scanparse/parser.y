@@ -1066,6 +1066,10 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     NODE_BCOL(node) = (uint32_t)loc_b->first_column;
     NODE_ELINE(node) = (uint32_t)loc_e->last_line;
     NODE_ECOL(node) = (uint32_t)loc_e->last_column;
+    if (NODE_FILENAME(node) == NULL)
+    {
+        NODE_FILENAME(node) = STRcpy(global.filename);
+    }
 }
 
 int yyerror(char *error)

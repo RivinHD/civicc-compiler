@@ -11,6 +11,7 @@ struct globals
     bool preprocessor_enabled;
     const char *input_file;
     const char *output_file;
+    char *filename;
     char *input_buf;  // Buffer holding the input to the compiler if empty the input file is
                       // read instead.
     char *output_buf; // Buffer holding the output to the compiler if empty the output file is

@@ -195,9 +195,7 @@ node_st *CA_DCvar(node_st *node)
     if (entry == NULL)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         CTIobj(CTI_ERROR, true, info, "'%s' was not declared.", get_pretty_name(name));
-        free(info.filename);
     }
     else if (!STRprefix("@fun", true_name))
     {

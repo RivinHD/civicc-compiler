@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
+#include <stdbool.h>
 
 #include "release_assert.h"
 #include "ccngen/ast.h"
@@ -15,6 +16,7 @@
 #include "palm/ctinfo.h"
 #include <stdio.h>
 #include "utils.h"
+#include "scanparse/preprocessor.h"
 
 // Use for error messages, see parser.y
 extern int yyerror(char *errname);
@@ -161,13 +163,8 @@ SEPC ({SEP}|\{)
 
     if(errno == ERANGE)
     {
-        char* filename = STRcpy(global.input_file);
-        struct ctinfo info = {global.line, yycolumn - yyleng, 0, yycolumn, filename, NULL};
+        struct ctinfo info = {global.line, yycolumn - yyleng, 0, yycolumn, global.filename, NULL};
         CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
-        if(filename != NULL)
-        {
-            free(filename);
-        }
     }
 
     yylval.cflt = value;
@@ -208,8 +205,9 @@ SEPC ({SEP}|\{)
     // Reset the line on the linemarkers
     // Also enable use to skip preprocesor stuff if it is disabled
     yycolumn = 1;
-    global.line = 1;
     global.col = 1;
+    bool success = parse_linemarker(yytext, &global.line, &global.filename);
+    release_assert(success);
     scanparse_fprintf(stdout, "Linemarker: '%s'\n", yytext);
 }
 
@@ -244,14 +242,9 @@ static inline void convert_int(int base, int start_offset)
 
     if(value > INT_MAX || value < INT_MIN)
     {
-        char* filename = STRcpy(global.input_file);
         value = (value > INT_MAX) ? INT_MAX : INT_MIN;
-        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, global.filename, NULL};
         CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
-        if(filename != NULL)
-        {
-            free(filename);
-        }
     }
 
     yylval.cint= (int)value;

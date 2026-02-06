@@ -886,9 +886,7 @@ node_st *CG_CGbinop(node_st *node)
             if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT && INT_VAL(BINOP_RIGHT(node)) == 0)
             {
                 struct ctinfo info = NODE_TO_CTINFO(node);
-                info.filename = STRcpy(global.input_file);
                 CTIobj(CTI_WARN, true, info, "Division by zero.");
-                free(info.filename);
             }
             inst0("idiv");
             break;
@@ -896,9 +894,7 @@ node_st *CG_CGbinop(node_st *node)
             if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT && FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
             {
                 struct ctinfo info = NODE_TO_CTINFO(node);
-                info.filename = STRcpy(global.input_file);
                 CTIobj(CTI_WARN, true, info, "Division by zero.");
-                free(info.filename);
             }
             inst0("fdiv");
             break;
@@ -1305,9 +1301,7 @@ node_st *CG_CGforloop(node_st *node)
     if (iter != NULL && NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 0)
     {
         struct ctinfo info = NODE_TO_CTINFO(iter);
-        info.filename = STRcpy(global.input_file);
         CTIobj(CTI_WARN, true, info, "Step is '0' and may lead to undefined behaviour.");
-        free(info.filename);
     }
 
     node_st *assign = FORLOOP_ASSIGN(node);

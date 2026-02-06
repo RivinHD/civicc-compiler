@@ -61,12 +61,8 @@ static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
 
 #define NODE_TO_CTINFO(node)                                                                       \
     {                                                                                              \
-        (int)NODE_BLINE((node)),                                                                   \
-        (int)NODE_BCOL((node)),                                                                    \
-        (int)NODE_ELINE((node)),                                                                   \
-        (int)NODE_ECOL((node)),                                                                    \
-        NULL,                                                                                      \
-        NULL,                                                                                      \
+        (int)NODE_BLINE((node)), (int)NODE_BCOL((node)), (int)NODE_ELINE((node)),                  \
+        (int)NODE_ECOL((node)),  NODE_FILENAME((node)),  NULL,                                     \
     }
 
 #define assertSetType(node, setType)                                                               \
@@ -93,20 +89,16 @@ static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
 static inline void error_already_defined(node_st *node, node_st *found, const char *name)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
-    info.filename = STRcpy(global.input_file);
     CTIobj(CTI_ERROR, true, info, "'%s' already defined at %d:%d - %d:%d.", name, NODE_BLINE(found),
            NODE_BCOL(found), NODE_ELINE(found), NODE_ECOL(found));
-    free(info.filename);
 }
 
 static inline void error_invalid_identifier_name(node_st *node, node_st *found, const char *name)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
-    info.filename = STRcpy(global.input_file);
     CTIobj(CTI_ERROR, true, info,
            "'%s' is not allowed to start with '_'. Defined at %d:%d - %d:%d.", name,
            NODE_BLINE(found), NODE_BCOL(found), NODE_ELINE(found), NODE_ECOL(found));
-    free(info.filename);
 }
 
 /// Recursive lookup into the symbol table and in all parent symbol table for the given name.
