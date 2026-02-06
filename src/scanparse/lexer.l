@@ -206,6 +206,10 @@ SEPC ({SEP}|\{)
     // Also enable use to skip preprocesor stuff if it is disabled
     yycolumn = 1;
     global.col = 1;
+    if (global.filename != NULL) {
+        free(global.filename);
+        global.filename = NULL;
+    }
     bool success = parse_linemarker(yytext, &global.line, &global.filename);
     release_assert(success);
     scanparse_fprintf(stdout, "Linemarker: '%s'\n", yytext);

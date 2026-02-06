@@ -2,16 +2,17 @@
 
 #include "ccngen/enum.h"
 #include "definitions.h"
-#include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/str.h"
 #include "release_assert.h"
 #include <ccngen/ast.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef DEBUG_SCANPARSE
@@ -59,10 +60,76 @@ static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
     release_assert(false);
 }
 
+#define error_cache_size 1024 * 5 // 5 KiB
+static char cache_file[error_cache_size];
+
+static char *get_file_line(const char *filename, int start_line, int end_line)
+{
+    if (filename == NULL)
+    {
+        return NULL;
+    }
+
+    FILE *fd = fopen(filename, "r");
+    if (fd == NULL)
+    {
+        return NULL;
+    }
+
+    int line_to_read = end_line - start_line + 1;
+
+    while (start_line-- > 1) // Skip the start_lines
+    {
+        int c;
+        while ((c = fgetc(fd)) != (int)'\n')
+        {
+            if (c == EOF)
+            {
+                return NULL;
+            }
+        }
+    }
+
+    int read_chars = 0;
+    while (line_to_read-- > 0)
+    {
+        int c;
+        while ((c = fgetc(fd)) != (int)'\n')
+        {
+            read_chars++;
+            if (read_chars < error_cache_size)
+            {
+                cache_file[read_chars - 1] = (char)c;
+            }
+            else
+            {
+                // cache is full, do not read any further lines
+                cache_file[read_chars - 1] = '\0';
+                return cache_file;
+            }
+
+            if (c == EOF)
+            {
+                cache_file[read_chars - 1] = '\0';
+                return cache_file;
+            }
+        }
+        cache_file[read_chars++] = '\n';
+    }
+
+    // Replace last \n with \0
+    cache_file[read_chars - 1] = '\0';
+    return cache_file;
+}
+
 #define NODE_TO_CTINFO(node)                                                                       \
     {                                                                                              \
-        (int)NODE_BLINE((node)), (int)NODE_BCOL((node)), (int)NODE_ELINE((node)),                  \
-        (int)NODE_ECOL((node)),  NODE_FILENAME((node)),  NULL,                                     \
+        (int)NODE_BLINE((node)),                                                                   \
+        (int)NODE_BCOL((node)),                                                                    \
+        (int)NODE_ELINE((node)),                                                                   \
+        (int)NODE_ECOL((node)),                                                                    \
+        NODE_FILENAME((node)),                                                                     \
+        get_file_line(NODE_FILENAME((node)), (int)NODE_BLINE((node)), (int)NODE_ELINE((node))),    \
     }
 
 #define assertSetType(node, setType)                                                               \

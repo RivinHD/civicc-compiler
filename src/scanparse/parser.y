@@ -1104,5 +1104,11 @@ node_st *SPdoScanParse(node_st *root)
         yy_delete_buffer(buffer);
     }
 
+    if(global.filename != NULL) 
+    {
+        free(global.filename);
+        global.filename = NULL;
+    }
+
     return parseresult;
 }

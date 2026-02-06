@@ -85,9 +85,11 @@ bool parse_linemarker(char *linemarker, int *out_linenum, char **filename)
         return false;
     }
     // linemaker is of structur # linenum "filename" flags
-    char *token = strtok(linemarker, " ");
+    char *cpy = STRcpy(linemarker);
+    char *token = strtok(cpy, " ");
     if (!STReq(token, "#"))
     {
+        free(cpy);
         return false;
     }
 
@@ -96,15 +98,15 @@ bool parse_linemarker(char *linemarker, int *out_linenum, char **filename)
     long value = strtol(token, &end, 10);
     if (token == end || errno == ERANGE || value > INT_MAX || value < INT_MIN)
     {
+        free(cpy);
         return false;
     }
 
     *out_linenum = (int)value;
 
-    token = strtok(NULL, "\""); // start of filename
-    token = strtok(NULL, "\""); // end of filename
+    token = strtok(NULL, "\"");
+    *filename = STRcpy(token);
 
-    *filename = token;
-
+    free(cpy);
     return true;
 }
