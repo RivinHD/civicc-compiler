@@ -90,67 +90,81 @@ SEPC ({SEP}|\{)
 "true"[^A-Za-z0-9_]            { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( TRUEVAL); }
 "false"[^A-Za-z0-9_]           { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( FALSEVAL); }
 
 "extern"{SEP}                   { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( EXTERN); }
 "export"{SEP}                   { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( EXPORT); }
 "return"({SEPB}|;)             { 
-                             yyleng = yyleng - 1; 
-                             yyless(yyleng); 
-                             FILTER( RETURN); }
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            yycolumn -= 1;
+                            FILTER( RETURN); }
 
 
 "void"{SEP}                { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( VOID); }
 "bool"({SEP}|\[|\))                { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( BOOL); }
 "int"({SEP}|\[|\))                 { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( INT); }
 "float"({SEP}|\[|\))               { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( FLOAT);}
 
 
 "if"{SEPB}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( IF);
                             }
 "while"{SEPB}               { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( WHILE);
                             }
 "for"{SEPB}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( FOR);
                             }
 "do"{SEPC}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( DO);
                             }
 "else"{SEPC}              {
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( ELSE);
                             }
 
