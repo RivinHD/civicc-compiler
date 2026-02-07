@@ -582,7 +582,18 @@ node_st *CG_CGfunbody(node_st *node)
     TRAVopt(FUNBODY_STMTS(node));
     if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(fundef)) == DT_void)
     {
-        inst0("return");
+        // Do not print a return if last statment is a return
+        node_st *stmts = FUNBODY_STMTS(node);
+        bool is_return = false;
+        while (stmts != NULL)
+        {
+            is_return = NODE_TYPE(STATEMENTS_STMT(stmts)) == NT_RETSTATEMENT;
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        if (!is_return)
+        {
+            inst0("return");
+        }
     }
 
     TRAVopt(FUNBODY_LOCALFUNDEFS(node));

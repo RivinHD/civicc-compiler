@@ -1,6 +1,7 @@
 void s(){
     return;
     n0me=0;
+    return;  // No double return statements should be printed.
 }
 
 extern int m; 

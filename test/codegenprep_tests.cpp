@@ -3006,7 +3006,7 @@ TEST_F(CodeGenPrepTest, EdgeCaseInvalid)
 {
     SetUpNoExecute("preperation/edgecase/invalid.cvc");
     ASSERT_EXIT(run_code_gen_preparation(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("'a' already defined at 1:19 - 1:28"),
+                testing::AllOf(testing::HasSubstr("'a' already defined at 1:17 - 1:25"),
                                testing::HasSubstr("'a' was not declared"),
                                testing::HasSubstr(" 2 Error")));
 }

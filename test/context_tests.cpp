@@ -5877,7 +5877,7 @@ TEST_F(ContextTest, DoubleDec)
     SetUpNoExecute("double/vardec/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("already defined"),
-                               testing::HasSubstr("'value1'"), testing::HasSubstr("3:5 - 3:20")));
+                               testing::HasSubstr("'value1'"), testing::HasSubstr("3:5 - 3:19")));
 }
 
 TEST_F(ContextTest, DoubleFunDef)
@@ -5885,7 +5885,7 @@ TEST_F(ContextTest, DoubleFunDef)
     SetUpNoExecute("double/fundef/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("'fun_one' already defined"),
-                               testing::HasSubstr("1:1 - 1:23")));
+                               testing::HasSubstr("1:1 - 1:21")));
 }
 
 TEST_F(ContextTest, VarDecInvalid)
@@ -5978,7 +5978,7 @@ TEST_F(ContextTest, Suite_Arrays_ShadowedDimension)
 {
     SetUpNoExecute("testsuite_public/arrays/check_error/shadowed_dimension.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("'a' already defined at 1:11 - 1:19"),
+                testing::AllOf(testing::HasSubstr("'a' already defined at 1:10 - 1:17"),
                                testing::HasSubstr(" 1 Error")));
 }
 
