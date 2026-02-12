@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include <variant>
 
 extern "C"
 {
@@ -18,7 +17,7 @@ extern "C"
 #include "to_string.h"
 }
 
-template <size_t TCount> class BehaviorTest : public testing::Test
+template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Test
 {
   public:
     char *root_string[TCount];
@@ -68,8 +67,8 @@ template <size_t TCount> class BehaviorTest : public testing::Test
         testing::internal::CaptureStderr();
         for (size_t i = 0; i < TCount; i++)
         {
-            root[i] =
-                run_code_generation_file(input_filepath[i].c_str(), output_filepath[i].c_str());
+            root[i] = run_code_generation_file(input_filepath[i].c_str(),
+                                               output_filepath[i].c_str(), TOptimize);
             EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << input_filepath << "'";
             root_string[i] = node_to_string(root[i]);
             symbols_string[i] = symbols_to_string(root[i]);
@@ -244,19 +243,19 @@ template <size_t TCount> class BehaviorTest : public testing::Test
 };
 
 // Holds a civicc programm that contains 1 program.
-class BehaviorTest_1 : public BehaviorTest<1>
+class BehaviorTest_1 : public BehaviorTest<1, false>
 {
 };
 
-class BehaviorTest_2 : public BehaviorTest<2>
+class BehaviorTest_2 : public BehaviorTest<2, false>
 {
 };
 
-class BehaviorTest_3 : public BehaviorTest<3>
+class BehaviorTest_3 : public BehaviorTest<3, false>
 {
 };
 
-class BehaviorTest_4 : public BehaviorTest<4>
+class BehaviorTest_4 : public BehaviorTest<4, false>
 {
 };
 
@@ -996,7 +995,7 @@ TEST_F(BehaviorTest_2, Functional_Codegen_Paths)
     Execute();
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(2059, code_sizes[0]);
+    ASSERT_EQ(2057, code_sizes[0]);
     ASSERT_EQ(1409, code_sizes[1]);
 
     ASSERT_EQ(30003895, instruction_count);

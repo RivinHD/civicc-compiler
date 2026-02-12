@@ -467,3 +467,14 @@ node_st *PRTternary(node_st *node)
     TRAVpfalse(node);
     return node;
 }
+
+node_st *PRTpop(node_st *node)
+{
+    TRAVexpr(node);
+    if (POP_REPLACE(node) != NULL)
+    {
+        printf("->");
+        TRAVreplace(node);
+    }
+    return node;
+}

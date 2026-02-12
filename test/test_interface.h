@@ -14,9 +14,10 @@ node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32
 node_st *run_code_gen_preparation(const char *filepath);
 node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint32_t buffer_length,
                                  const char *output_filepath, char *out_buffer,
-                                 uint32_t out_buffer_length);
-node_st *run_code_generation_file(const char *input_filepath, const char *output_filepath);
+                                 uint32_t out_buffer_length, bool optimize);
+node_st *run_code_generation_file(const char *input_filepath, const char *output_filepath,
+                                  bool optimize);
 node_st *run_code_generation(const char *input_filepath, char *out_buffer,
-                             uint32_t out_buffer_length);
+                             uint32_t out_buffer_length, bool optimize);
 node_st *run_code_generation_node(node_st *node, char *out_buffer, uint32_t out_buffer_length);
 void cleanup_nodes(node_st *root);

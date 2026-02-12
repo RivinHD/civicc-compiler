@@ -22,7 +22,11 @@ phase Optimization {
             nodes = {
                 Program,
                 Binop,
-                Monop
+                Monop,
+                ProcCall,
+                FunDef,
+                Cast,
+                Ternary
             }
         };
         traversal ConstantFolding {
@@ -30,6 +34,27 @@ phase Optimization {
             nodes = {
                 Program,
                 Binop,
+                Ternary
+            }
+        };
+        traversal DeadCodeElimination {
+            uid = OPT_DCE,
+            nodes = {
+                Program,
+                Fundef,
+                Funbody,
+                Declarations,
+                LocalFunDefs,
+                VarDecs,
+                Statements,
+                Var,
+                Assign,
+                ProcCall,
+                DoWhileLoop,
+                ArrayAssign,
+                ForLoop,
+                WhileLoop,
+                IfStatement,
                 Ternary
             }
         };
@@ -239,7 +264,7 @@ enum DataType {
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {Ternary, Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
+nodeset Expr = {Ternary, Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool, Pop};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
 nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
 nodeset VarOptArrayVar = {Var, ArrayVar};
@@ -528,5 +553,19 @@ node Float {
 node Bool {
     attributes {
         bool val { constructor }  // mandatory
+    }
+};
+
+// Pops a proccall element from the stack and loads the replacement value
+node Pop {
+    children {
+        Expr expr { constructor, mandatory },
+        Expr replace { constructor } 
+    },
+
+    attributes {
+        // The type of the pop expression
+        DataType type { constructor }, // mandatory
+        bool replace_before_pop { constructor } // mandatory
     }
 };

@@ -1,3 +1,5 @@
+int a = 5;
+extern void printInt(int val);
 
 export int main() {
     bool bo3;
@@ -49,21 +51,29 @@ export int main() {
     e = 0 * 2 * 5 + 4;
     f = e * 1 + d * 0;
 
+    c = int_sideeffect() * 0 + 0 * (int_sideeffect() * int_sideeffect());
+
     bo3 = true * false;
     bo4 = false * true;
     bo5 = true * true;
     bo6 = false * false;
+
+    bo6 = false * bool_sideeffect() * (false * (bool)(int_sideeffect() * int_sideeffect()));
     
     bo3 = true + false;
     bo4 = false + true;
     bo5 = true + true;
     bo6 = false + false;
 
+    bo6 = true + bool_sideeffect() + false + true + true + (true + (bool_sideeffect() + (bool)int_sideeffect()));
+    bo5 = (true + bool_sideeffect() && bool_sideeffect() || bool_sideeffect()) + true;
+
     g1 = 3.0 * 0.0;
     g2 = 0.0 * 7.2;
     h1 = 1.0 * g1;
     h2 = g2 * 1.0;
     i = (0.0 * 4.0) + (1.0 * 1.0);
+    i = (0.0 * float_sideeffect(1) * 5.0 * 3.0) * ((float)(17 * int_sideeffect() + 5) + 5.0 * float_sideeffect(2) * float_sideeffect(3)) * 0.0;
 
     g1 = 1.0 + 5.0;
     g2 = 5.0 + 1.0;
@@ -81,4 +91,19 @@ export int main() {
     g5 = g5 / -1.0;
 
     return 0;
+}
+
+int int_sideeffect() {
+    a = 10;
+    return 10;
+}
+
+float float_sideeffect(int i) {
+    a = 10;
+    return 10.0;
+}
+
+bool bool_sideeffect() {
+    printInt(10);
+    return true;
 }

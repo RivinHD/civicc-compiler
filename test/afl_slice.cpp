@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         std::memcpy(src, buf, len);
 #else
         const char *filepath = argv[i_argc++];
-        printf("Compiling '%s'\n", filepath);
+        fprintf(stderr, "Compiling '%s'\n", filepath);
 #endif
 #if SLICE_TARGET == 1
 #ifdef __AFL_COMPILER
@@ -114,9 +114,15 @@ int main(int argc, char *argv[])
 #endif // __AFL_COMPILER
 #elif SLICE_TARGET == 5
 #ifdef __AFL_COMPILER
-        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0);
+        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0, false);
 #else
-        node_st *root = run_code_generation(filepath, NULL, 0);
+        node_st *root = run_code_generation(filepath, NULL, 0, false);
+#endif // __AFL_COMPILER
+#elif SLICE_TARGET == 6
+#ifdef __AFL_COMPILER
+        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0, true);
+#else
+        node_st *root = run_code_generation(filepath, NULL, 0, true);
 #endif // __AFL_COMPILER
 #else
         static_assert(false, "No valid slice target given to preprocessor");

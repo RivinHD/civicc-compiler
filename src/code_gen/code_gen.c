@@ -9,6 +9,7 @@
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
+#include <ccngen/trav.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -624,11 +625,12 @@ node_st *CG_CGassign(node_st *node)
     int level = INT_MAX;
     char *name = VAR_NAME(ASSIGN_VAR(node));
     node_st *entry = deep_lookup_level(current, name, &level);
+    release_assert(entry != NULL);
+    release_assert(level != INT_MAX);
     enum DataType parent_type = type;
     type = symbol_to_type(entry);
     release_assert(type != DT_void);
     release_assert(type != DT_NULL);
-    release_assert(level != INT_MAX);
 
     node_st *var = get_var_from_symbol(entry);
     node_st *expr = ASSIGN_EXPR(node);
@@ -1131,6 +1133,8 @@ node_st *CG_CGproccall(node_st *node)
 
     int level = INT_MAX;
     node_st *entry = deep_lookup_level(current, name, &level);
+    release_assert(entry != NULL);
+    release_assert(level != INT_MAX);
     enum DataType has_type = symbol_to_type(entry);
     if (type != DT_void)
     {
@@ -1138,7 +1142,6 @@ node_st *CG_CGproccall(node_st *node)
         release_assert(type != DT_NULL);
         release_assert(type == has_type);
     }
-    release_assert(level != INT_MAX);
 
     if (level == 0)
     {
@@ -1248,17 +1251,24 @@ node_st *CG_CGifstatement(node_st *node)
         TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
         label(end_label);
     }
-    else if (IFSTATEMENT_BLOCK(node) == NULL)
+    else if (IFSTATEMENT_BLOCK(node) == NULL && IFSTATEMENT_ELSE_BLOCK(node) != NULL)
     {
         instL("branch_t", end_label);
         TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
         label(end_label);
     }
-    else if (IFSTATEMENT_ELSE_BLOCK(node) == NULL)
+    else if (IFSTATEMENT_ELSE_BLOCK(node) == NULL && IFSTATEMENT_BLOCK(node) != NULL)
     {
         instL("branch_f", end_label);
         TRAVopt(IFSTATEMENT_BLOCK(node));
         label(end_label);
+    }
+    else
+    {
+        release_assert(IFSTATEMENT_BLOCK(node) == NULL);
+        release_assert(IFSTATEMENT_ELSE_BLOCK(node) == NULL);
+        // No need to generate branch and label, we just pop the generate boolean
+        inst0("bpop");
     }
 
     free(else_label);
@@ -1519,13 +1529,13 @@ node_st *CG_CGvar(node_st *node)
     //  }
     ptrdiff_t idx =
         IDXsmart_lookup(index_table, import_table, current, VAR_NAME(node), &level, &entry);
+    release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(type != DT_NULL);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
-    release_assert(level != INT_MAX);
-    release_assert(entry != NULL);
 
     char type_str = '\0';
     switch (has_type)
@@ -1684,12 +1694,12 @@ node_st *CG_CGarrayexpr(node_st *node)
     node_st *entry = NULL;
     ptrdiff_t idx = IDXsmart_lookup(index_table, import_table, current,
                                     VAR_NAME(ARRAYEXPR_VAR(node)), &level, &entry);
+    release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
-    release_assert(level != INT_MAX);
-    release_assert(entry != NULL);
 
     // Calculate index
     enum DataType parent_type = type;
@@ -1786,6 +1796,7 @@ node_st *CG_CGarrayassign(node_st *node)
     enum DataType parent_type = type;
     char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
     node_st *entry = deep_lookup(current, name);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
@@ -1927,5 +1938,43 @@ node_st *CG_CGternary(node_st *node)
 
     free(pfalse_label);
     free(end_label);
+    return node;
+}
+
+node_st *CG_CGpop(node_st *node)
+{
+    if (POP_REPLACE_BEFORE_POP(node))
+    {
+        TRAVopt(POP_REPLACE(node));
+    }
+
+    enum DataType parent_type = type;
+    type = POP_TYPE(node);
+    TRAVopt(POP_EXPR(node));
+    type = parent_type;
+
+    switch (POP_TYPE(node))
+    {
+    case DT_NULL:
+        release_assert(false);
+        break;
+    case DT_void:
+        // Nothing to do
+        break;
+    case DT_bool:
+        inst0("bpop");
+        break;
+    case DT_int:
+        inst0("ipop");
+        break;
+    case DT_float:
+        inst0("fpop");
+        break;
+    }
+
+    if (!POP_REPLACE_BEFORE_POP(node))
+    {
+        TRAVopt(POP_REPLACE(node));
+    }
     return node;
 }

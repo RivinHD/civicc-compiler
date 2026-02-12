@@ -3,12 +3,16 @@
 #include "ccngen/enum.h"
 #include "definitions.h"
 #include "palm/ctinfo.h"
+#include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
+#include "user_types.h"
 #include <ccngen/ast.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <stdarg.h>
@@ -374,4 +378,288 @@ static node_st *search_last_init_stmts(bool use_arrayexpr, node_st *stmts, node_
     }
 
     return NULL;
+}
+
+enum sideeffect
+{
+    // We will use logical OR the get the higest level
+    SEFF_NULL = 0,
+    SEFF_NO = 1,         // 0b1
+    SEFF_PROCESSING = 3, // 0b11
+    SEFF_YES = 7,        // 0b111, should always be the max value
+};
+
+static enum sideeffect check_fun_sideeffect(node_st *fun, htable_stptr sideeffect_table);
+
+// Checks if a expression has side effects and keep a table of already check fundef and fundec.
+static enum sideeffect check_expr_sideeffect(node_st *expr, htable_stptr symbols,
+                                             htable_stptr sideeffect_table)
+{
+    release_assert(expr != NULL);
+    release_assert(symbols != NULL);
+    release_assert(sideeffect_table != NULL);
+
+    enum sideeffect effect = SEFF_NO;
+    switch (NODE_TYPE(expr))
+    {
+    case NT_PROCCALL: {
+        char *name = VAR_NAME(PROCCALL_VAR(expr));
+        node_st *entry = deep_lookup(symbols, name);
+        release_assert(entry != NULL);
+        release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
+        if (NODE_TYPE(entry) == NT_FUNDEC)
+        {
+            return SEFF_YES;
+        }
+
+        void *fun_eff = HTlookup(sideeffect_table, entry);
+        if (fun_eff == NULL)
+        {
+            enum sideeffect eff = check_fun_sideeffect(entry, sideeffect_table);
+            if (eff == SEFF_PROCESSING)
+            {
+                // We could not fully check this function, because it has cycly
+                // dependecies. Thus we can not ensure its value in the side effect table is
+                // correct.
+                HTremove(sideeffect_table, entry);
+                effect |= SEFF_NO; // No other statement except processing proccalls have side
+                                   // effects the already processsing proccall dependecies will be
+                                   // check further up in the recursion
+            }
+            else
+            {
+                effect |= eff;
+            }
+        }
+        else if (fun_eff == (void *)SEFF_PROCESSING && FUNDEF_SYMBOLS(entry) == symbols)
+        {
+            // Recursion to itself found.
+            // The rest is already check by an already called function, no need to check again.
+            return SEFF_NO;
+        }
+        else
+        {
+            ptrdiff_t value = (ptrdiff_t)fun_eff;
+            release_assert(value >= SEFF_NULL);
+            release_assert(value <= SEFF_YES);
+            enum sideeffect eff = (enum sideeffect)value;
+            release_assert(eff != SEFF_NULL);
+            release_assert(eff != SEFF_PROCESSING);
+            effect |= eff;
+        }
+    }
+    break;
+    case NT_TERNARY:
+        effect |= check_expr_sideeffect(TERNARY_PRED(expr), symbols, sideeffect_table);
+        effect |= check_expr_sideeffect(TERNARY_PFALSE(expr), symbols, sideeffect_table);
+        effect |= check_expr_sideeffect(TERNARY_PTRUE(expr), symbols, sideeffect_table);
+        break;
+    case NT_BINOP:
+        effect |= check_expr_sideeffect(BINOP_LEFT(expr), symbols, sideeffect_table);
+        effect |= check_expr_sideeffect(BINOP_RIGHT(expr), symbols, sideeffect_table);
+        break;
+    case NT_MONOP:
+        effect |= check_expr_sideeffect(MONOP_LEFT(expr), symbols, sideeffect_table);
+        break;
+    case NT_ARRAYEXPR: {
+        node_st *exprs = ARRAYEXPR_DIMS(expr);
+        while (exprs != NULL)
+        {
+            effect |= check_expr_sideeffect(EXPRS_EXPR(exprs), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            exprs = EXPRS_NEXT(exprs);
+        }
+    }
+    break;
+
+    case NT_CAST:
+        effect |= check_expr_sideeffect(CAST_EXPR(expr), symbols, sideeffect_table);
+        break;
+    case NT_POP:
+        effect |= check_expr_sideeffect(POP_EXPR(expr), symbols, sideeffect_table);
+        if (POP_REPLACE(expr) != NULL)
+        {
+            effect |= check_expr_sideeffect(POP_EXPR(expr), symbols, sideeffect_table);
+        }
+        break;
+    case NT_VAR:
+    case NT_INT:
+    case NT_FLOAT:
+    case NT_BOOL:
+        // Not possible to have any side effects and dont have children that can have sideeffects.
+        break;
+    default:
+        release_assert(false);
+        break;
+    }
+
+    return effect;
+}
+
+// Checks if a statment has side effects and keep a table of already check fundef and fundec.
+static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols,
+                                             htable_stptr sideeffect_table)
+{
+    release_assert(stmt != NULL);
+    release_assert(symbols != NULL);
+    release_assert(sideeffect_table != NULL);
+
+    node_st *stmts = NULL;
+    enum sideeffect effect = SEFF_NO;
+    switch (NODE_TYPE(stmt))
+    {
+    case NT_ASSIGN:
+        effect |= check_expr_sideeffect(ASSIGN_EXPR(stmt), symbols, sideeffect_table);
+        {
+            node_st *var = ASSIGN_VAR(stmt);
+            char *name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYEXPR_VAR(var));
+            node_st *entry = HTlookup(symbols, name);
+            if (entry == NULL)
+            { // assignment to none local variable
+                effect = SEFF_YES;
+            }
+        }
+        break;
+    case NT_PROCCALL:
+        effect |= check_expr_sideeffect(stmt, symbols, sideeffect_table);
+        break;
+    case NT_IFSTATEMENT:
+        effect |= check_expr_sideeffect(IFSTATEMENT_EXPR(stmt), symbols, sideeffect_table);
+        stmts = IFSTATEMENT_BLOCK(stmt);
+        while (stmts == NULL)
+        {
+            effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        stmts = IFSTATEMENT_ELSE_BLOCK(stmt);
+        while (stmts == NULL)
+        {
+            effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        break;
+    case NT_WHILELOOP:
+        effect |= check_expr_sideeffect(WHILELOOP_EXPR(stmt), symbols, sideeffect_table);
+        stmts = WHILELOOP_BLOCK(stmt);
+        while (stmts == NULL)
+        {
+            effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        break;
+    case NT_DOWHILELOOP:
+        effect |= check_expr_sideeffect(DOWHILELOOP_EXPR(stmt), symbols, sideeffect_table);
+        stmts = DOWHILELOOP_BLOCK(stmt);
+        while (stmts == NULL)
+        {
+            effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        break;
+    case NT_FORLOOP:
+        effect |=
+            check_expr_sideeffect(ASSIGN_EXPR(FORLOOP_ASSIGN(stmt)), symbols, sideeffect_table);
+        effect |= check_expr_sideeffect(FORLOOP_COND(stmt), symbols, sideeffect_table);
+        effect |= check_expr_sideeffect(FORLOOP_ITER(stmt), symbols, sideeffect_table);
+        stmts = FORLOOP_BLOCK(stmt);
+        while (stmts == NULL)
+        {
+            effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        break;
+    case NT_RETSTATEMENT:
+        effect |= check_expr_sideeffect(RETSTATEMENT_EXPR(stmt), symbols, sideeffect_table);
+        break;
+    case NT_ARRAYASSIGN:
+        effect |= check_expr_sideeffect(ASSIGN_EXPR(stmt), symbols, sideeffect_table);
+        break;
+    default:
+        release_assert(false);
+        break;
+    }
+
+    return effect;
+}
+
+// Checks if a fundec/fundef has side effects and keep a table of already check fundef and fundec.
+static enum sideeffect check_fun_sideeffect(node_st *fun, htable_stptr sideeffect_table)
+{
+    release_assert(fun != NULL);
+    release_assert(sideeffect_table != NULL);
+    release_assert(NODE_TYPE(fun) == NT_FUNDEF || NODE_TYPE(fun) == NT_FUNDEC);
+
+    if (NODE_TYPE(fun) == NT_FUNDEC)
+    {
+        // Can not check if extern functions have side effects, thus we need to assume yes.
+        return SEFF_YES;
+    }
+
+    void *entry = HTlookup(sideeffect_table, fun);
+    if (entry == NULL)
+    {
+        release_assert(NODE_TYPE(fun) == NT_FUNDEF);
+        bool success = HTinsert(sideeffect_table, fun, (void *)SEFF_PROCESSING);
+        release_assert(success);
+
+        enum sideeffect effect = SEFF_NO;
+        node_st *stmts = FUNBODY_STMTS(FUNDEF_FUNBODY(fun));
+        while (stmts != NULL)
+        {
+            node_st *stmt = STATEMENTS_STMT(stmts);
+            effect |= check_stmt_sideeffect(stmt, FUNDEF_SYMBOLS(fun), sideeffect_table);
+            if (effect == SEFF_YES)
+            {
+                break;
+            }
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+
+        HTremove(sideeffect_table, fun);
+        HTinsert(sideeffect_table, fun, (void *)effect);
+        entry = (void *)effect;
+    }
+
+    ptrdiff_t value = (ptrdiff_t)entry;
+    release_assert(value != SEFF_NULL);
+    release_assert(value <= SEFF_YES);
+    return (enum sideeffect)value;
+}
+
+static void free_symbols(htable_stptr symbols)
+{
+    for (htable_iter_st *iter = HTiterate(symbols); iter; iter = HTiterateNext(iter))
+    {
+        char *key = HTiterKey(iter);
+        if (STRprefix("@fun_", key))
+        {
+            // Free function keys
+            free(key);
+        }
+    }
+
+    HTdelete(symbols);
 }
