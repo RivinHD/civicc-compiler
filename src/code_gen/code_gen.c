@@ -331,6 +331,7 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
 node_st *CG_CGprogram(node_st *node)
 {
     reset_state();
+
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {

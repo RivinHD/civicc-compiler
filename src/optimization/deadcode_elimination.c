@@ -3,7 +3,6 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -11,6 +10,7 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -375,6 +375,7 @@ node_st *OPT_DCEstatements(node_st *node)
         break;
     }
 
+    release_assert(current != NULL);
     bool is_init = init_symbols == current;
     release_assert(entry != NULL);
     // We need to keep sideffecting assignment as they are not used by the current function call
@@ -599,6 +600,16 @@ node_st *OPT_DCEproccall(node_st *node)
                 sideeffect_stmts_last = stmts;
             }
 
+            // dead code optimized any sideeffecting extracted proccall.
+            collect_sideeffects = false;
+            PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
+            UCset(entry, UC_USAGE);
+            if (NODE_TYPE(entry) == NT_FUNDEF)
+            {
+                TRAVopt(entry);
+            }
+            collect_sideeffects = true;
+
             return NULL;
         }
         else
@@ -613,6 +624,7 @@ node_st *OPT_DCEproccall(node_st *node)
         PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
         // We also need to check the content of the next function as it might be local an set usage
         // of any upper function variable.
+        UCset(entry, UC_USAGE);
         if (NODE_TYPE(entry) == NT_FUNDEF)
         {
             TRAVopt(entry);

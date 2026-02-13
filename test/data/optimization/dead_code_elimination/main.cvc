@@ -5,6 +5,7 @@ int i = 0; // keep the __init assigment
 
 export bool unused_exported = true; 
 
+extern void unused_remove();
 extern int extern_sideeffect();
 extern int printInt(int val);
 extern void printNewlines(int val);
