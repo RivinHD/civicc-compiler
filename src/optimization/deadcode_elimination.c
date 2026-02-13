@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
+#include <unistd.h>
 
 static htable_stptr current = NULL;
 static htable_stptr sideeffect_table = NULL;
@@ -19,6 +19,8 @@ static htable_stptr usage_table = NULL;
 static node_st *sideeffect_stmts_first = NULL;
 static node_st *sideeffect_stmts_last = NULL;
 static bool collect_sideeffects = false;
+static bool check_consumtion = false;
+static bool has_consumtion = false;
 static htable_stptr if_usage_stmts = NULL;
 static htable_stptr else_usage_stmts = NULL;
 static bool collect_if_usages = false;
@@ -38,6 +40,8 @@ static void reset()
     collect_if_usages = false;
     collect_else_usages = false;
     init_symbols = NULL;
+    check_consumtion = false;
+    has_consumtion = false;
 }
 
 enum usage_state
@@ -121,6 +125,45 @@ static void UCrestore()
     }
 }
 
+static bool has_consume(node_st *node)
+{
+    if (node == NULL)
+    {
+        return false;
+    }
+
+    has_consumtion = false;
+    check_consumtion = true;
+    TRAVopt(node);
+    check_consumtion = false;
+    return has_consumtion;
+}
+
+static bool check_stmts_sideffect(node_st *stmts, htable_stptr symbols)
+{
+    if (stmts == NULL)
+    {
+        return false;
+    }
+
+    release_assert(NODE_TYPE(stmts) == NT_STATEMENTS);
+    release_assert(symbols != NULL);
+
+    enum sideeffect effect = SEFF_NO;
+    while (stmts != NULL)
+    {
+
+        enum sideeffect eff =
+            check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
+        release_assert(eff != SEFF_NULL);
+        release_assert(eff != SEFF_PROCESSING);
+        effect |= eff;
+        stmts = STATEMENTS_NEXT(stmts);
+    }
+
+    return effect == SEFF_YES;
+}
+
 /* Idea: Start backwards from the return statements / or last statement of a void function.
  * On the forward pass, add the usage count of a vairable/fundef and remove unused stuff in
  * the backward pass.
@@ -140,8 +183,20 @@ node_st *OPT_DCEprogram(node_st *node)
 
 node_st *OPT_DCEfundef(node_st *node)
 {
+    release_assert(collect_sideeffects == false);
+
     htable_stptr parent_current = current;
     current = FUNDEF_SYMBOLS(node);
+
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        current = parent_current;
+        return node;
+    }
 
     char *name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node)));
     if (STReq(name, global_init_func))
@@ -169,6 +224,15 @@ node_st *OPT_DCEfunbody(node_st *node)
 {
     release_assert(collect_sideeffects == false);
 
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
+
     // Next we collect usages of the statments
     FUNBODY_STMTS(node) = TRAVopt(FUNBODY_STMTS(node));
 
@@ -181,6 +245,15 @@ node_st *OPT_DCEfunbody(node_st *node)
 node_st *OPT_DCEvardecs(node_st *node)
 {
     release_assert(collect_sideeffects == false);
+
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
 
     VARDECS_NEXT(node) = TRAVopt(VARDECS_NEXT(node));
 
@@ -205,6 +278,15 @@ node_st *OPT_DCElocalfundefs(node_st *node)
     // The content of local fundefs is called by the proccalls itself
     release_assert(collect_sideeffects == false);
 
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
+
     LOCALFUNDEFS_NEXT(node) = TRAVopt(LOCALFUNDEFS_NEXT(node));
 
     release_assert(LOCALFUNDEFS_LOCALFUNDEF(node) != NULL);
@@ -224,6 +306,8 @@ node_st *OPT_DCElocalfundefs(node_st *node)
 
 node_st *OPT_DCEdeclarations(node_st *node)
 {
+    release_assert(check_consumtion == false);
+
     node_st *decl = DECLARATIONS_DECL(node);
     if ((NODE_TYPE(decl) == NT_FUNDEF && FUNDEF_HAS_EXPORT(decl)) ||
         (NODE_TYPE(decl) == NT_GLOBALDEF && GLOBALDEF_HAS_EXPORT(decl)))
@@ -305,6 +389,15 @@ node_st *OPT_DCEdeclarations(node_st *node)
 
 node_st *OPT_DCEstatements(node_st *node)
 {
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
+
     node_st *parent_sideeffect_stmts_first = sideeffect_stmts_first;
     node_st *parent_sideeffect_stmts_last = sideeffect_stmts_last;
     bool parent_collect_sideeffects = collect_sideeffects;
@@ -359,6 +452,8 @@ node_st *OPT_DCEstatements(node_st *node)
         entry = deep_lookup(current, VAR_NAME(PROCCALL_VAR(stmt)));
         release_assert(entry != NULL);
         enum sideeffect effect = check_fun_sideeffect(entry, sideeffect_table);
+        release_assert(effect != SEFF_NULL);
+        release_assert(effect != SEFF_PROCESSING);
         if (effect == SEFF_YES)
         {
             // Add expression to usages and traverse the sideffecting function
@@ -417,7 +512,7 @@ node_st *OPT_DCEstatements(node_st *node)
 
 node_st *OPT_DCEvar(node_st *node)
 {
-    if (collect_sideeffects)
+    if (collect_sideeffects | check_consumtion)
     {
         return node;
     }
@@ -433,6 +528,13 @@ node_st *OPT_DCEassign(node_st *node)
     if (collect_sideeffects)
     {
         ASSIGN_EXPR(node) = TRAVopt(ASSIGN_EXPR(node));
+    }
+    else if (check_consumtion)
+    {
+        char *name = VAR_NAME(ASSIGN_VAR(node));
+        node_st *entry = deep_lookup(current, name);
+        release_assert(entry != NULL);
+        has_consumtion = UClookup(entry) == UC_USAGE;
     }
     else
     {
@@ -472,6 +574,13 @@ node_st *OPT_DCEarrayassign(node_st *node)
     {
         ARRAYASSIGN_EXPR(node) = TRAVopt(ARRAYASSIGN_EXPR(node));
         ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)) = TRAVopt(ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)));
+    }
+    else if (check_consumtion)
+    {
+        char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
+        node_st *entry = deep_lookup(current, name);
+        release_assert(entry != NULL);
+        has_consumtion = UClookup(entry) == UC_USAGE;
     }
     else
     {
@@ -561,6 +670,14 @@ node_st *OPT_DCEternary(node_st *node)
             return NULL;
         }
     }
+    else if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
 
     TRAVchildren(node);
     return node;
@@ -621,6 +738,13 @@ node_st *OPT_DCEproccall(node_st *node)
             PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
         }
     }
+    else if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVopt(PROCCALL_EXPRS(node));
+        }
+    }
     else
     {
         bool already_optimized = UClookup(entry) != UC_USAGE;
@@ -647,8 +771,21 @@ node_st *OPT_DCEdowhileloop(node_st *node)
         return node;
     }
 
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
+
     // collect usage of the expression in the check as we go bottom up during usage collection
-    DOWHILELOOP_EXPR(node) = TRAVopt(DOWHILELOOP_EXPR(node));
+    if (check_stmts_sideffect(DOWHILELOOP_BLOCK(node), current) ||
+        has_consume(DOWHILELOOP_BLOCK(node)))
+    {
+        DOWHILELOOP_EXPR(node) = TRAVopt(DOWHILELOOP_EXPR(node));
+    }
     DOWHILELOOP_BLOCK(node) = TRAVopt(DOWHILELOOP_BLOCK(node)); // Statments may change
 
     if (DOWHILELOOP_BLOCK(node) == NULL)
@@ -676,6 +813,15 @@ node_st *OPT_DCEforloop(node_st *node)
         // This node will not be removed if we have any sideeffects, because the expression
         // in the loop is called an n times and we need to execute the sideeffects too.
         // Thus we do not need to collect anything from here.
+        return node;
+    }
+
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
         return node;
     }
 
@@ -740,8 +886,23 @@ node_st *OPT_DCEwhileloop(node_st *node)
         return node;
     }
 
-    // The block may change anything in the expression
-    WHILELOOP_EXPR(node) = TRAVopt(WHILELOOP_EXPR(node));
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
+        return node;
+    }
+
+    // TODO furhter optimize by not call this, if no other than the here check stuff is consumed
+    // in the while loop and no sideffect, i.e. we can optimize the loop away with assignment to the
+    // while expr. NOTE: we can also do this for th do while loop
+    if (check_stmts_sideffect(WHILELOOP_BLOCK(node), current) || has_consume(WHILELOOP_BLOCK(node)))
+    {
+        // The block may change anything in the expression
+        WHILELOOP_EXPR(node) = TRAVopt(WHILELOOP_EXPR(node));
+    }
 
     htable_stptr parent_if_usage_stmts = if_usage_stmts;
     htable_stptr parent_else_usage_stmts = else_usage_stmts;
@@ -784,6 +945,15 @@ node_st *OPT_DCEifstatement(node_st *node)
         // collect side effecting expression. These are evaluated only once so we are allowed to do
         // this.
         IFSTATEMENT_EXPR(node) = TRAVopt(IFSTATEMENT_EXPR(node));
+        return node;
+    }
+
+    if (check_consumtion)
+    {
+        if (!has_consumtion)
+        {
+            TRAVchildren(node);
+        }
         return node;
     }
 

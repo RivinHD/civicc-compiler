@@ -30,6 +30,7 @@ export int main() {
     int c;
     float d = 0.0;
     int[b] t = 1;
+    int k = 1;
 
     test(); // keep because has sideeffecting function
 
@@ -85,6 +86,29 @@ export int main() {
     {
     }
     printInt(i);
+    printNewlines(2);
+
+    while(k < 0) { // Optimize away
+        k = k + 1;
+    }
+
+    do { // Optimize away
+        k = k + 5;
+    }
+    while(k < 0);
+
+    k = 20;
+    while(k < 0) { // keep
+        k = k + 1;
+    }
+    printInt(k);
+    printNewlines(2);
+
+    do { // keep
+        k = k + 5;
+    }
+    while(k < 0);
+    printInt(k);
     printNewlines(2);
 
     // Optimize away
