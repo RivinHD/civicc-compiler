@@ -10,7 +10,6 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -442,7 +441,8 @@ node_st *OPT_DCEassign(node_st *node)
         node_st *entry = deep_lookup(current, name);
         release_assert(entry != NULL);
         node_st *local_entry = HTlookup(current, name);
-        release_assert(local_entry == NULL || UClookup(entry) == UC_USAGE);
+        release_assert(local_entry == NULL || UClookup(entry) == UC_USAGE ||
+                       STRprefix("@for", name));
         UCset(entry, UC_CONSUMED);
 
         if (collect_if_usages)
@@ -511,11 +511,13 @@ node_st *OPT_DCEternary(node_st *node)
         // We transform ternary into if statements, because we need to extract them into a
         // statement if we have sideffecting expressions.
 
+        release_assert(TERNARY_PTRUE(node) != NULL);
         enum sideeffect effect_ptrue =
             check_expr_sideeffect(TERNARY_PTRUE(node), current, sideeffect_table);
         release_assert(effect_ptrue != SEFF_NULL);
         release_assert(effect_ptrue != SEFF_PROCESSING);
 
+        release_assert(TERNARY_PFALSE(node) != NULL);
         enum sideeffect effect_pfalse =
             check_expr_sideeffect(TERNARY_PFALSE(node), current, sideeffect_table);
         release_assert(effect_pfalse != SEFF_NULL);
@@ -602,9 +604,10 @@ node_st *OPT_DCEproccall(node_st *node)
 
             // dead code optimized any sideeffecting extracted proccall.
             collect_sideeffects = false;
-            PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
+            bool already_optimized = UClookup(entry) != UC_USAGE;
             UCset(entry, UC_USAGE);
-            if (NODE_TYPE(entry) == NT_FUNDEF)
+            PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
+            if (NODE_TYPE(entry) == NT_FUNDEF && already_optimized)
             {
                 TRAVopt(entry);
             }
@@ -620,12 +623,13 @@ node_st *OPT_DCEproccall(node_st *node)
     }
     else
     {
+        bool already_optimized = UClookup(entry) != UC_USAGE;
+        UCset(entry, UC_USAGE);
         // Usages are collected through VAR
         PROCCALL_EXPRS(node) = TRAVopt(PROCCALL_EXPRS(node));
         // We also need to check the content of the next function as it might be local an set usage
         // of any upper function variable.
-        UCset(entry, UC_USAGE);
-        if (NODE_TYPE(entry) == NT_FUNDEF)
+        if (NODE_TYPE(entry) == NT_FUNDEF && already_optimized)
         {
             TRAVopt(entry);
         }
@@ -649,6 +653,7 @@ node_st *OPT_DCEdowhileloop(node_st *node)
 
     if (DOWHILELOOP_BLOCK(node) == NULL)
     {
+        release_assert(DOWHILELOOP_EXPR(node) != NULL);
         enum sideeffect effect =
             check_expr_sideeffect(DOWHILELOOP_EXPR(node), current, sideeffect_table);
         release_assert(effect != SEFF_NULL);
@@ -699,11 +704,13 @@ node_st *OPT_DCEforloop(node_st *node)
         release_assert(effect0 != SEFF_NULL);
         release_assert(effect0 != SEFF_PROCESSING);
 
+        release_assert(FORLOOP_COND(node) != NULL);
         enum sideeffect effect1 =
             check_expr_sideeffect(FORLOOP_COND(node), current, sideeffect_table);
         release_assert(effect1 != SEFF_NULL);
         release_assert(effect1 != SEFF_PROCESSING);
 
+        release_assert(FORLOOP_ASSIGN(node) != NULL);
         enum sideeffect effect2 =
             check_stmt_sideeffect(FORLOOP_ASSIGN(node), current, sideeffect_table);
         release_assert(effect2 != SEFF_NULL);
@@ -753,6 +760,7 @@ node_st *OPT_DCEwhileloop(node_st *node)
 
     if (WHILELOOP_BLOCK(node) == NULL)
     {
+        release_assert(WHILELOOP_EXPR(node) != NULL);
         enum sideeffect effect =
             check_expr_sideeffect(WHILELOOP_EXPR(node), current, sideeffect_table);
         release_assert(effect != SEFF_NULL);

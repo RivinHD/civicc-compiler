@@ -404,6 +404,11 @@ static enum sideeffect check_expr_sideeffect(node_st *expr, htable_stptr symbols
     {
     case NT_PROCCALL: {
         char *name = VAR_NAME(PROCCALL_VAR(expr));
+        if (STReq(name, alloc_func))
+        {
+            return SEFF_NO;
+        }
+
         node_st *entry = deep_lookup(symbols, name);
         release_assert(entry != NULL);
         release_assert(NODE_TYPE(entry) == NT_FUNDEF || NODE_TYPE(entry) == NT_FUNDEC);
@@ -444,27 +449,33 @@ static enum sideeffect check_expr_sideeffect(node_st *expr, htable_stptr symbols
             release_assert(value <= SEFF_YES);
             enum sideeffect eff = (enum sideeffect)value;
             release_assert(eff != SEFF_NULL);
-            release_assert(eff != SEFF_PROCESSING);
             effect |= eff;
         }
     }
     break;
     case NT_TERNARY:
+        release_assert(TERNARY_PRED(expr) != NULL);
+        release_assert(TERNARY_PFALSE(expr) != NULL);
+        release_assert(TERNARY_PTRUE(expr) != NULL);
         effect |= check_expr_sideeffect(TERNARY_PRED(expr), symbols, sideeffect_table);
         effect |= check_expr_sideeffect(TERNARY_PFALSE(expr), symbols, sideeffect_table);
         effect |= check_expr_sideeffect(TERNARY_PTRUE(expr), symbols, sideeffect_table);
         break;
     case NT_BINOP:
+        release_assert(BINOP_LEFT(expr) != NULL);
+        release_assert(BINOP_RIGHT(expr) != NULL);
         effect |= check_expr_sideeffect(BINOP_LEFT(expr), symbols, sideeffect_table);
         effect |= check_expr_sideeffect(BINOP_RIGHT(expr), symbols, sideeffect_table);
         break;
     case NT_MONOP:
+        release_assert(MONOP_LEFT(expr) != NULL);
         effect |= check_expr_sideeffect(MONOP_LEFT(expr), symbols, sideeffect_table);
         break;
     case NT_ARRAYEXPR: {
         node_st *exprs = ARRAYEXPR_DIMS(expr);
         while (exprs != NULL)
         {
+            release_assert(EXPRS_EXPR(exprs) != NULL);
             effect |= check_expr_sideeffect(EXPRS_EXPR(exprs), symbols, sideeffect_table);
             if (effect == SEFF_YES)
             {
@@ -476,12 +487,15 @@ static enum sideeffect check_expr_sideeffect(node_st *expr, htable_stptr symbols
     break;
 
     case NT_CAST:
+        release_assert(CAST_EXPR(expr) != NULL);
         effect |= check_expr_sideeffect(CAST_EXPR(expr), symbols, sideeffect_table);
         break;
     case NT_POP:
+        release_assert(POP_EXPR(expr) != NULL);
         effect |= check_expr_sideeffect(POP_EXPR(expr), symbols, sideeffect_table);
         if (POP_REPLACE(expr) != NULL)
         {
+            release_assert(POP_EXPR(expr) != NULL);
             effect |= check_expr_sideeffect(POP_EXPR(expr), symbols, sideeffect_table);
         }
         break;
@@ -512,6 +526,7 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
     switch (NODE_TYPE(stmt))
     {
     case NT_ASSIGN:
+        release_assert(ASSIGN_EXPR(stmt) != NULL);
         effect |= check_expr_sideeffect(ASSIGN_EXPR(stmt), symbols, sideeffect_table);
         {
             node_st *var = ASSIGN_VAR(stmt);
@@ -524,13 +539,16 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
         }
         break;
     case NT_PROCCALL:
+        release_assert(stmt != NULL);
         effect |= check_expr_sideeffect(stmt, symbols, sideeffect_table);
         break;
     case NT_IFSTATEMENT:
+        release_assert(IFSTATEMENT_EXPR(stmt) != NULL);
         effect |= check_expr_sideeffect(IFSTATEMENT_EXPR(stmt), symbols, sideeffect_table);
         stmts = IFSTATEMENT_BLOCK(stmt);
-        while (stmts == NULL)
+        while (stmts != NULL)
         {
+            release_assert(STATEMENTS_STMT(stmts) != NULL);
             effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
             if (effect == SEFF_YES)
             {
@@ -539,8 +557,9 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
             stmts = STATEMENTS_NEXT(stmts);
         }
         stmts = IFSTATEMENT_ELSE_BLOCK(stmt);
-        while (stmts == NULL)
+        while (stmts != NULL)
         {
+            release_assert(STATEMENTS_STMT(stmts) != NULL);
             effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
             if (effect == SEFF_YES)
             {
@@ -550,9 +569,10 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
         }
         break;
     case NT_WHILELOOP:
+        release_assert(WHILELOOP_EXPR(stmt) != NULL);
         effect |= check_expr_sideeffect(WHILELOOP_EXPR(stmt), symbols, sideeffect_table);
         stmts = WHILELOOP_BLOCK(stmt);
-        while (stmts == NULL)
+        while (stmts != NULL)
         {
             effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
             if (effect == SEFF_YES)
@@ -563,9 +583,10 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
         }
         break;
     case NT_DOWHILELOOP:
+        release_assert(DOWHILELOOP_EXPR(stmt) != NULL);
         effect |= check_expr_sideeffect(DOWHILELOOP_EXPR(stmt), symbols, sideeffect_table);
         stmts = DOWHILELOOP_BLOCK(stmt);
-        while (stmts == NULL)
+        while (stmts != NULL)
         {
             effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
             if (effect == SEFF_YES)
@@ -576,13 +597,19 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
         }
         break;
     case NT_FORLOOP:
+        release_assert(FORLOOP_ASSIGN(stmt) != NULL);
+        release_assert(ASSIGN_EXPR(FORLOOP_ASSIGN(stmt)) != NULL);
+        release_assert(FORLOOP_COND(stmt) != NULL);
         effect |=
             check_expr_sideeffect(ASSIGN_EXPR(FORLOOP_ASSIGN(stmt)), symbols, sideeffect_table);
         effect |= check_expr_sideeffect(FORLOOP_COND(stmt), symbols, sideeffect_table);
-        effect |= check_expr_sideeffect(FORLOOP_ITER(stmt), symbols, sideeffect_table);
+        effect |= FORLOOP_ITER(stmt) == NULL // Can be null
+                      ? SEFF_NO
+                      : check_expr_sideeffect(FORLOOP_ITER(stmt), symbols, sideeffect_table);
         stmts = FORLOOP_BLOCK(stmt);
-        while (stmts == NULL)
+        while (stmts != NULL)
         {
+            release_assert(STATEMENTS_STMT(stmts) != NULL);
             effect |= check_stmt_sideeffect(STATEMENTS_STMT(stmts), symbols, sideeffect_table);
             if (effect == SEFF_YES)
             {
@@ -592,10 +619,13 @@ static enum sideeffect check_stmt_sideeffect(node_st *stmt, htable_stptr symbols
         }
         break;
     case NT_RETSTATEMENT:
-        effect |= check_expr_sideeffect(RETSTATEMENT_EXPR(stmt), symbols, sideeffect_table);
+        effect |= RETSTATEMENT_EXPR(stmt) == NULL
+                      ? SEFF_NO
+                      : check_expr_sideeffect(RETSTATEMENT_EXPR(stmt), symbols, sideeffect_table);
         break;
     case NT_ARRAYASSIGN:
-        effect |= check_expr_sideeffect(ASSIGN_EXPR(stmt), symbols, sideeffect_table);
+        release_assert(ARRAYASSIGN_EXPR(stmt) != NULL);
+        effect |= check_expr_sideeffect(ARRAYASSIGN_EXPR(stmt), symbols, sideeffect_table);
         break;
     default:
         release_assert(false);
@@ -616,6 +646,12 @@ static enum sideeffect check_fun_sideeffect(node_st *fun, htable_stptr sideeffec
     {
         // Can not check if extern functions have side effects, thus we need to assume yes.
         return SEFF_YES;
+    }
+
+    char *name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(fun)));
+    if (STReq(name, alloc_func))
+    {
+        return SEFF_NO;
     }
 
     void *entry = HTlookup(sideeffect_table, fun);
