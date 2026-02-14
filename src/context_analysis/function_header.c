@@ -35,7 +35,7 @@ node_st *CA_FHprogram(node_st *node)
     {
         release_assert(NODE_TYPE(main_candidate) == NT_FUNDEF);
 
-        struct ctinfo info = NODE_TO_CTINFO(node);
+        struct ctinfo info = NODE_TO_CTINFO(FUNDEF_FUNHEADER(main_candidate));
 
         if (FUNDEF_HAS_EXPORT(main_candidate) == false)
         {

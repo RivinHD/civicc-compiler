@@ -34,8 +34,6 @@ static inline uint64_t nodessettype_to_nodetypes(enum nodesettype type)
     uint64_t one = 1;
     switch (type)
     {
-    case NS_LINK:
-        return nodessettype_to_nodetypes(NS_EXPR) | nodessettype_to_nodetypes(NS_STATEMENT);
     case NS_EXPROPTARRAYINIT:
         return nodessettype_to_nodetypes(NS_EXPR) | (one << NT_ARRAYINIT);
     case NS_VAROPTARRAYEXPR:

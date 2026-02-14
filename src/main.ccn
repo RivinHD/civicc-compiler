@@ -29,6 +29,12 @@ cycle Optimization {
                 Ternary
             }
         };
+        traversal AlgebraicReordering {
+            uid = OPT_AR,
+            nodes = {
+                Binop
+            }
+        };
         traversal ConstantFolding {
             uid = OPT_CF,
             nodes = {
@@ -270,9 +276,6 @@ nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
 nodeset VarOptArrayVar = {Var, ArrayVar};
 nodeset VarOptArrayExpr = {Var, ArrayExpr};
 nodeset ExprOptArrayInit = Expr | {ArrayInit};
-
-// Nodes you want to be able to link to from your symbol table.
-nodeset Link = Expr | Statement;
 
 /**********************/
 /* Nodes **************/
