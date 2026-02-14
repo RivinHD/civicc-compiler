@@ -22,5 +22,17 @@ export int main() {
         a = a + 50;
     } while(false);
 
+    for (int i = 5, 0) {
+        a = 20; // Optimize away
+    }
+
+    for (int i = 0, 5, 20) {
+        a = 50; // Optimize away
+    }
+
+    for (int i = 100, 90, -20) {
+        a = -20; // Optimize away
+    }
+
     return 0;
 }

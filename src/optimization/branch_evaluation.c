@@ -1,5 +1,6 @@
 #include "release_assert.h"
 #include <ccn/dynamic_core.h>
+#include <ccn/phase_driver.h>
 #include <ccngen/ast.h>
 #include <ccngen/enum.h>
 
@@ -32,6 +33,7 @@ node_st *OPT_BEstatements(node_st *node)
         release_assert(STATEMENTS_NEXT(extracted_stmts_last) == NULL);
         STATEMENTS_NEXT(extracted_stmts_last) = STATEMENTS_NEXT(node);
         STATEMENTS_NEXT(node) = extracted_stmts_first;
+        CCNcycleNotify();
     }
     extracted_stmts_first = parent_extraced_stmts_first;
     extracted_stmts_last = parent_extraced_stmts_last;
@@ -54,6 +56,7 @@ node_st *OPT_BEifstatement(node_st *node)
             }
             extracted_stmts_last = stmts;
             CCNfree(IFSTATEMENT_ELSE_BLOCK(node));
+            CCNcycleNotify();
         }
         else
         {
@@ -65,6 +68,7 @@ node_st *OPT_BEifstatement(node_st *node)
             }
             extracted_stmts_last = stmts;
             CCNfree(IFSTATEMENT_BLOCK(node));
+            CCNcycleNotify();
         }
 
         IFSTATEMENT_BLOCK(node) = NULL;
@@ -90,6 +94,7 @@ node_st *OPT_BEternary(node_st *node)
             TERNARY_PFALSE(node) = NULL;
         }
         CCNfree(node);
+        CCNcycleNotify();
         return expr;
     }
     return node;
@@ -103,6 +108,7 @@ node_st *OPT_BEwhileloop(node_st *node)
         // Remove the block so it becomes dead code
         CCNfree(WHILELOOP_BLOCK(node));
         WHILELOOP_BLOCK(node) = NULL;
+        CCNcycleNotify();
     }
     return node;
 }
@@ -123,6 +129,7 @@ node_st *OPT_BEforloop(node_st *node)
             // For loop is never executed. Remove the block so it becomes dead code
             CCNfree(FORLOOP_BLOCK(node));
             FORLOOP_BLOCK(node) = NULL;
+            CCNcycleNotify();
         }
     }
     return node;
@@ -142,6 +149,7 @@ node_st *OPT_BEdowhileloop(node_st *node)
         }
         extracted_stmts_last = stmts;
         DOWHILELOOP_BLOCK(node) = NULL;
+        CCNcycleNotify();
     }
     return node;
 }
