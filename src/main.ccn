@@ -15,7 +15,7 @@ traversal Print {
     uid = PRT
 };
 
-phase Optimization {
+cycle Optimization {
     actions {
         traversal AlgebraicSimplification {
             uid = OPT_AS,

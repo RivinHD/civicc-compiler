@@ -6,6 +6,7 @@
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
+#include <ccn/phase_driver.h>
 #include <ccngen/enum.h>
 #include <endian.h>
 #include <stdbool.h>
@@ -267,6 +268,7 @@ node_st *OPT_DCEvardecs(node_st *node)
         node_st *entry = HTremove(current, name);
         release_assert(entry == vardec);
         CCNfree(node);
+        CCNcycleNotify();
         return next;
     }
 
@@ -298,6 +300,7 @@ node_st *OPT_DCElocalfundefs(node_st *node)
         node_st *entry = HTremove(current, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(fundef))));
         release_assert(entry == fundef);
         CCNfree(node);
+        CCNcycleNotify();
         return next;
     }
 
@@ -384,6 +387,7 @@ node_st *OPT_DCEdeclarations(node_st *node)
 
     release_assert(expected == entry);
     CCNfree(node);
+    CCNcycleNotify();
     return next;
 }
 
@@ -491,6 +495,7 @@ node_st *OPT_DCEstatements(node_st *node)
         node_st *next = STATEMENTS_NEXT(node);
         STATEMENTS_NEXT(node) = NULL;
         CCNfree(node);
+        CCNcycleNotify();
 
         sideeffect_stmts_first = parent_sideeffect_stmts_first;
         sideeffect_stmts_last = parent_sideeffect_stmts_last;
@@ -665,6 +670,7 @@ node_st *OPT_DCEternary(node_st *node)
             IFSTATEMENT_ELSE_BLOCK(convert) = sideeffect_stmts_first;
 
             CCNfree(node);
+            CCNcycleNotify();
             sideeffect_stmts_first = parent_sideeffect_stmts_first;
             sideeffect_stmts_last = parent_sideeffect_stmts_last;
             return NULL;
@@ -895,9 +901,9 @@ node_st *OPT_DCEwhileloop(node_st *node)
         return node;
     }
 
-    // TODO furhter optimize by not call this, if no other than the here check stuff is consumed
+    // Optimize by not calling, if no other than the here check expression is consumed
     // in the while loop and no sideffect, i.e. we can optimize the loop away with assignment to the
-    // while expr. NOTE: we can also do this for th do while loop
+    // while expr. NOTE: we can do this for the do while loop
     if (check_stmts_sideffect(WHILELOOP_BLOCK(node), current) || has_consume(WHILELOOP_BLOCK(node)))
     {
         // The block may change anything in the expression

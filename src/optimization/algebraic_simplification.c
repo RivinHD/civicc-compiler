@@ -1,10 +1,10 @@
 #include "ccngen/ast.h"
 #include "palm/hash_table.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
+#include <ccn/phase_driver.h>
 #include <ccngen/enum.h>
 #include <stdbool.h>
 #include <string.h>
@@ -85,6 +85,7 @@ node_st *OPT_ASproccall(node_st *node)
                                 : ASTbinop(sideeffected_expr, expr, BO_add, sideeffect_type);
     }
 
+    CCNcycleNotify();
     return NULL;
 }
 
@@ -157,6 +158,7 @@ node_st *OPT_ASternary(node_st *node)
                 : ASTbinop(parent_sideeffect_expr, node, BO_add, sideeffect_type);
 
         sideeffected_expr = parent_sideeffect_expr;
+        CCNcycleNotify();
         return NULL;
     }
     else
@@ -219,6 +221,7 @@ node_st *OPT_AScast(node_st *node)
 
     sideeffect_type = parent_sideeffect_type;
     sideeffected_expr = parent_sideeffect_expr;
+    CCNcycleNotify();
     return node;
 }
 
@@ -250,6 +253,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return right;
             }
             else if (INT_VAL(BINOP_LEFT(node)) == 0)
@@ -266,6 +270,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -277,6 +282,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
             else if (INT_VAL(BINOP_RIGHT(node)) == 0)
@@ -293,6 +299,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -305,6 +312,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return right;
             }
             else if (FLOAT_VAL(BINOP_LEFT(node)) == 0.0)
@@ -321,6 +329,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -332,6 +341,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
             else if (FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
@@ -348,6 +358,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -360,6 +371,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return right;
             }
             else
@@ -376,6 +388,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -387,6 +400,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
             else
@@ -403,6 +417,7 @@ node_st *OPT_ASbinop(node_st *node)
                     sideeffected_expr = NULL;
                 }
                 CCNfree(node);
+                CCNcycleNotify();
                 return expr;
             }
         }
@@ -416,6 +431,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return right;
             }
         }
@@ -427,6 +443,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
         }
@@ -439,6 +456,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return right;
             }
         }
@@ -450,6 +468,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
         }
@@ -476,6 +495,7 @@ node_st *OPT_ASbinop(node_st *node)
                         sideeffected_expr = NULL;
                     }
                     CCNfree(node);
+                    CCNcycleNotify();
                     return expr;
                 }
             }
@@ -499,6 +519,7 @@ node_st *OPT_ASbinop(node_st *node)
                         sideeffected_expr = NULL;
                     }
                     CCNfree(node);
+                    CCNcycleNotify();
                     return expr;
                 }
             }
@@ -513,6 +534,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
+                CCNcycleNotify();
                 return left;
             }
         }
@@ -524,6 +546,7 @@ node_st *OPT_ASbinop(node_st *node)
                 node_st *left = BINOP_LEFT(node);
                 node_st *new_left = ASTmonop(left, MO_neg);
                 BINOP_LEFT(node) = NULL;
+                CCNcycleNotify();
                 CCNfree(node);
                 return new_left;
             }
@@ -540,6 +563,7 @@ node_st *OPT_ASbinop(node_st *node)
                     node_st *left = BINOP_LEFT(node);
                     BINOP_LEFT(node) = NULL;
                     CCNfree(node);
+                    CCNcycleNotify();
                     return left;
                 }
             }
@@ -552,6 +576,7 @@ node_st *OPT_ASbinop(node_st *node)
                     node_st *new_left = ASTmonop(left, MO_neg);
                     BINOP_LEFT(node) = NULL;
                     CCNfree(node);
+                    CCNcycleNotify();
                     return new_left;
                 }
             }
@@ -587,6 +612,7 @@ node_st *OPT_ASmonop(node_st *node)
             MONOP_LEFT(node) = NULL;
             CCNfree(node);
             INT_VAL(child) = -INT_VAL(child);
+            CCNcycleNotify();
             return child;
         }
         else if (child_type == NT_FLOAT)
@@ -594,6 +620,7 @@ node_st *OPT_ASmonop(node_st *node)
             MONOP_LEFT(node) = NULL;
             CCNfree(node);
             FLOAT_VAL(child) = -FLOAT_VAL(child);
+            CCNcycleNotify();
             return child;
         }
         else if (child_type == NT_MONOP)
@@ -602,6 +629,7 @@ node_st *OPT_ASmonop(node_st *node)
             node_st *child_child = MONOP_LEFT(child);
             MONOP_LEFT(child) = NULL;
             CCNfree(node);
+            CCNcycleNotify();
             return child_child;
         }
         break;
@@ -611,6 +639,7 @@ node_st *OPT_ASmonop(node_st *node)
             MONOP_LEFT(node) = NULL;
             CCNfree(node);
             BOOL_VAL(child) = !BOOL_VAL(child);
+            CCNcycleNotify();
             return child;
         }
         else if (child_type == NT_MONOP)
@@ -619,6 +648,7 @@ node_st *OPT_ASmonop(node_st *node)
             node_st *child_child = MONOP_LEFT(child);
             MONOP_LEFT(child) = NULL;
             CCNfree(node);
+            CCNcycleNotify();
             return child_child;
         }
         break;
