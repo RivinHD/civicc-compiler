@@ -29,6 +29,7 @@ class OptimizationTest : public testing::Test
         CONSTANTFOLDING,
         DEADCODEELIMINATION,
         ALGEBRAICREORDERING,
+        BRANCHEVALUATION,
     };
 
   protected:
@@ -83,6 +84,8 @@ class OptimizationTest : public testing::Test
             return CCNAC_ID_DEADCODEELIMINATION;
         case Opt::ALGEBRAICREORDERING:
             return CCNAC_ID_ALGEBRAICREORDERING;
+        case Opt::BRANCHEVALUATION:
+            return CCNAC_ID_BRANCHEVALUATION;
         }
 
         return CCNAC_ID_NULL;
@@ -1953,6 +1956,102 @@ TEST_F(OptimizationTest, AlgebraicReordering)
                "├─ @temp_0: VarDec -- type:'int'\n"
                "├─ @temp_1: VarDec -- type:'int'\n"
                "├─ @loop_var1: VarDec -- type:'int'\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '__init' -- parent: '0: Program'\n"
+               "└────────────────────\n";
+
+    ASSERT_MLSTREQ(expected, symbols_string);
+}
+
+TEST_F(OptimizationTest, BranchEvaluation)
+{
+    SetUpOpt("optimization/branch_evaluation/main.cvc", Opt::BRANCHEVALUATION);
+    ASSERT_NE(nullptr, root);
+
+    const char *expected = "Program\n"
+                           "┢─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'1'\n"
+                           "┃     ├─ FunHeader -- type:'int'\n"
+                           "┃     │  ├─ Var -- name:'@fun_main'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ┢─ VarDecs\n"
+                           "┃        ┃  └─ VarDec -- type:'int'\n"
+                           "┃        ┃     ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┡─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ┢─ Statements\n"
+                           "┃        ┃  └─ IfStatement\n"
+                           "┃        ┃     ├─ Bool -- val:'1'\n"
+                           "┃        ┃     ├─ NULL\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     └─ Int -- val:'5'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ IfStatement\n"
+                           "┃        ┃     ├─ Binop -- op:'=='\n"
+                           "┃        ┃     │  ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     │  └─ Int -- val:'5'\n"
+                           "┃        ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃     ┃        ├─ Binop -- op:'*'\n"
+                           "┃        ┃     ┃        │  ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     ┃        │  └─ Int -- val:'20'\n"
+                           "┃        ┃     ┃        └─ Int -- val:'1'\n"
+                           "┃        ┃     ┡─ NULL\n"
+                           "┃        ┃     ┢─ Statements\n"
+                           "┃        ┃     ┃  └─ Assign\n"
+                           "┃        ┃     ┃     ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃     ┃        ├─ Binop -- op:'*'\n"
+                           "┃        ┃     ┃        │  ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     ┃        │  └─ Int -- val:'30'\n"
+                           "┃        ┃     ┃        └─ Int -- val:'0'\n"
+                           "┃        ┃     ┗─ NULL\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ WhileLoop\n"
+                           "┃        ┃     ├─ Bool -- val:'0'\n"
+                           "┃        ┃     └─ NULL\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ DoWhileLoop\n"
+                           "┃        ┃     ├─ NULL\n"
+                           "┃        ┃     └─ Bool -- val:'0'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ Assign\n"
+                           "┃        ┃     ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃     └─ Binop -- op:'+'\n"
+                           "┃        ┃        ├─ Var -- name:'@1_a'\n"
+                           "┃        ┃        └─ Int -- val:'50'\n"
+                           "┃        ┣─ Statements\n"
+                           "┃        ┃  └─ RetStatement\n"
+                           "┃        ┃     └─ Int -- val:'0'\n"
+                           "┃        ┗─ NULL\n"
+                           "┣─ Declarations\n"
+                           "┃  └─ FunDef -- has_export:'1'\n"
+                           "┃     ├─ FunHeader -- type:'void'\n"
+                           "┃     │  ├─ Var -- name:'__init'\n"
+                           "┃     │  └─ NULL\n"
+                           "┃     └─ FunBody\n"
+                           "┃        ├─ NULL\n"
+                           "┃        ├─ NULL\n"
+                           "┃        └─ NULL\n"
+                           "┗─ NULL\n";
+
+    ASSERT_MLSTREQ(expected, root_string);
+
+    expected = "┌─ 0: Program\n"
+               "├─ __init: FunHeader -- type:'void' -- Params: (null)\n"
+               "├─ @fun_main: FunHeader -- type:'int' -- Params: (null)\n"
+               "└────────────────────\n"
+               "\n"
+               "┌─ 1: FunDef '@fun_main' -- parent: '0: Program'\n"
+               "├─ @1_a: VarDec -- type:'int'\n"
                "└────────────────────\n"
                "\n"
                "┌─ 1: FunDef '__init' -- parent: '0: Program'\n"

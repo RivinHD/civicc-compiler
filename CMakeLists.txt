@@ -10,6 +10,7 @@ set(SOURCE_FILES
     src/optimization/algebraic_reordering.c
     src/optimization/constant_folding.c
     src/optimization/deadcode_elimination.c
+    src/optimization/branch_evaluation.c
     src/context_analysis/function_header.c
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c

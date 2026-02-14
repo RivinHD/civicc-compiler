@@ -43,6 +43,18 @@ cycle Optimization {
                 Ternary
             }
         };
+        traversal BranchEvaluation { // Optimize branching decision on constant values
+            uid = OPT_BE,
+            nodes = {
+                IfStatement,
+                Ternary,
+                WhileLoop,
+                ForLoop,
+                DoWhileLoop,
+                Statements,
+                Program
+            }
+        };
         traversal DeadCodeElimination {
             uid = OPT_DCE,
             nodes = {
