@@ -31,8 +31,13 @@ export int main() {
     }
 
     for (int i = 100, 90, -20) {
-        a = -20; // Optimize away
+        a = -20; // Keept because -20 is expression
     }
 
+    a = 5;
+    for (int i = 0, a, a) {
+        a = -50; // Optimize away
+    }
+    
     return 0;
 }

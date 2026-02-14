@@ -52,7 +52,9 @@ cycle Optimization {
                 ForLoop,
                 DoWhileLoop,
                 Statements,
-                Program
+                Program,
+                FunDef, 
+                Assign
             }
         };
         traversal DeadCodeElimination {
