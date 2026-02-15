@@ -297,7 +297,7 @@ nodeset ExprOptArrayInit = Expr | {ArrayInit};
 
 root node Program {
     children {
-        Declarations decls { constructor, mandatory }
+        Declarations decls { constructor }
     },
 
     attributes {

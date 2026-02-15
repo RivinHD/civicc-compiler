@@ -270,6 +270,7 @@ params: param COMMA params
         assertType($1, NT_PARAMS);
         assertType($3, NT_PARAMS);
         PARAMS_NEXT($1) = $3;
+        $$ = $1;
         AddLocToNode($$, &@1, &@3);
       }
       | param

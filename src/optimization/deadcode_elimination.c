@@ -11,6 +11,7 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -193,7 +194,7 @@ node_st *OPT_DCEfundef(node_st *node)
     {
         if (!has_consumtion)
         {
-            TRAVchildren(node);
+            TRAVopt(FUNDEF_FUNBODY(node));
         }
         current = parent_current;
         return node;
@@ -334,11 +335,13 @@ node_st *OPT_DCEdeclarations(node_st *node)
 
     node_st *var = NULL;
     char *name = NULL;
+    bool is_extern_array = false;
     switch (NODE_TYPE(entry))
     {
     case NT_GLOBALDEC:
         var = GLOBALDEC_VAR(entry);
         name = VAR_NAME(NODE_TYPE(var) == NT_VAR ? var : ARRAYVAR_VAR(var));
+        is_extern_array = NODE_TYPE(var) == NT_ARRAYVAR;
         break;
     case NT_VARDEC:
         var = VARDEC_VAR(entry);
@@ -373,6 +376,17 @@ node_st *OPT_DCEdeclarations(node_st *node)
     }
 
     node_st *expected = HTremove(current, name);
+    if (is_extern_array)
+    {
+        node_st *dims = ARRAYVAR_DIMS(var);
+        while (dims != NULL)
+        {
+            node_st *dim = DIMENSIONVARS_DIM(dims);
+            node_st *dim_expected = HTremove(current, VAR_NAME(dim));
+            release_assert(dim_expected = dim);
+            dims = DIMENSIONVARS_NEXT(dims);
+        }
+    }
 
     if (free_key)
     {

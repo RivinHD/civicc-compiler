@@ -1,5 +1,4 @@
 #include "ccngen/ast.h"
-#include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/str.h"
 #include "release_assert.h"
@@ -556,6 +555,12 @@ node_st *CA_TCretstatement(node_st *node)
             CTIobj(CTI_ERROR, true, info, "Cannot return 'void' for none-void function.");
         }
     }
+    else if (type == DT_void)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        CTIobj(CTI_ERROR, true, info, "Cannot return 'none-void' for void function.");
+        TRAVopt(expr);
+    }
     else
     {
         TRAVopt(expr);
@@ -628,6 +633,29 @@ node_st *CA_TCproccall(node_st *node)
                         continue;
                     }
                     release_assert(entry != NULL);
+
+                    enum DataType exprtype = DT_NULL;
+                    switch (NODE_TYPE(exprentry))
+                    {
+                    case NT_VARDEC:
+                        exprtype = VARDEC_TYPE(exprentry);
+                        break;
+                    case NT_PARAMS:
+                        exprtype = PARAMS_TYPE(exprentry);
+                        break;
+                    case NT_GLOBALDEC:
+                        exprtype = GLOBALDEC_TYPE(exprentry);
+                        break;
+                    case NT_DIMENSIONVARS:
+                        exprtype = DT_int;
+                        break;
+                    default:
+                        release_assert(false);
+                        break;
+                    }
+                    release_assert(exprtype != DT_NULL);
+
+                    type_check(paramvar, VAR_NAME(expr), PARAMS_TYPE(params), exprtype);
 
                     node_st *exprvar = get_var_from_symbol(exprentry);
                     if (NODE_TYPE(exprvar) == NT_ARRAYVAR || NODE_TYPE(exprvar) == NT_ARRAYEXPR)
