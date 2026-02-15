@@ -34,8 +34,6 @@ node_st *OPT_BEfundef(node_st *node)
 {
     htable_stptr parent_temp_table = assign_table;
     assign_table = HTnew_String(2 << 4);
-    bool success = HTinsert(assign_table, htable_parent_name, parent_temp_table);
-    release_assert(success);
     TRAVchildren(node);
     HTdelete(assign_table);
     assign_table = parent_temp_table;
@@ -72,21 +70,7 @@ node_st *OPT_BEassign(node_st *node)
     // value
     if (conditioned_assign)
     {
-        int level = 0;
-        void *entry = deep_lookup_level(assign_table, name, &level);
-        if (entry != NULL)
-        {
-            release_assert(level <= 0);
-            htable_stptr table = assign_table;
-            // we have to go - level - 1 steps upwards to find the correct table
-            while (level++ < -1)
-            {
-                table = HTlookup(table, htable_parent_name);
-            }
-
-            void *del = HTremove(table, name);
-            release_assert(del != NULL);
-        }
+        HTremove(assign_table, name);
     }
     else
     {
@@ -155,7 +139,7 @@ node_st *OPT_BEternary(node_st *node)
     node_st *pred = TERNARY_PRED(node);
     while (NODE_TYPE(pred) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(pred));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(pred));
         if (entry == NULL)
         {
             break;
@@ -191,7 +175,7 @@ node_st *OPT_BEwhileloop(node_st *node)
     node_st *expr = WHILELOOP_EXPR(node);
     while (NODE_TYPE(expr) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(expr));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
         if (entry == NULL)
         {
             break;
@@ -221,7 +205,7 @@ node_st *OPT_BEforloop(node_st *node)
     node_st *iter = FORLOOP_ITER(node);
     while (NODE_TYPE(expr) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(expr));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
         if (entry == NULL)
         {
             break;
@@ -230,7 +214,7 @@ node_st *OPT_BEforloop(node_st *node)
     }
     while (NODE_TYPE(cond) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(cond));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(cond));
         if (entry == NULL)
         {
             break;
@@ -239,7 +223,7 @@ node_st *OPT_BEforloop(node_st *node)
     }
     while (iter != NULL && NODE_TYPE(iter) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(iter));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(iter));
         if (entry == NULL)
         {
             break;
@@ -275,7 +259,7 @@ node_st *OPT_BEdowhileloop(node_st *node)
     node_st *expr = DOWHILELOOP_EXPR(node);
     while (NODE_TYPE(expr) == NT_VAR)
     {
-        node_st *entry = deep_lookup(assign_table, VAR_NAME(expr));
+        node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
         if (entry == NULL)
         {
             break;

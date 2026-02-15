@@ -1083,6 +1083,7 @@ int yyerror(char *error)
 node_st *SPdoScanParse(node_st *root)
 {
     DBUG_ASSERT(root == NULL, "Started parsing with existing syntax tree.");
+    release_assert(root == NULL);
     if (global.input_buf == NULL)
     {
         FILE* fd = preprocessorStart();

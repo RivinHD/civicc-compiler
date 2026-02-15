@@ -214,7 +214,7 @@ SEPC ({SEP}|\{)
 
 [ \t]+                      { global.col += yyleng; }
 
-"#"[^\n]*\n {
+"# "[0-9]+" \""[^\n]+"\""[^\n]*\n {
     // Preprocessor linemarker
     // Reset the line on the linemarkers
     // Also enable use to skip preprocesor stuff if it is disabled
@@ -224,9 +224,9 @@ SEPC ({SEP}|\{)
         free(global.filename);
         global.filename = NULL;
     }
-    bool success = parse_linemarker(yytext, &global.line, &global.filename);
-    release_assert(success);
+    parse_linemarker(yytext, &global.line, &global.filename);
     scanparse_fprintf(stdout, "Linemarker: '%s'\n", yytext);
+    scanparse_fprintf(stdout, "Extraced: '%d' -- %s\n", global.line, global.filename);
 }
 
 . {                             

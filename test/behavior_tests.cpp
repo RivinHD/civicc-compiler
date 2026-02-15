@@ -82,7 +82,7 @@ template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Te
     // Runs the generated civicc program and returns the number of exectued instructions.
     void Execute()
     {
-#if defined(PROGRAM_CIVVM) && defined(PROGRAM_CIVAS)
+#if defined(PROGRAM_CIVVM) && defined(PROGRAM_CIVAS) && defined(HAS_PROG_TIMEOUT)
         std::string objects;
         for (size_t i = 0; i < TCount; i++)
         {
@@ -175,7 +175,11 @@ template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Te
             }
         }
 #else
-        GTEST_SKIP() << "Missing civas or civvm to execute. Test is skipped!";
+#ifdef __APPLE__
+        GTEST_SKIP() << "Missing civas, civvm or gtimeout to execute. Test is skipped!";
+#else
+        GTEST_SKIP() << "Missing civas, civvm or timeout to execute. Test is skipped!";
+#endif // __APPLE__
 #endif // defined (PROGRAM_CIVVM) && defined (PROGRAM_CIVAS)
     }
 

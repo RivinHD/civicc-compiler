@@ -94,6 +94,11 @@ bool parse_linemarker(char *linemarker, int *out_linenum, char **filename)
     }
 
     token = strtok(NULL, " ");
+    if (token == NULL)
+    {
+        free(cpy);
+        return false;
+    }
     char *end;
     long value = strtol(token, &end, 10);
     if (token == end || errno == ERANGE || value > INT_MAX || value < INT_MIN)
@@ -105,6 +110,11 @@ bool parse_linemarker(char *linemarker, int *out_linenum, char **filename)
     *out_linenum = (int)value;
 
     token = strtok(NULL, "\"");
+    if (token == NULL)
+    {
+        free(cpy);
+        return false;
+    }
     *filename = STRcpy(token);
 
     free(cpy);
