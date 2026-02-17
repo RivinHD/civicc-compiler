@@ -110,7 +110,7 @@ e.g. for 100 CivicC files with a max size of 1000 i.e. grammar resolution will b
 
 ## Fuzzing
 The project support fuzz testing with [AFL++](https://github.com/AFLplusplus/AFLplusplus/tree/stable)
-(Commit Hash: `68b492b2c7725816068718ef9437b72b40e67519`).
+(Commit Hash: `afbcb07e7602791390adfc63932efcd14d39bab8`).
 Therefore, the [afl-clang-lto](https://github.com/AFLplusplus/AFLplusplus/blob/stable/instrumentation/README.lto.md)
 compiler need to be installed on your system. 
 
