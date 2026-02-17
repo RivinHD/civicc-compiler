@@ -150,7 +150,7 @@ Now we are ready to download and build AFL.
     The `PERFORMANCE=1` option will lead to a more optimize built for your system, see 
     [installation instruction](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/INSTALL.md)
     (not supported on macOS)
-4. Install AFL: (default path are your `/usr/local` folders, you can set a different directory with `--prefix <directory>`)
+4. Install AFL: (default path are your `/usr/local` folders, you can set a different directory with `PREFIX=<directory>`)
     ```
     sudo make install
     ```
