@@ -17,6 +17,20 @@ extern "C"
 #include "to_string.h"
 }
 
+#ifdef __APPLE__
+#define check_skip(val)                                                                            \
+    if ((val))                                                                                     \
+    {                                                                                              \
+        GTEST_SKIP() << "Missing civas, civvm or gtimeout to execute. Test is skipped!";           \
+    }
+#else
+#define check_skip(val)                                                                            \
+    if ((val))                                                                                     \
+    {                                                                                              \
+        GTEST_SKIP() << "Missing civas, civvm or timeout to execute. Test is skipped!";            \
+    }
+#endif // __APPLE__
+
 template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Test
 {
   public:
@@ -31,6 +45,7 @@ template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Te
     std::string std_output;
     std::string vm_output;
     int vm_status;
+    bool skipped = false;
 
   protected:
     BehaviorTest()
@@ -175,11 +190,7 @@ template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Te
             }
         }
 #else
-#ifdef __APPLE__
-        GTEST_SKIP() << "Missing civas, civvm or gtimeout to execute. Test is skipped!";
-#else
-        GTEST_SKIP() << "Missing civas, civvm or timeout to execute. Test is skipped!";
-#endif // __APPLE__
+        skipped = true;
 #endif // defined (PROGRAM_CIVVM) && defined (PROGRAM_CIVAS)
     }
 
@@ -285,6 +296,7 @@ TEST_F(BehaviorTest_1, WhileLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(166, code_sizes[0]);
@@ -298,6 +310,7 @@ TEST_F(BehaviorTest_1, ArrayInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(466, code_sizes[0]);
@@ -311,6 +324,7 @@ TEST_F(BehaviorTest_1, Binops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(183, code_sizes[0]);
@@ -324,6 +338,7 @@ TEST_F(BehaviorTest_1, Casts)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(89, code_sizes[0]);
@@ -337,6 +352,7 @@ TEST_F(BehaviorTest_1, DoWhileLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(166, code_sizes[0]);
@@ -350,6 +366,7 @@ TEST_F(BehaviorTest_1, ForLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(174, code_sizes[0]);
@@ -363,6 +380,7 @@ TEST_F(BehaviorTest_1, Monops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(118, code_sizes[0]);
@@ -377,6 +395,7 @@ TEST_F(BehaviorTest_2, Suite_Arrays_ExternArrayArg)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(92, code_sizes[0]);
@@ -392,6 +411,7 @@ TEST_F(BehaviorTest_2, Suite_Arrays_Scopes)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(255, vm_status);
 
     ASSERT_EQ(318, code_sizes[0]);
@@ -407,6 +427,7 @@ TEST_F(BehaviorTest_2, Suite_Arrays_CombinedExternArray)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(151, code_sizes[0]);
@@ -425,6 +446,7 @@ TEST_F(BehaviorTest_1, Suite_Arrays_ArrayInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(362, code_sizes[0]);
@@ -448,6 +470,7 @@ TEST_F(BehaviorTest_1, Suite_Arrays_ArrayInitGlobal)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(275, code_sizes[0]);
@@ -468,6 +491,7 @@ TEST_F(BehaviorTest_1, Suite_Arrays_ArraySingleEval)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(551, code_sizes[0]);
@@ -492,6 +516,7 @@ TEST_F(BehaviorTest_1, Suite_Arrays_Dimreduce)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(269, code_sizes[0]);
@@ -512,6 +537,7 @@ TEST_F(BehaviorTest_1, Suite_Arrays_Scopes)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(396, code_sizes[0]);
@@ -540,6 +566,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_IntegerOutOfRange)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(94, code_sizes[0]);
@@ -558,6 +585,7 @@ TEST_F(BehaviorTest_2, Suite_Basic_CombinedExternVar)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(108, code_sizes[0]);
@@ -578,6 +606,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_BoolOp)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(681, code_sizes[0]);
@@ -631,6 +660,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_ForToWhile)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(403, code_sizes[0]);
@@ -658,6 +688,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_ForLoop)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(306, code_sizes[0]);
@@ -678,6 +709,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_GlobalInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(94, code_sizes[0]);
@@ -697,6 +729,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_RecursionEarlyReturn)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(174, code_sizes[0]);
@@ -716,6 +749,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_SimpleFor)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(156, code_sizes[0]);
@@ -735,6 +769,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_Typecheck)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(370, code_sizes[0]);
@@ -756,6 +791,7 @@ TEST_F(BehaviorTest_1, Suite_Basic_VarInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(248, code_sizes[0]);
@@ -781,6 +817,7 @@ TEST_F(BehaviorTest_1, Suite_NestedFuns_NestedFuns)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(184, code_sizes[0]);
@@ -800,6 +837,7 @@ TEST_F(BehaviorTest_1, Suite_NestedFuns_Scpose)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(356, code_sizes[0]);
@@ -834,6 +872,7 @@ TEST_F(BehaviorTest_1, ArrayIndexPrint)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(201, code_sizes[0]);
@@ -868,6 +907,7 @@ TEST_F(BehaviorTest_3, Functional_Assignment01_Test)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(1853, code_sizes[0]);
@@ -890,6 +930,7 @@ TEST_F(BehaviorTest_4, Functional_Assignment01_Queens)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(1, vm_status);
 
     ASSERT_EQ(1847, code_sizes[0]);
@@ -1013,6 +1054,7 @@ TEST_F(BehaviorTest_2, Functional_Codegen_Paths)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(2057, code_sizes[0]);
@@ -1089,6 +1131,7 @@ TEST_F(BehaviorTestOpt_1, WhileLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(150, code_sizes[0]);
@@ -1102,6 +1145,7 @@ TEST_F(BehaviorTestOpt_1, ArrayInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(466, code_sizes[0]);
@@ -1115,6 +1159,7 @@ TEST_F(BehaviorTestOpt_1, Binops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(183, code_sizes[0]);
@@ -1128,6 +1173,7 @@ TEST_F(BehaviorTestOpt_1, Casts)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(89, code_sizes[0]);
@@ -1141,6 +1187,7 @@ TEST_F(BehaviorTestOpt_1, DoWhileLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(166, code_sizes[0]);
@@ -1154,6 +1201,7 @@ TEST_F(BehaviorTestOpt_1, ForLoops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(174, code_sizes[0]);
@@ -1167,6 +1215,7 @@ TEST_F(BehaviorTestOpt_1, Monops)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(118, code_sizes[0]);
@@ -1181,6 +1230,7 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_ExternArrayArg)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(92, code_sizes[0]);
@@ -1196,6 +1246,7 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_Scopes)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(255, vm_status);
 
     ASSERT_EQ(318, code_sizes[0]);
@@ -1211,6 +1262,7 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_CombinedExternArray)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(151, code_sizes[0]);
@@ -1229,6 +1281,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArrayInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(362, code_sizes[0]);
@@ -1252,6 +1305,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArrayInitGlobal)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(275, code_sizes[0]);
@@ -1272,6 +1326,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArraySingleEval)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(551, code_sizes[0]);
@@ -1296,6 +1351,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_Dimreduce)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(269, code_sizes[0]);
@@ -1316,6 +1372,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_Scopes)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(396, code_sizes[0]);
@@ -1344,6 +1401,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_IntegerOutOfRange)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(94, code_sizes[0]);
@@ -1362,6 +1420,7 @@ TEST_F(BehaviorTestOpt_2, Suite_Basic_CombinedExternVar)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(108, code_sizes[0]);
@@ -1382,6 +1441,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_BoolOp)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(681, code_sizes[0]);
@@ -1435,6 +1495,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_ForToWhile)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(403, code_sizes[0]);
@@ -1462,6 +1523,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_ForLoop)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(306, code_sizes[0]);
@@ -1482,6 +1544,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_GlobalInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(94, code_sizes[0]);
@@ -1501,6 +1564,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_RecursionEarlyReturn)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(174, code_sizes[0]);
@@ -1520,6 +1584,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_SimpleFor)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(156, code_sizes[0]);
@@ -1539,6 +1604,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_Typecheck)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(370, code_sizes[0]);
@@ -1560,6 +1626,7 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_VarInit)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(248, code_sizes[0]);
@@ -1585,6 +1652,7 @@ TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_NestedFuns)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(184, code_sizes[0]);
@@ -1604,6 +1672,7 @@ TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_Scpose)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(356, code_sizes[0]);
@@ -1638,6 +1707,7 @@ TEST_F(BehaviorTestOpt_1, ArrayIndexPrint)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(201, code_sizes[0]);
@@ -1672,6 +1742,7 @@ TEST_F(BehaviorTestOpt_3, Functional_Assignment01_Test)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(1853, code_sizes[0]);
@@ -1694,6 +1765,7 @@ TEST_F(BehaviorTestOpt_4, Functional_Assignment01_Queens)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(1, vm_status);
 
     ASSERT_EQ(1847, code_sizes[0]);
@@ -1817,6 +1889,7 @@ TEST_F(BehaviorTestOpt_2, Functional_Codegen_Paths)
     SetUp(filepaths);
     ASSERT_NE(nullptr, root);
     Execute();
+    check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
     ASSERT_EQ(2057, code_sizes[0]);
