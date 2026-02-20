@@ -1,9 +1,18 @@
 #include "ccngen/ast.h"
 #include "release_assert.h"
+#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccn/phase_driver.h>
 #include <ccngen/enum.h>
+#include <limits.h>
 #include <stdbool.h>
+
+void warn_float_result_infnan(node_st *node, double val, double left, double right, char op)
+{
+    struct ctinfo info = NODE_TO_CTINFO(node);
+    CTIobj(CTI_WARN, true, info, "Encountered '%f' as optimization result of '%f %c %f'.", val,
+           left, op, right);
+}
 
 node_st *OPT_CFbinop(node_st *node)
 {
@@ -15,6 +24,9 @@ node_st *OPT_CFbinop(node_st *node)
         int iresult;
         bool bresult;
         node_st *result = NULL;
+        int left = INT_VAL(BINOP_LEFT(node));
+        int right = INT_VAL(BINOP_RIGHT(node));
+        struct ctinfo info = NODE_TO_CTINFO(node);
 
         switch (BINOP_OP(node))
         {
@@ -22,47 +34,140 @@ node_st *OPT_CFbinop(node_st *node)
             release_assert(false);
             break;
         case BO_add:
-            iresult = INT_VAL(BINOP_LEFT(node)) + INT_VAL(BINOP_RIGHT(node));
+            if (right > 0 && left > INT_MAX - right)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Addition Overflow' as optimization result of '%d + %d'. Using "
+                       "INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else if (right < 0 && left < INT_MIN - right)
+            {
+                CTIobj(
+                    CTI_WARN, true, info,
+                    "Encountered 'Addition Underflow' as optimization result of '%d + %d'. Using "
+                    "INT_MIN=-2147483648 for further optimization.",
+                    left, right);
+                iresult = INT_MIN;
+            }
+            else
+            {
+                iresult = left + right;
+            }
             result = ASTint(iresult);
             break;
         case BO_sub:
-            iresult = INT_VAL(BINOP_LEFT(node)) - INT_VAL(BINOP_RIGHT(node));
+            if (right < 0 && left > INT_MAX + right)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Substraction Overflow' as optimization result of '%d - %d'. "
+                       "Using "
+                       "INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else if (right > 0 && left < INT_MIN + right)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Substraction Underflow' as optimization result of '%d - %d'. "
+                       "Using "
+                       "INT_MIN=-2147483648 for further optimization.",
+                       left, right);
+                iresult = INT_MIN;
+            }
+            else
+            {
+                iresult = left - right;
+            }
             result = ASTint(iresult);
             break;
         case BO_mul:
-            iresult = INT_VAL(BINOP_LEFT(node)) * INT_VAL(BINOP_RIGHT(node));
+            if ((right == -1 && left == INT_MIN) || (left == -1 && right == INT_MIN) ||
+                (right != 0 && left > INT_MAX / right))
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Multiplication Overflow' as optimization result of '%d * %d'. "
+                       "Using INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else if (right != 0 && left < INT_MIN / right)
+            {
+                CTIobj(
+                    CTI_WARN, true, info,
+                    "Encountered 'Multiplication Underflow' as optimization result of '%d * %d'. "
+                    "Using INT_MIN=-2147483648 for further optimization.",
+                    left, right);
+                iresult = INT_MIN;
+            }
+            else
+            {
+                iresult = left - right;
+                iresult = left * right;
+            }
             result = ASTint(iresult);
             break;
         case BO_div:
-            iresult = INT_VAL(BINOP_LEFT(node)) / INT_VAL(BINOP_RIGHT(node));
+            if (right == 0)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Division by zero' as optimization result of '%d / %d'. Using"
+                       "INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else if (right == -1 && left == INT_MIN)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Division Overflow' as optimization result of '%d / %d'. "
+                       "Using INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else
+            {
+                iresult = left / right;
+            }
             result = ASTint(iresult);
             break;
         case BO_mod:
-            iresult = INT_VAL(BINOP_LEFT(node)) % INT_VAL(BINOP_RIGHT(node));
+            if (right == 0)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Modulo by zero' as optimization result of '%d % %d'. Using "
+                       "INT_MAX=2147483647 for further optimization.",
+                       left, right);
+                iresult = INT_MAX;
+            }
+            else
+            {
+                iresult = left % right;
+            }
             result = ASTint(iresult);
             break;
         case BO_lt:
-            bresult = INT_VAL(BINOP_LEFT(node)) < INT_VAL(BINOP_RIGHT(node));
+            bresult = left < right;
             result = ASTbool(bresult);
             break;
         case BO_le:
-            bresult = INT_VAL(BINOP_LEFT(node)) <= INT_VAL(BINOP_RIGHT(node));
+            bresult = left <= right;
             result = ASTbool(bresult);
             break;
         case BO_gt:
-            bresult = INT_VAL(BINOP_LEFT(node)) > INT_VAL(BINOP_RIGHT(node));
+            bresult = left > right;
             result = ASTbool(bresult);
             break;
         case BO_ge:
-            bresult = INT_VAL(BINOP_LEFT(node)) >= INT_VAL(BINOP_RIGHT(node));
+            bresult = left >= right;
             result = ASTbool(bresult);
             break;
         case BO_eq:
-            bresult = INT_VAL(BINOP_LEFT(node)) == INT_VAL(BINOP_RIGHT(node));
+            bresult = left == right;
             result = ASTbool(bresult);
             break;
         case BO_ne:
-            bresult = INT_VAL(BINOP_LEFT(node)) != INT_VAL(BINOP_RIGHT(node));
+            bresult = left != right;
             result = ASTbool(bresult);
             break;
         case BO_and:
@@ -82,6 +187,8 @@ node_st *OPT_CFbinop(node_st *node)
         double fresult;
         bool bresult;
         node_st *result = NULL;
+        double left = FLOAT_VAL(BINOP_LEFT(node));
+        double right = FLOAT_VAL(BINOP_RIGHT(node));
 
         switch (BINOP_OP(node))
         {
@@ -89,43 +196,47 @@ node_st *OPT_CFbinop(node_st *node)
             release_assert(false);
             break;
         case BO_add:
-            fresult = FLOAT_VAL(BINOP_LEFT(node)) + FLOAT_VAL(BINOP_RIGHT(node));
+            fresult = left + right;
+            warn_float_result_infnan(node, fresult, left, right, '+');
             result = ASTfloat(fresult);
             break;
         case BO_sub:
-            fresult = FLOAT_VAL(BINOP_LEFT(node)) - FLOAT_VAL(BINOP_RIGHT(node));
+            fresult = left - right;
+            warn_float_result_infnan(node, fresult, left, right, '-');
             result = ASTfloat(fresult);
             break;
         case BO_mul:
-            fresult = FLOAT_VAL(BINOP_LEFT(node)) * FLOAT_VAL(BINOP_RIGHT(node));
+            fresult = left * right;
+            warn_float_result_infnan(node, fresult, left, right, '*');
             result = ASTfloat(fresult);
             break;
         case BO_div:
-            fresult = FLOAT_VAL(BINOP_LEFT(node)) / FLOAT_VAL(BINOP_RIGHT(node));
+            fresult = left / right;
+            warn_float_result_infnan(node, fresult, left, right, '/');
             result = ASTfloat(fresult);
             break;
         case BO_lt:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) < FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left < right;
             result = ASTbool(bresult);
             break;
         case BO_le:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) <= FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left <= right;
             result = ASTbool(bresult);
             break;
         case BO_gt:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) > FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left > right;
             result = ASTbool(bresult);
             break;
         case BO_ge:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) >= FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left >= right;
             result = ASTbool(bresult);
             break;
         case BO_eq:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) == FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left == right;
             result = ASTbool(bresult);
             break;
         case BO_ne:
-            bresult = FLOAT_VAL(BINOP_LEFT(node)) != FLOAT_VAL(BINOP_RIGHT(node));
+            bresult = left != right;
             result = ASTbool(bresult);
             break;
         case BO_mod:

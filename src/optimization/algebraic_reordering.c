@@ -1,8 +1,4 @@
-#include "definitions.h"
-#include "palm/str.h"
 #include "release_assert.h"
-#include "user_types.h"
-#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccn/phase_driver.h>
 #include <ccngen/ast.h>

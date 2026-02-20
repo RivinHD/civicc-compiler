@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     const char *filepath = "From AFL shared Memory";
 #endif // __AFL_COMPILER
 
-    while (__AFL_LOOP(1))
+    while (__AFL_LOOP(10000))
     {
 #ifdef __AFL_COMPILER
         size_t len = __AFL_FUZZ_TESTCASE_LEN;
@@ -128,6 +128,9 @@ int main(int argc, char *argv[])
         static_assert(false, "No valid slice target given to preprocessor");
 #endif
         cleanup_nodes(root);
+#ifdef AFL_LSAN_MODE
+        __AFL_LEAK_CHECK();
+#endif
     }
 
     if (src != NULL)

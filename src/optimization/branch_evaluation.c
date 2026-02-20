@@ -1,8 +1,6 @@
-#include "definitions.h"
 #include "palm/hash_table.h"
 #include "release_assert.h"
 #include "user_types.h"
-#include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccn/phase_driver.h>
 #include <ccngen/ast.h>
@@ -102,9 +100,12 @@ node_st *OPT_BEifstatement(node_st *node)
         {
             extracted_stmts_first = IFSTATEMENT_BLOCK(node);
             node_st *stmts = IFSTATEMENT_BLOCK(node);
-            while (STATEMENTS_NEXT(stmts) != NULL)
+            if (stmts != NULL)
             {
-                stmts = STATEMENTS_NEXT(stmts);
+                while (STATEMENTS_NEXT(stmts) != NULL)
+                {
+                    stmts = STATEMENTS_NEXT(stmts);
+                }
             }
             extracted_stmts_last = stmts;
             CCNfree(IFSTATEMENT_ELSE_BLOCK(node));
@@ -114,9 +115,12 @@ node_st *OPT_BEifstatement(node_st *node)
         {
             extracted_stmts_first = IFSTATEMENT_ELSE_BLOCK(node);
             node_st *stmts = IFSTATEMENT_ELSE_BLOCK(node);
-            while (STATEMENTS_NEXT(stmts) != NULL)
+            if (stmts != NULL)
             {
-                stmts = STATEMENTS_NEXT(stmts);
+                while (STATEMENTS_NEXT(stmts) != NULL)
+                {
+                    stmts = STATEMENTS_NEXT(stmts);
+                }
             }
             extracted_stmts_last = stmts;
             CCNfree(IFSTATEMENT_BLOCK(node));
@@ -272,9 +276,12 @@ node_st *OPT_BEdowhileloop(node_st *node)
         // Extract the block, so it becomes dead code.
         extracted_stmts_first = DOWHILELOOP_BLOCK(node);
         node_st *stmts = DOWHILELOOP_BLOCK(node);
-        while (STATEMENTS_NEXT(stmts) != NULL)
+        if (stmts != NULL)
         {
-            stmts = STATEMENTS_NEXT(stmts);
+            while (STATEMENTS_NEXT(stmts) != NULL)
+            {
+                stmts = STATEMENTS_NEXT(stmts);
+            }
         }
         extracted_stmts_last = stmts;
         DOWHILELOOP_BLOCK(node) = NULL;

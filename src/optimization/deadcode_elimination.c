@@ -11,7 +11,6 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -28,22 +27,24 @@ static htable_stptr else_usage_stmts = NULL;
 static bool collect_if_usages = false;
 static bool collect_else_usages = false;
 static htable_stptr init_symbols = NULL;
+static bool remove_local_function = true;
 
 static void reset()
 {
-    sideeffect_table = NULL;
     current = NULL;
+    sideeffect_table = NULL;
     usage_table = NULL;
     sideeffect_stmts_first = NULL;
     sideeffect_stmts_last = NULL;
     collect_sideeffects = false;
+    check_consumtion = false;
+    has_consumtion = false;
     if_usage_stmts = NULL;
     else_usage_stmts = NULL;
     collect_if_usages = false;
     collect_else_usages = false;
     init_symbols = NULL;
-    check_consumtion = false;
-    has_consumtion = false;
+    remove_local_function = false;
 }
 
 enum usage_state
@@ -235,11 +236,15 @@ node_st *OPT_DCEfunbody(node_st *node)
         return node;
     }
 
-    // Next we collect usages of the statments
-    FUNBODY_STMTS(node) = TRAVopt(FUNBODY_STMTS(node));
+    if (!remove_local_function)
+    {
+        // Next we collect usages of the statments
+        FUNBODY_STMTS(node) = TRAVopt(FUNBODY_STMTS(node));
 
-    // Next we remove any unused vardecs and local fundefs
-    FUNBODY_VARDECS(node) = TRAVopt(FUNBODY_VARDECS(node));
+        // Next we remove any unused vardecs and local fundefs
+        FUNBODY_VARDECS(node) = TRAVopt(FUNBODY_VARDECS(node));
+    }
+
     FUNBODY_LOCALFUNDEFS(node) = TRAVopt(FUNBODY_LOCALFUNDEFS(node));
 
     return node;
@@ -293,16 +298,52 @@ node_st *OPT_DCElocalfundefs(node_st *node)
     LOCALFUNDEFS_NEXT(node) = TRAVopt(LOCALFUNDEFS_NEXT(node));
 
     release_assert(LOCALFUNDEFS_LOCALFUNDEF(node) != NULL);
-    if (UClookup(LOCALFUNDEFS_LOCALFUNDEF(node)) == UC_NONE)
+    if (remove_local_function || UClookup(LOCALFUNDEFS_LOCALFUNDEF(node)) == UC_NONE)
     {
         node_st *next = LOCALFUNDEFS_NEXT(node);
         LOCALFUNDEFS_NEXT(node) = NULL;
         node_st *fundef = LOCALFUNDEFS_LOCALFUNDEF(node);
-        node_st *entry = HTremove(current, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(fundef))));
-        release_assert(entry == fundef);
+        char *name = VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(fundef)));
+
+        bool parent_remove_local_function = remove_local_function;
+        remove_local_function = true;
+        // Remove all local function in this local function
+        LOCALFUNDEFS_LOCALFUNDEF(node) = TRAVopt(fundef);
+        remove_local_function = parent_remove_local_function;
+
+        char *key = NULL;
+        bool free_key = STRprefix("@fun_", name);
+        if (free_key)
+        {
+            for (htable_iter_st *iter = HTiterate(current); iter; iter = HTiterateNext(iter))
+            {
+                key = HTiterKey(iter);
+                if (STReq(key, name))
+                {
+                    HTiterateCancel(iter);
+                    break;
+                }
+            }
+        }
+
+        node_st *expected = HTremove(current, name);
+
+        if (free_key)
+        {
+            release_assert(key != NULL);
+            free(key);
+        }
+
+        free_symbols(FUNDEF_SYMBOLS(fundef));
+
+        release_assert(expected == fundef);
         CCNfree(node);
         CCNcycleNotify();
         return next;
+    }
+    else
+    {
+        LOCALFUNDEFS_LOCALFUNDEF(node) = TRAVopt(LOCALFUNDEFS_LOCALFUNDEF(node));
     }
 
     return node;

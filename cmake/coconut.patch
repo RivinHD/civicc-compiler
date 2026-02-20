@@ -677,7 +677,7 @@ index 6812dff..3257095 100644
      va_end(arg_p);
  }
 diff --git a/palm/src/hash_table.c b/palm/src/hash_table.c
-index d92523b..96f9182 100644
+index d92523b..e4de3ea 100644
 --- a/palm/src/hash_table.c
 +++ b/palm/src/hash_table.c
 @@ -5,10 +5,10 @@
@@ -866,7 +866,7 @@ index d92523b..96f9182 100644
  
  /* Get iterator value */
  void *HTiterValue(htable_iter_st *iter) {
-@@ -327,13 +309,10 @@ void *HTiterKey(htable_iter_st *iter) {
+@@ -327,73 +309,56 @@ void *HTiterKey(htable_iter_st *iter) {
      return iter->current_entry->key;
  }
  
@@ -877,18 +877,35 @@ index d92523b..96f9182 100644
 -static
 -size_t StringHash(char *key)
 -{
-+static size_t StringHash(char *key) {
++static size_t StringHash(void *key) {
      /* This is the djb2 algorithm as found for hashing strings.
       * Source: http://www.cse.yorku.ca/~oz/hash.html
       */
-@@ -351,49 +330,32 @@ size_t StringHash(char *key)
+ 
++    char *strkey = (char *)key;
+     unsigned long hash = 5381;
+     int c;
+ 
+-    while ((c = *key++))
++    while ((c = *strkey++))
+         hash = ((hash << 5) + hash) + c;
+ 
+     return hash;
+ }
+ 
++static bool StringEqual(void *ptr1, void *ptr2) {
++    return STReq((char *)ptr1, (char *)ptr2);
++}
++
+ /**
   * Create a new hash table for strings.
   * @param size determines the number of buckets in the table.
   */
 -struct htable *HTnew_String(size_t size)
 -{
+-    return HTnew(size, (hash_key_ft)StringHash, (is_equal_ft)STReq);
 +struct htable *HTnew_String(size_t size) {
-     return HTnew(size, (hash_key_ft)StringHash, (is_equal_ft)STReq);
++    return HTnew(size, StringHash, StringEqual);
  }
  
 -//Ptr htable: void * -> void *
@@ -916,9 +933,9 @@ index d92523b..96f9182 100644
   */
 -struct htable *HTnew_Ptr(size_t size)
 -{
-+struct htable *HTnew_Ptr(size_t size) {
-     return HTnew(size, (hash_key_ft)PtrHash, (is_equal_ft)PtrEqual);
- }
+-    return HTnew(size, (hash_key_ft)PtrHash, (is_equal_ft)PtrEqual);
+-}
++struct htable *HTnew_Ptr(size_t size) { return HTnew(size, PtrHash, PtrEqual); }
  
  // Int htable: int * -> void *;
 -static
@@ -926,17 +943,18 @@ index d92523b..96f9182 100644
 -{
 -    return (size_t)(*val);
 -}
-+static size_t IntHash(int *val) { return (size_t)(*val); }
++static size_t IntHash(void *val) { return (size_t)(*((int *)val)); }
  
 -static
 -bool IntEqual(int *ptr1, int *ptr2)
 -{
 -    return *ptr1 == *ptr2;
--}
-+static bool IntEqual(int *ptr1, int *ptr2) { return *ptr1 == *ptr2; }
++static bool IntEqual(void *ptr1, void *ptr2) {
++    return *((int *)ptr1) == *((int *)ptr2);
+ }
  
 -struct htable *HTnew_Int(size_t size)
 -{
-+struct htable *HTnew_Int(size_t size) {
-     return HTnew(size, (hash_key_ft)IntHash, (is_equal_ft)IntEqual);
- }
+-    return HTnew(size, (hash_key_ft)IntHash, (is_equal_ft)IntEqual);
+-}
++struct htable *HTnew_Int(size_t size) { return HTnew(size, IntHash, IntEqual); }

@@ -16,6 +16,17 @@ float[3,3] unused_global_array_init = [[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3
 export int test() {
     int a = no_sideeffect();
 
+    void unused() {
+        int another_unused() {
+            int a = 20;
+            a = a + 20;
+            unused();
+            return 1;
+        }
+
+        return;
+    }
+
     no_sideeffect(); // optimize away
     no_sideeffect(); // optimize away
 
