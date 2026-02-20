@@ -81,7 +81,10 @@ node_st *CGP_AAarrayexpr(node_st *node)
             release_assert(cur_expr != NULL);
 
             // If the global def is exported we need dimension variables for module linkage
-            if ((NODE_TYPE(cur_expr) == NT_INT && !is_exported) || NODE_TYPE(cur_expr) == NT_VAR)
+            if ((NODE_TYPE(cur_expr) == NT_INT && !is_exported) ||
+                (NODE_TYPE(cur_expr) == NT_VAR &&
+                 (is_exported ? NODE_TYPE(deep_lookup(current, VAR_NAME(cur_expr))) == NT_GLOBALDEF
+                              : true)))
             {
                 exprs = EXPRS_NEXT(exprs);
                 continue;

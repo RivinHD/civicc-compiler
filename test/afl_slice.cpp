@@ -51,6 +51,11 @@ __AFL_FUZZ_INIT();
 
 int main(int argc, char *argv[])
 {
+#ifdef AFL_LSAN_MODE
+    __AFL_LSAN_OFF();
+    __AFL_LSAN_ON();
+#endif
+
 #ifndef __AFL_COMPILER
     if (argc < 2)
     {

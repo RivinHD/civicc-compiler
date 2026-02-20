@@ -308,7 +308,7 @@ index 1f5f9c6..ac6b839 100644
  /**
   * Installs interrupt handlers
 diff --git a/palm/src/ctinfo.c b/palm/src/ctinfo.c
-index 6812dff..3257095 100644
+index 6812dff..f55daa3 100644
 --- a/palm/src/ctinfo.c
 +++ b/palm/src/ctinfo.c
 @@ -40,8 +40,7 @@ static int warnings = 0;
@@ -464,17 +464,19 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -284,21 +282,16 @@ static void CleanUp()
+@@ -284,21 +282,18 @@ static void CleanUp()
   *
   ******************************************************************************/
  
 -static void AbortCompilation()
 -{
 +static void AbortCompilation() {
++#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
      fprintf(stderr, "\n*** Compilation failed ***\n");
 -    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n",
 -        errors, warnings);
 +    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n", errors, warnings);
++#endif
  
      CleanUp();
  
@@ -489,7 +491,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -318,11 +311,9 @@ void CTIabortCompilation()
+@@ -318,11 +313,9 @@ void CTIabortCompilation()
   *
   ******************************************************************************/
  
@@ -504,7 +506,7 @@ index 6812dff..3257095 100644
  
      CleanUp();
  
-@@ -345,8 +336,7 @@ static void InternalCompilerErrorBreak(int sig)
+@@ -345,8 +338,7 @@ static void InternalCompilerErrorBreak(int sig)
   *
   ******************************************************************************/
  
@@ -514,7 +516,7 @@ index 6812dff..3257095 100644
      CleanUp();
      exit(0);
  }
-@@ -359,14 +349,12 @@ static void UserForcedBreak(int sig)
+@@ -359,14 +351,12 @@ static void UserForcedBreak(int sig)
   *
   ******************************************************************************/
  
@@ -532,7 +534,7 @@ index 6812dff..3257095 100644
  /** <!--********************************************************************-->
   *
   * @fn int CTIgetErrorMessageLineLength( void)
-@@ -377,8 +365,7 @@ void CTIinstallInterruptHandlers(void)
+@@ -377,8 +367,7 @@ void CTIinstallInterruptHandlers(void)
   *
   ******************************************************************************/
  
@@ -542,7 +544,7 @@ index 6812dff..3257095 100644
      return message_line_length - strlen(error_message_header);
  }
  
-@@ -390,8 +377,7 @@ int CTIgetErrorMessageLineLength(void)
+@@ -390,8 +379,7 @@ int CTIgetErrorMessageLineLength(void)
   *
   ******************************************************************************/
  
@@ -552,7 +554,7 @@ index 6812dff..3257095 100644
      if (errors > 0) {
          AbortCompilation();
      }
-@@ -400,14 +386,7 @@ void CTIabortOnError(void)
+@@ -400,14 +388,7 @@ void CTIabortOnError(void)
  /**
   * @return The number of errors currently produced.
   */
@@ -568,7 +570,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -419,19 +398,14 @@ int CTIgetErrors()
+@@ -419,19 +400,14 @@ int CTIgetErrors()
   *
   ******************************************************************************/
  
@@ -590,7 +592,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -451,22 +425,19 @@ int CTIgetWarnings()
+@@ -451,22 +427,19 @@ int CTIgetWarnings()
   *
   ******************************************************************************/
  
@@ -619,7 +621,7 @@ index 6812dff..3257095 100644
      if (type == CTI_ERROR) {
          errors++;
      } else if (type == CTI_WARN) {
-@@ -474,8 +445,7 @@ static void HandleCtiCall(enum cti_type type)
+@@ -474,8 +447,7 @@ static void HandleCtiCall(enum cti_type type)
      }
  }
  
@@ -629,7 +631,7 @@ index 6812dff..3257095 100644
      switch (type) {
      case CTI_WARN:
          return warn_message_header;
-@@ -497,15 +467,20 @@ static char *GetMessageHeader(enum cti_type type)
+@@ -497,15 +469,20 @@ static char *GetMessageHeader(enum cti_type type)
   * @param format printf style format string
   * @param ... variable args.
   */
@@ -652,7 +654,7 @@ index 6812dff..3257095 100644
  
      va_end(arg_p);
  }
-@@ -514,15 +489,21 @@ void CTI(enum cti_type type, bool newline, const char *format, ...)
+@@ -514,15 +491,21 @@ void CTI(enum cti_type type, bool newline, const char *format, ...)
   * See @CTI
   * @param obj an object of type struct ctinfo with extra information.
   */

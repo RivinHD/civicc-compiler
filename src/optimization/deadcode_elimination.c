@@ -3,6 +3,7 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -11,6 +12,7 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -368,6 +370,12 @@ node_st *OPT_DCEdeclarations(node_st *node)
     release_assert(entry != NULL);
     if (UClookup(entry) != UC_NONE)
     {
+        if (NODE_TYPE(decl) == NT_GLOBALDEF && !GLOBALDEF_HAS_EXPORT(decl))
+        {
+            // All none export but used globaldef need to be checked too.
+            // Functions are already check when they are used by a proccall.
+            DECLARATIONS_DECL(node) = TRAVopt(decl);
+        }
         return node;
     }
 
@@ -391,6 +399,11 @@ node_st *OPT_DCEdeclarations(node_st *node)
     case NT_FUNDEF:
         var = FUNHEADER_VAR(FUNDEF_FUNHEADER(entry));
         name = VAR_NAME(var);
+        bool parent_remove_local_function = remove_local_function;
+        remove_local_function = true;
+        // Remove all local function in this function
+        DECLARATIONS_DECL(node) = TRAVopt(decl);
+        remove_local_function = parent_remove_local_function;
         break;
     case NT_FUNDEC:
         var = FUNHEADER_VAR(FUNDEC_FUNHEADER(entry));
@@ -416,15 +429,49 @@ node_st *OPT_DCEdeclarations(node_st *node)
         }
     }
 
+    node_st *new_dec_first = NULL;
+    node_st *new_dec_last = NULL;
+
     node_st *expected = HTremove(current, name);
     if (is_extern_array)
     {
+        const char *pretty_name = get_pretty_name(name);
         node_st *dims = ARRAYVAR_DIMS(var);
+        uint32_t dim_counter = 0;
         while (dims != NULL)
         {
             node_st *dim = DIMENSIONVARS_DIM(dims);
-            node_st *dim_expected = HTremove(current, VAR_NAME(dim));
-            release_assert(dim_expected = dim);
+            char *name = VAR_NAME(dim);
+            node_st *dim_expected = HTremove(current, name);
+            release_assert(dim_expected == dims);
+            if (UClookup(dims) != UC_NONE)
+            {
+                // We need to extract this dimension because it is used.
+                // Naming should be __dim<count>_<array_name>, but we will register it under its old
+                // name, to be found by a lookup
+                char *new_name = STRfmt("__dim%d_%s", dim_counter++, pretty_name);
+                node_st *dec = ASTglobaldec(ASTvar(new_name), DT_int, name);
+                bool success = HTinsert(current, name, dec);
+                release_assert(success);
+                // We also insert the new name, because it is need by code_gen
+                success = HTinsert(current, new_name, dec);
+                release_assert(success);
+                VAR_NAME(dim) = NULL;
+
+                if (new_dec_first == NULL)
+                {
+                    release_assert(new_dec_last == NULL);
+                    new_dec_first = ASTdeclarations(dec, next);
+                    new_dec_last = new_dec_first;
+                }
+                else
+                {
+                    release_assert(new_dec_last != NULL);
+                    node_st *decls = ASTdeclarations(dec, DECLARATIONS_NEXT(new_dec_last));
+                    DECLARATIONS_NEXT(new_dec_last) = decls;
+                    new_dec_last = decls;
+                }
+            }
             dims = DIMENSIONVARS_NEXT(dims);
         }
     }
@@ -443,7 +490,16 @@ node_st *OPT_DCEdeclarations(node_st *node)
     release_assert(expected == entry);
     CCNfree(node);
     CCNcycleNotify();
-    return next;
+    if (new_dec_first == NULL)
+    {
+        release_assert(new_dec_last == NULL);
+        return next;
+    }
+    else
+    {
+        release_assert(new_dec_last != NULL);
+        return new_dec_first;
+    }
 }
 
 node_st *OPT_DCEstatements(node_st *node)

@@ -496,6 +496,11 @@ node_st *CG_CGglobaldec(node_st *node)
         }
     }
 
+    if (GLOBALDEC_ALIAS(node) != NULL)
+    {
+        bool success = IDXinsert(import_table, GLOBALDEC_ALIAS(node), var_import_counter);
+        release_assert(success);
+    }
     bool success = IDXinsert(import_table, globaldec_name, var_import_counter++);
     release_assert(success);
     importvar(pretty_name, node);
@@ -528,7 +533,8 @@ node_st *CG_CGglobaldef(node_st *node)
                 // With this naming we ensure that name of the dimension does not matter in
                 // the export/import and only the array name need to be correct.
                 void *entry = HTlookup(index_table, lookup_name);
-                ptrdiff_t idx = IDXlookup(entry == NULL ? import_table : index_table, lookup_name);
+                release_assert(entry != NULL);
+                ptrdiff_t idx = IDXlookup(index_table, lookup_name);
                 release_assert(idx >= 0);
                 char *export_name = STRfmt("__dim%d_%s", dim_counter++, pretty_name);
                 exportvar(export_name, idx);

@@ -24,7 +24,9 @@ node_st *run_scan_parse_buf(const char *filepath, char *buffer, uint32_t buffer_
     global.input_buf = buffer;
     global.input_buf_len = buffer_length;
     resetPhaseDriver();
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     phase_driver.verbosity = PD_V_HIGH;
+#endif
     node_st *node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SPDOSCANPARSE), CCN_ROOT_TYPE, NULL, false);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST

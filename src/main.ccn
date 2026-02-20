@@ -336,7 +336,8 @@ node GlobalDec {  // implicitly conditions the 'extern' attribute
     },
 
     attributes {
-        DataType type { constructor }  // mandatory
+        DataType type { constructor },  // mandatory
+        string alias { constructor }
     }
 };
 

@@ -3,6 +3,9 @@ int unused_global_sideeffect = extern_sideeffect(); // optimize away, except pro
 float used_global = 0.0;
 int i = 0; // keep the __init assigment
 
+extern int[param1, param2] arr;
+export int[param2] arr_ex;
+
 export bool unused_exported = true; 
 
 extern void unused_remove();
@@ -12,6 +15,17 @@ extern void printNewlines(int val);
 
 int[10] unused_global_array = 0; // optimize away
 float[3,3] unused_global_array_init = [[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]; // optimize away
+
+void unused() {
+    int another_unused() {
+        int a = 20;
+        a = a + 20;
+        unused();
+        return 1;
+    }
+
+    return;
+}
 
 export int test() {
     int a = no_sideeffect();

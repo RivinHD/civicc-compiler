@@ -151,7 +151,7 @@ define fuzz_multicore
 	mkdir -p afl/${$@_dirname}/multi/fuzzer1
 	cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/multi/fuzzer1
 	mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1"
-	tmux new-session -s fuzzer1 -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_FINAL_SYNC=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
+	tmux new-session -s fuzzer1 -d "LSAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:detect_leaks=1:exitcode=23:abort_on_error=1:symbolize=0 ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer1\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/multi -M fuzzer1 -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer1/console_output.txt"
 	sleep 5 # Let Master stabelize
 	@percent_10=$$(($(FUZZ_CORES) * 10 / 100)); \
 	if [ $$percent_10 -eq 0 ]; then percent_10=1; fi; \
@@ -187,7 +187,7 @@ define fuzz_multicore
 		mkdir -p afl/${$@_dirname}/multi/fuzzer$$i; \
 		cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/multi/fuzzer$$i; \
 		mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i"; \
-		tmux new-session -s fuzzer$$i -d "ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} $$trim afl-fuzz $$mutations -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/multi -S fuzzer$$i -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer$$i/console_output.txt"; \
+		tmux new-session -s fuzzer$$i -d "LSAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:detect_leaks=1:exitcode=23:abort_on_error=1:symbolize=0 ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_TESTCACHE_SIZE=100 AFL_TMPDIR=\"${TMPFS_DIR}/fuzz_${$@_dirname}/fuzzer$$i\" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} $$trim afl-fuzz $$mutations -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/multi -S fuzzer$$i -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@; tmux capture-pane -pS - >| afl/${$@_dirname}/multi/fuzzer$$i/console_output.txt"; \
 		sleep 0.1; \
 	done 
 endef
@@ -207,7 +207,7 @@ define fuzz_single
 	mkdir -p afl/${$@_dirname}/out/default
 	cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/out/default
 	mkdir -p "${TMPFS_DIR}/fuzz_${$@_dirname}"
-	ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_TMPDIR="${TMPFS_DIR}/fuzz_${$@_dirname}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/out -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@
+	LSAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:detect_leaks=1:exitcode=23:abort_on_error=1:symbolize=0 ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_TMPDIR="${TMPFS_DIR}/fuzz_${$@_dirname}" AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/out -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@
 endef
 
 # Fuzz the complete compiler

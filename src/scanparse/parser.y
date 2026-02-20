@@ -241,13 +241,13 @@ basicType: BOOL
 globalDec: EXTERN basicType arrayVar SEMICOLON
          {
             assertType($3, NT_ARRAYVAR);
-            $$ = ASTglobaldec($3, $2);
+            $$ = ASTglobaldec($3, $2, NULL);
             AddLocToNode($$, &@1, &@4);
          }
          | EXTERN basicType var SEMICOLON
          {
             assertType($3, NT_VAR);
-            $$ = ASTglobaldec($3, $2);
+            $$ = ASTglobaldec($3, $2, NULL);
             AddLocToNode($$, &@1, &@4);
          };
 
