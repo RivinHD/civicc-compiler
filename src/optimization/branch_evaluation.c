@@ -5,6 +5,7 @@
 #include <ccn/phase_driver.h>
 #include <ccngen/ast.h>
 #include <ccngen/enum.h>
+#include <stdio.h>
 
 static node_st *extracted_stmts_first = NULL;
 static node_st *extracted_stmts_last = NULL;

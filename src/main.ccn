@@ -25,7 +25,6 @@ cycle Optimization {
                 Monop,
                 ProcCall,
                 FunDef,
-                Cast,
                 Ternary
             }
         };

@@ -308,7 +308,7 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
         level++;
 
         // Check import table if entry is a possilbe import type
-        if (HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
+        if (entry != NULL && HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
             (NODE_TYPE(entry) == NT_GLOBALDEC || NODE_TYPE(entry) == NT_DIMENSIONVARS))
         {
             idx = HTlookup(import_table, (void *)name);

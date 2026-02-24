@@ -1,5 +1,6 @@
 #include "ccngen/ast.h"
 #include "release_assert.h"
+#include "to_string.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
 #include <ccn/phase_driver.h>
@@ -7,11 +8,28 @@
 #include <limits.h>
 #include <stdbool.h>
 
-void warn_float_result_infnan(node_st *node, double val, double left, double right, char op)
+static void warn_float_result_infnan(node_st *node, double val, double left, double right, char op)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
     CTIobj(CTI_WARN, true, info, "Encountered '%f' as optimization result of '%f %c %f'.", val,
            left, op, right);
+}
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+static void update_location_info(node_st *target, node_st *left, node_st *right)
+{
+    release_assert(target != NULL);
+    release_assert(left != NULL);
+    release_assert(right != NULL);
+    NODE_BLINE(target) = MIN(NODE_BLINE(left), NODE_BLINE(right));
+    NODE_BCOL(target) = MIN(NODE_BCOL(left), NODE_BCOL(right));
+    NODE_ELINE(target) = MIN(NODE_ELINE(left), NODE_ELINE(right));
+    NODE_ECOL(target) = MIN(NODE_ECOL(left), NODE_ECOL(right));
+    if (NODE_FILENAME(target) == NULL)
+    {
+        NODE_FILENAME(target) = STRcpy(NODE_FILENAME(left));
+    }
 }
 
 node_st *OPT_CFbinop(node_st *node)
@@ -21,12 +39,16 @@ node_st *OPT_CFbinop(node_st *node)
 
     if (NODE_TYPE(BINOP_LEFT(node)) == NT_INT && NODE_TYPE(BINOP_RIGHT(node)) == NT_INT)
     {
+
         int iresult;
         bool bresult;
         node_st *result = NULL;
         int left = INT_VAL(BINOP_LEFT(node));
         int right = INT_VAL(BINOP_RIGHT(node));
         struct ctinfo info = NODE_TO_CTINFO(node);
+
+        char *str = node_to_string(node);
+        free(str);
 
         switch (BINOP_OP(node))
         {
@@ -62,8 +84,7 @@ node_st *OPT_CFbinop(node_st *node)
             {
                 CTIobj(CTI_WARN, true, info,
                        "Encountered 'Substraction Overflow' as optimization result of '%d - %d'. "
-                       "Using "
-                       "INT_MAX=2147483647 for further optimization.",
+                       "Using INT_MAX=2147483647 for further optimization.",
                        left, right);
                 iresult = INT_MAX;
             }
@@ -92,7 +113,7 @@ node_st *OPT_CFbinop(node_st *node)
                        left, right);
                 iresult = INT_MAX;
             }
-            else if (right != 0 && left < INT_MIN / right)
+            else if (right != 0 && right != -1 && left < INT_MIN / right)
             {
                 CTIobj(
                     CTI_WARN, true, info,
@@ -112,7 +133,7 @@ node_st *OPT_CFbinop(node_st *node)
             if (right == 0)
             {
                 CTIobj(CTI_WARN, true, info,
-                       "Encountered 'Division by zero' as optimization result of '%d / %d'. Using"
+                       "Encountered 'Division by zero' as optimization result of '%d / %d'. Using "
                        "INT_MAX=2147483647 for further optimization.",
                        left, right);
                 iresult = INT_MAX;
@@ -135,9 +156,9 @@ node_st *OPT_CFbinop(node_st *node)
             if (right == 0)
             {
                 CTIobj(CTI_WARN, true, info,
-                       "Encountered 'Modulo by zero' as optimization result of '%d % %d'. Using "
+                       "Encountered 'Modulo by zero' as optimization result of '%d %c %d'. Using "
                        "INT_MAX=2147483647 for further optimization.",
-                       left, right);
+                       left, '%', right);
                 iresult = INT_MAX;
             }
             else
@@ -178,6 +199,7 @@ node_st *OPT_CFbinop(node_st *node)
         }
 
         release_assert(result != NULL);
+        update_location_info(result, BINOP_LEFT(node), BINOP_RIGHT(node));
         CCNcycleNotify();
         CCNfree(node);
         return result;
@@ -248,6 +270,7 @@ node_st *OPT_CFbinop(node_st *node)
         }
 
         release_assert(result != NULL);
+        update_location_info(result, BINOP_LEFT(node), BINOP_RIGHT(node));
         CCNcycleNotify();
         CCNfree(node);
         return result;
@@ -296,6 +319,7 @@ node_st *OPT_CFbinop(node_st *node)
         }
 
         release_assert(result != NULL);
+        update_location_info(result, BINOP_LEFT(node), BINOP_RIGHT(node));
         CCNcycleNotify();
         CCNfree(node);
         return result;

@@ -24,6 +24,67 @@ static void reset()
     sideeffect_type = DT_NULL;
 }
 
+/// Retieves if this a chain of operations that only consists of sideeffecting proccalls, thus we
+/// can not optimize anymore
+bool is_sideffect_chain(node_st *node, enum DataType type)
+{
+    if (NODE_TYPE(node) == NT_PROCCALL)
+    {
+        enum sideeffect effect = check_expr_sideeffect(node, current, sideeffect_table);
+        release_assert(effect != SEFF_NULL);
+        release_assert(effect != SEFF_PROCESSING);
+        return effect == SEFF_YES;
+    }
+    else if (NODE_TYPE(node) == NT_BINOP && BINOP_OP(node) == BO_add)
+    {
+        return is_sideffect_chain(BINOP_LEFT(node), type) &&
+               is_sideffect_chain(BINOP_RIGHT(node), type);
+    }
+    else if (NODE_TYPE(node) == NT_POP)
+    {
+        if (NODE_TYPE(POP_EXPR(node)) == NT_PROCCALL)
+        {
+            enum sideeffect effect =
+                check_expr_sideeffect(POP_EXPR(node), current, sideeffect_table);
+            release_assert(effect != SEFF_NULL);
+            release_assert(effect != SEFF_PROCESSING);
+            if (effect != SEFF_YES)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+
+        node_st *replace = POP_REPLACE(node);
+        enum ccn_nodetype ntype = NT_NULL;
+        switch (type)
+        {
+        case DT_NULL:
+        case DT_void:
+            release_assert(false);
+            break;
+        case DT_bool:
+            ntype = NT_BOOL;
+            break;
+        case DT_int:
+            ntype = NT_INT;
+            break;
+        case DT_float:
+            ntype = NT_FLOAT;
+            break;
+        }
+
+        return NODE_TYPE(replace) == ntype || is_sideffect_chain(replace, type);
+    }
+    else
+    {
+        return false;
+    }
+}
+
 node_st *OPT_ASproccall(node_st *node)
 {
     TRAVchildren(node);
@@ -101,10 +162,12 @@ node_st *OPT_ASternary(node_st *node)
     // expressions in its ptrue or pfalse childs, as it conditions the execution of these.
     node_st *parent_sideeffect_expr = sideeffected_expr;
 
+    release_assert(check_sideeffects);
     sideeffected_expr = NULL;
     TERNARY_PFALSE(node) = TRAVopt(TERNARY_PFALSE(node));
     node_st *pfalse_sideeffected_expr = sideeffected_expr;
 
+    release_assert(check_sideeffects);
     sideeffected_expr = NULL;
     TERNARY_PTRUE(node) = TRAVopt(TERNARY_PTRUE(node));
     node_st *ptrue_sideeffected_expr = sideeffected_expr;
@@ -171,96 +234,49 @@ node_st *OPT_ASternary(node_st *node)
     }
 }
 
-node_st *OPT_AScast(node_st *node)
-{
-    if (!check_sideeffects)
-    {
-        TRAVchildren(node);
-        return node;
-    }
-
-    enum DataType parent_sideeffect_type = sideeffect_type;
-    node_st *parent_sideeffect_expr = sideeffected_expr;
-    release_assert(CAST_TYPE(node) == sideeffect_type);
-    sideeffect_type = CAST_FROMTYPE(node);
-    sideeffected_expr = NULL;
-    TRAVchildren(node);
-
-    if (sideeffected_expr == NULL)
-    {
-        // Can remove no sideeffects
-        sideeffect_type = parent_sideeffect_type;
-        sideeffected_expr = parent_sideeffect_expr;
-        return node;
-    }
-
-    if (CAST_FROMTYPE(node) != parent_sideeffect_type)
-    {
-        node_st *cast_expr = ASTcast(sideeffected_expr, CAST_TYPE(node), CAST_FROMTYPE(node));
-        if ((CAST_FROMTYPE(node) == DT_int && CAST_TYPE(node) == DT_float) ||
-            (CAST_FROMTYPE(node) == DT_float && CAST_TYPE(node) == DT_int))
-        {
-            parent_sideeffect_expr =
-                parent_sideeffect_expr == NULL
-                    ? cast_expr
-                    : ASTbinop(parent_sideeffect_expr, cast_expr, BO_add, sideeffect_type);
-        }
-        else
-        {
-            release_assert(false);
-        }
-    }
-    else
-    {
-        // We can ignore the cast expression and directly append to the sideeffect epxressions
-        parent_sideeffect_expr =
-            parent_sideeffect_expr == NULL
-                ? sideeffected_expr
-                : ASTbinop(parent_sideeffect_expr, sideeffected_expr, BO_add, sideeffect_type);
-    }
-
-    sideeffect_type = parent_sideeffect_type;
-    sideeffected_expr = parent_sideeffect_expr;
-    CCNcycleNotify();
-    return node;
-}
-
 node_st *OPT_ASbinop(node_st *node)
 {
 
-    BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
-    BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
-
     if (check_sideeffects)
     {
+        BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+        BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
         return node;
     }
+    else
+    {
+        enum DataType parent_sideeffect_type = sideeffect_type;
+        sideeffect_type = BINOP_ARGTYPE(node);
+        BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+        BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
+        sideeffect_type = parent_sideeffect_type;
+    }
 
-    // TODO add check when binop right type of left of right binop with zero we can simplify again
-    // this can happen because we need to keep some binops for sideeffects. There the the zeroing
-    // elements are placed at the right position for easier simplification as it does not matter to
-    // the evaluation of binops. We do this in another optimization phase where we reordere the
-    // binops. Note: We are only allowed to reorder float with multiplication of 0.0 otherwise we
-    // might induce floating point precision errors.
+    node_st *right = BINOP_RIGHT(node);
+    node_st *left = BINOP_LEFT(node);
 
     if (BINOP_OP(node) == BO_mul)
     {
         // NT_INT
-        if (NODE_TYPE(BINOP_LEFT(node)) == NT_INT)
+        if (NODE_TYPE(left) == NT_INT)
         {
-            if (INT_VAL(BINOP_LEFT(node)) == 1)
+            if (INT_VAL(left) == 1)
             {
-                node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
                 return right;
             }
-            else if (INT_VAL(BINOP_LEFT(node)) == 0)
+            else if (INT_VAL(left) == 0)
             {
+                if (is_sideffect_chain(right, DT_int))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_int;
-                BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
+                BINOP_RIGHT(node) = TRAVopt(right);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTint(0);
@@ -275,21 +291,25 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT)
+        if (NODE_TYPE(right) == NT_INT)
         {
-            if (INT_VAL(BINOP_RIGHT(node)) == 1)
+            if (INT_VAL(right) == 1)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
                 return left;
             }
-            else if (INT_VAL(BINOP_RIGHT(node)) == 0)
+            else if (INT_VAL(right) == 0)
             {
+                if (is_sideffect_chain(left, DT_int))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_int;
-                BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+                BINOP_LEFT(node) = TRAVopt(left);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTint(0);
@@ -305,21 +325,25 @@ node_st *OPT_ASbinop(node_st *node)
         }
 
         // NT_FLOAT
-        if (NODE_TYPE(BINOP_LEFT(node)) == NT_FLOAT)
+        if (NODE_TYPE(left) == NT_FLOAT)
         {
-            if (FLOAT_VAL(BINOP_LEFT(node)) == 1.0)
+            if (FLOAT_VAL(left) == 1.0)
             {
-                node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
                 return right;
             }
-            else if (FLOAT_VAL(BINOP_LEFT(node)) == 0.0)
+            else if (FLOAT_VAL(left) == 0.0)
             {
+                if (is_sideffect_chain(right, DT_float))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_float;
-                BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
+                BINOP_RIGHT(node) = TRAVopt(right);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTfloat(0.0);
@@ -334,21 +358,25 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT)
+        if (NODE_TYPE(right) == NT_FLOAT)
         {
-            if (FLOAT_VAL(BINOP_RIGHT(node)) == 1.0)
+            if (FLOAT_VAL(right) == 1.0)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
                 return left;
             }
-            else if (FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
+            else if (FLOAT_VAL(right) == 0.0)
             {
+                if (is_sideffect_chain(left, DT_float))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_float;
-                BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+                BINOP_LEFT(node) = TRAVopt(left);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTfloat(0.0);
@@ -364,11 +392,10 @@ node_st *OPT_ASbinop(node_st *node)
         }
 
         // NT_BOOL
-        if (NODE_TYPE(BINOP_LEFT(node)) == NT_BOOL)
+        if (NODE_TYPE(left) == NT_BOOL)
         {
-            if (BOOL_VAL(BINOP_LEFT(node)) == true)
+            if (BOOL_VAL(left) == true)
             {
-                node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -376,9 +403,14 @@ node_st *OPT_ASbinop(node_st *node)
             }
             else
             {
+                if (is_sideffect_chain(right, DT_bool))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_bool;
-                BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
+                BINOP_RIGHT(node) = TRAVopt(right);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTbool(false);
@@ -393,11 +425,10 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_BOOL)
+        if (NODE_TYPE(right) == NT_BOOL)
         {
-            if (BOOL_VAL(BINOP_RIGHT(node)) == true)
+            if (BOOL_VAL(right) == true)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -405,9 +436,14 @@ node_st *OPT_ASbinop(node_st *node)
             }
             else
             {
+                if (is_sideffect_chain(left, DT_bool))
+                {
+                    return node;
+                }
+
                 check_sideeffects = true;
                 sideeffect_type = DT_bool;
-                BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+                BINOP_LEFT(node) = TRAVopt(left);
                 check_sideeffects = false;
                 sideeffect_type = DT_NULL;
                 node_st *expr = ASTbool(false);
@@ -424,11 +460,10 @@ node_st *OPT_ASbinop(node_st *node)
     }
     else if (BINOP_OP(node) == BO_add || BINOP_OP(node) == BO_sub)
     {
-        if (NODE_TYPE(BINOP_LEFT(node)) == NT_INT)
+        if (NODE_TYPE(left) == NT_INT)
         {
-            if (INT_VAL(BINOP_LEFT(node)) == 0)
+            if (INT_VAL(left) == 0)
             {
-                node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -436,11 +471,10 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT)
+        if (NODE_TYPE(right) == NT_INT)
         {
-            if (INT_VAL(BINOP_RIGHT(node)) == 0)
+            if (INT_VAL(right) == 0)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -449,11 +483,10 @@ node_st *OPT_ASbinop(node_st *node)
         }
 
         // NT_FLOAT
-        if (NODE_TYPE(BINOP_LEFT(node)) == NT_FLOAT)
+        if (NODE_TYPE(left) == NT_FLOAT)
         {
-            if (FLOAT_VAL(BINOP_LEFT(node)) == 0.0)
+            if (FLOAT_VAL(left) == 0.0)
             {
-                node_st *right = BINOP_RIGHT(node);
                 BINOP_RIGHT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -461,11 +494,10 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT)
+        if (NODE_TYPE(right) == NT_FLOAT)
         {
-            if (FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
+            if (FLOAT_VAL(right) == 0.0)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -476,16 +508,20 @@ node_st *OPT_ASbinop(node_st *node)
         // NT_BOOL
         if (BINOP_OP(node) == BO_add)
         {
-            if (NODE_TYPE(BINOP_LEFT(node)) == NT_BOOL)
+            if (NODE_TYPE(left) == NT_BOOL)
             {
-                if (BOOL_VAL(BINOP_LEFT(node)) == true)
+                if (BOOL_VAL(left) == true)
                 {
-                    node_st *left = BINOP_LEFT(node);
+                    if (is_sideffect_chain(right, DT_bool))
+                    {
+                        return node;
+                    }
+
                     BINOP_LEFT(node) = NULL;
 
                     check_sideeffects = true;
                     sideeffect_type = DT_bool;
-                    BINOP_RIGHT(node) = TRAVopt(BINOP_RIGHT(node));
+                    BINOP_RIGHT(node) = TRAVopt(right);
                     check_sideeffects = false;
                     sideeffect_type = DT_NULL;
                     node_st *expr = left;
@@ -500,16 +536,20 @@ node_st *OPT_ASbinop(node_st *node)
                 }
             }
 
-            if (NODE_TYPE(BINOP_RIGHT(node)) == NT_BOOL)
+            if (NODE_TYPE(right) == NT_BOOL)
             {
-                if (BOOL_VAL(BINOP_RIGHT(node)) == true)
+                if (BOOL_VAL(right) == true)
                 {
-                    node_st *right = BINOP_RIGHT(node);
+                    if (is_sideffect_chain(left, DT_bool))
+                    {
+                        return node;
+                    }
+
                     BINOP_RIGHT(node) = NULL;
 
                     check_sideeffects = true;
                     sideeffect_type = DT_bool;
-                    BINOP_LEFT(node) = TRAVopt(BINOP_LEFT(node));
+                    BINOP_LEFT(node) = TRAVopt(left);
                     check_sideeffects = false;
                     sideeffect_type = DT_NULL;
                     node_st *expr = right;
@@ -527,11 +567,10 @@ node_st *OPT_ASbinop(node_st *node)
     }
     else if (BINOP_OP(node) == BO_div || BINOP_OP(node) == BO_mod)
     {
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT)
+        if (NODE_TYPE(right) == NT_INT)
         {
-            if (INT_VAL(BINOP_RIGHT(node)) == 1)
+            if (INT_VAL(right) == 1)
             {
-                node_st *left = BINOP_LEFT(node);
                 BINOP_LEFT(node) = NULL;
                 CCNfree(node);
                 CCNcycleNotify();
@@ -539,11 +578,10 @@ node_st *OPT_ASbinop(node_st *node)
             }
         }
 
-        if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT)
+        if (NODE_TYPE(right) == NT_INT)
         {
-            if (INT_VAL(BINOP_RIGHT(node)) == -1)
+            if (INT_VAL(right) == -1)
             {
-                node_st *left = BINOP_LEFT(node);
                 node_st *new_left = ASTmonop(left, MO_neg);
                 BINOP_LEFT(node) = NULL;
                 CCNcycleNotify();
@@ -556,11 +594,10 @@ node_st *OPT_ASbinop(node_st *node)
         if (BINOP_OP(node) == BO_div)
         {
 
-            if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT)
+            if (NODE_TYPE(right) == NT_FLOAT)
             {
-                if (FLOAT_VAL(BINOP_RIGHT(node)) == 1.0)
+                if (FLOAT_VAL(right) == 1.0)
                 {
-                    node_st *left = BINOP_LEFT(node);
                     BINOP_LEFT(node) = NULL;
                     CCNfree(node);
                     CCNcycleNotify();
@@ -568,11 +605,10 @@ node_st *OPT_ASbinop(node_st *node)
                 }
             }
 
-            if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT)
+            if (NODE_TYPE(right) == NT_FLOAT)
             {
-                if (FLOAT_VAL(BINOP_RIGHT(node)) == -1.0)
+                if (FLOAT_VAL(right) == -1.0)
                 {
-                    node_st *left = BINOP_LEFT(node);
                     node_st *new_left = ASTmonop(left, MO_neg);
                     BINOP_LEFT(node) = NULL;
                     CCNfree(node);

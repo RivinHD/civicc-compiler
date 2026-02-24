@@ -304,7 +304,15 @@ char *get_node_name(node_st *node)
             break;
         case NT_GLOBALDEC:
             extra_string = datatype_to_string(GLOBALDEC_TYPE(node));
-            node_string = STRfmt("GlobalDec -- type:'%s'", extra_string);
+            if (GLOBALDEC_ALIAS(node) == NULL)
+            {
+                node_string = STRfmt("GlobalDec -- type:'%s'", extra_string);
+            }
+            else
+            {
+                node_string = STRfmt("GlobalDec -- type:'%s', alias:'%s'", extra_string,
+                                     GLOBALDEC_ALIAS(node));
+            }
             break;
         case NT_FUNDEF:
             node_string = STRfmt("FunDef -- has_export:'%d'", FUNDEF_HAS_EXPORT(node));

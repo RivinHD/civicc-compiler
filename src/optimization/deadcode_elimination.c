@@ -30,6 +30,8 @@ static bool collect_if_usages = false;
 static bool collect_else_usages = false;
 static htable_stptr init_symbols = NULL;
 static bool remove_local_function = true;
+static bool check_return = false;
+static bool has_return = false;
 
 static void reset()
 {
@@ -47,6 +49,8 @@ static void reset()
     collect_else_usages = false;
     init_symbols = NULL;
     remove_local_function = false;
+    check_return = false;
+    has_return = false;
 }
 
 enum usage_state
@@ -130,6 +134,7 @@ static void UCrestore()
     }
 }
 
+/// Checks if a node has a any asignment statement
 static bool has_consume(node_st *node)
 {
     if (node == NULL)
@@ -488,6 +493,12 @@ node_st *OPT_DCEdeclarations(node_st *node)
     }
 
     release_assert(expected == entry);
+    if (NODE_TYPE(decl) == NT_GLOBALDEC && GLOBALDEC_ALIAS(decl) != NULL)
+    {
+        node_st *alias_expected = HTremove(current, GLOBALDEC_ALIAS(decl));
+        release_assert(alias_expected == expected);
+    }
+
     CCNfree(node);
     CCNcycleNotify();
     if (new_dec_first == NULL)
@@ -529,6 +540,11 @@ node_st *OPT_DCEstatements(node_st *node)
         node_st *next = STATEMENTS_NEXT(node);
         STATEMENTS_NEXT(node) = NULL;
         CCNfree(next);
+
+        if (check_return)
+        {
+            has_return = true;
+        }
 
         sideeffect_stmts_first = parent_sideeffect_stmts_first;
         sideeffect_stmts_last = parent_sideeffect_stmts_last;
@@ -575,8 +591,6 @@ node_st *OPT_DCEstatements(node_st *node)
             STATEMENTS_STMT(node) = TRAVopt(STATEMENTS_STMT(node));
             skip_check = true;
         }
-        // Automatically collect the sideffecting procall
-        entry = stmt;
         break;
     case NT_RETSTATEMENT:
     default:
@@ -598,6 +612,10 @@ node_st *OPT_DCEstatements(node_st *node)
         {
             release_assert(sideeffect_stmts_last != NULL);
             release_assert(STATEMENTS_NEXT(sideeffect_stmts_last) == NULL);
+
+            // Add usage tag to all extracted sideeffecting stuff
+            sideeffect_stmts_first = TRAVopt(sideeffect_stmts_first);
+
             STATEMENTS_NEXT(sideeffect_stmts_last) = STATEMENTS_NEXT(node);
             STATEMENTS_NEXT(node) = sideeffect_stmts_first;
         }
@@ -903,7 +921,21 @@ node_st *OPT_DCEdowhileloop(node_st *node)
     {
         DOWHILELOOP_EXPR(node) = TRAVopt(DOWHILELOOP_EXPR(node));
     }
+
+    bool parent_check_return = check_return;
+    bool parent_has_return = has_return;
+    check_return = true;
+    has_return = false;
     DOWHILELOOP_BLOCK(node) = TRAVopt(DOWHILELOOP_BLOCK(node)); // Statments may change
+    if (has_return)
+    {
+        // We never reach the expression, thus we can remove it
+        CCNfree(DOWHILELOOP_EXPR(node));
+        DOWHILELOOP_EXPR(node) = ASTbool(false); // Optimize out in outer pass
+        CCNcycleNotify();
+    }
+    check_return = parent_check_return;
+    has_return = parent_has_return;
 
     if (DOWHILELOOP_BLOCK(node) == NULL)
     {
@@ -919,6 +951,8 @@ node_st *OPT_DCEdowhileloop(node_st *node)
         }
     }
 
+    // We do not remove and have to mark any in the expression as usage
+    DOWHILELOOP_EXPR(node) = TRAVopt(DOWHILELOOP_EXPR(node));
     UCset(node, UC_USAGE);
     return node;
 }
@@ -944,9 +978,12 @@ node_st *OPT_DCEforloop(node_st *node)
 
     htable_stptr parent_if_usage_stmts = if_usage_stmts;
     htable_stptr parent_else_usage_stmts = else_usage_stmts;
+    bool parent_collect_if_usages = collect_if_usages;
+    bool parent_collect_else_usages = collect_else_usages;
     if_usage_stmts = HTnew_Ptr(2 << 4);
     else_usage_stmts = HTnew_Ptr(2 << 4);
 
+    collect_else_usages = false;
     collect_if_usages = true;
     FORLOOP_BLOCK(node) = TRAVopt(FORLOOP_BLOCK(node));
     collect_if_usages = false;
@@ -956,6 +993,8 @@ node_st *OPT_DCEforloop(node_st *node)
     HTdelete(else_usage_stmts);
     if_usage_stmts = parent_if_usage_stmts;
     else_usage_stmts = parent_else_usage_stmts;
+    collect_if_usages = parent_collect_if_usages;
+    collect_else_usages = parent_collect_else_usages;
 
     if (FORLOOP_BLOCK(node) == NULL)
     {
@@ -1023,10 +1062,13 @@ node_st *OPT_DCEwhileloop(node_st *node)
 
     htable_stptr parent_if_usage_stmts = if_usage_stmts;
     htable_stptr parent_else_usage_stmts = else_usage_stmts;
+    bool parent_collect_if_usages = collect_if_usages;
+    bool parent_collect_else_usages = collect_else_usages;
     if_usage_stmts = HTnew_Ptr(2 << 4);
     else_usage_stmts = HTnew_Ptr(2 << 4);
 
     collect_if_usages = true;
+    collect_else_usages = false;
     WHILELOOP_BLOCK(node) = TRAVopt(WHILELOOP_BLOCK(node)); // Statments may change
     collect_if_usages = false;
     UCrestore();
@@ -1035,6 +1077,8 @@ node_st *OPT_DCEwhileloop(node_st *node)
     HTdelete(else_usage_stmts);
     if_usage_stmts = parent_if_usage_stmts;
     else_usage_stmts = parent_else_usage_stmts;
+    collect_if_usages = parent_collect_if_usages;
+    collect_else_usages = parent_collect_else_usages;
 
     if (WHILELOOP_BLOCK(node) == NULL)
     {
@@ -1076,14 +1120,17 @@ node_st *OPT_DCEifstatement(node_st *node)
 
     htable_stptr parent_if_usage_stmts = if_usage_stmts;
     htable_stptr parent_else_usage_stmts = else_usage_stmts;
+    bool parent_collect_if_usages = collect_if_usages;
+    bool parent_collect_else_usages = collect_else_usages;
     if_usage_stmts = HTnew_Ptr(2 << 4);
     else_usage_stmts = HTnew_Ptr(2 << 4);
 
+    collect_else_usages = false;
     collect_if_usages = true;
     IFSTATEMENT_BLOCK(node) = TRAVopt(IFSTATEMENT_BLOCK(node));
-    collect_if_usages = false;
     UCrestore();
 
+    collect_if_usages = false;
     collect_else_usages = true;
     IFSTATEMENT_ELSE_BLOCK(node) = TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
     collect_else_usages = false;
@@ -1093,6 +1140,8 @@ node_st *OPT_DCEifstatement(node_st *node)
     HTdelete(else_usage_stmts);
     if_usage_stmts = parent_if_usage_stmts;
     else_usage_stmts = parent_else_usage_stmts;
+    collect_if_usages = parent_collect_if_usages;
+    collect_else_usages = parent_collect_else_usages;
 
     if (IFSTATEMENT_BLOCK(node) == NULL && IFSTATEMENT_ELSE_BLOCK(node) == NULL)
     {

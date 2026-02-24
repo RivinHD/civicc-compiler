@@ -3,6 +3,7 @@
 #include <ccn/phase_driver.h>
 #include <ccngen/ast.h>
 #include <ccngen/enum.h>
+#include <stdio.h>
 
 node_st *OPT_ARbinop(node_st *node)
 {
@@ -31,6 +32,7 @@ node_st *OPT_ARbinop(node_st *node)
     }
     release_assert(ntype != NT_NULL);
 
+    bool needs_update = false;
     switch (op)
     {
     case BO_NULL:
@@ -72,6 +74,7 @@ node_st *OPT_ARbinop(node_st *node)
                 BINOP_RIGHT(node) = rleft;
                 BINOP_LEFT(right) = node;
                 node = right;
+                needs_update = true;
                 CCNcycleNotify();
             }
             else if (op == BO_mul)
@@ -118,11 +121,13 @@ node_st *OPT_ARbinop(node_st *node)
                     BINOP_RIGHT(node) = rleft;
                     BINOP_LEFT(right) = node;
                     node = right;
+                    needs_update = true;
                     CCNcycleNotify();
                 }
             }
         }
-        else if (NODE_TYPE(right) == NT_BINOP && NODE_TYPE(left) != NT_BINOP)
+        else if (NODE_TYPE(right) == NT_BINOP && BINOP_OP(right) == op &&
+                 NODE_TYPE(left) != NT_BINOP)
         {
             // (expr + (expr + expr)) -> ((expr + expr) + expr)
             if (type == DT_bool || type == DT_int)
@@ -131,6 +136,7 @@ node_st *OPT_ARbinop(node_st *node)
                 BINOP_RIGHT(node) = BINOP_RIGHT(right);
                 BINOP_RIGHT(right) = BINOP_LEFT(right);
                 BINOP_LEFT(right) = left;
+                needs_update = true;
                 CCNcycleNotify();
             }
             else if (op == BO_mul)
@@ -142,6 +148,7 @@ node_st *OPT_ARbinop(node_st *node)
                     node_st *zero = left;
                     BINOP_LEFT(node) = right;
                     BINOP_RIGHT(node) = zero;
+                    needs_update = true;
                     CCNcycleNotify();
                 }
                 else if (NODE_TYPE(BINOP_LEFT(right)) == NT_FLOAT &&
@@ -152,6 +159,7 @@ node_st *OPT_ARbinop(node_st *node)
                     BINOP_LEFT(node) = right;
                     BINOP_RIGHT(node) = zero;
                     BINOP_LEFT(right) = left;
+                    needs_update = true;
                     CCNcycleNotify();
                 }
                 else if (NODE_TYPE(BINOP_RIGHT(right)) == NT_FLOAT &&
@@ -163,18 +171,23 @@ node_st *OPT_ARbinop(node_st *node)
                     BINOP_RIGHT(node) = zero;
                     BINOP_RIGHT(right) = BINOP_LEFT(right);
                     BINOP_LEFT(right) = left;
+                    needs_update = true;
                     CCNcycleNotify();
                 }
             }
         }
 
-        // Update because of possible change through reordering
-        TRAVchildren(node);
+        if (needs_update)
+        {
+            // Update because of possible change through reordering
+            TRAVchildren(node);
+        }
+
         left = BINOP_LEFT(node);
         right = BINOP_RIGHT(node);
 
         // Constants should already be at the right side of any child binop
-        if (NODE_TYPE(left) == NT_BINOP && NODE_TYPE(right) != ntype &&
+        if (NODE_TYPE(left) == NT_BINOP && BINOP_OP(left) == op && NODE_TYPE(right) != ntype &&
             NODE_TYPE(BINOP_RIGHT(left)) == ntype && (type == DT_bool || type == DT_int))
         {
             // ((expr + const) + expr) -> ((expr + expr) + const)
@@ -183,7 +196,8 @@ node_st *OPT_ARbinop(node_st *node)
             BINOP_RIGHT(node) = lright;
             CCNcycleNotify();
         }
-        else if (NODE_TYPE(left) == NT_BINOP && type == DT_float && op == BO_mul &&
+        else if (NODE_TYPE(left) == NT_BINOP && BINOP_OP(left) == BO_mul && type == DT_float &&
+                 op == BO_mul &&
                  (NODE_TYPE(right) != ntype ||
                   (NODE_TYPE(right) == ntype && FLOAT_VAL(right) != 0.0)) &&
                  NODE_TYPE(BINOP_RIGHT(left)) == ntype && FLOAT_VAL(BINOP_RIGHT(left)) == 0.0)
