@@ -217,11 +217,13 @@ make fuzz_<target>
 ```
 
 The following targets are available:
-- `civicc`: Fuzz the complete compiler
-- `civicc_grammar`: Fuzz the complete compiler
-- `scanparse`: Fuzz the scanner and parser only
+- `scanparse`: Fuzz the scanner and parser only.
 - `scanparse_grammar`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CivicC code.
-- `context_grammar`: Fuzz with grammar valid CivicC code the scanner, parser & context analysis of the program.
+- `semantic_grammar`: Fuzz with grammar valid CivicC code the scanner, parser & semantic analysis of the program.
+- `codegenprep_grammar`: Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs.
+- `codegen_grammar`: Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs.
+- `codegen_optimized_grammar`:  Fuzz the codegen with optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
+- `optimization_grammar`: Fuzz the optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
 
 *Note:* Keeping the fuzz target/slice smaller is more efficient.
 

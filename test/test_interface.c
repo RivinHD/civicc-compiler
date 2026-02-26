@@ -42,7 +42,7 @@ node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t b
 {
     node_st *node = run_scan_parse_buf(filepath, buffer, buffer_length);
     node =
-        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CONTEXTANALYSIS), CCN_ROOT_TYPE, node, true);
+        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SEMANTICANALYSIS), CCN_ROOT_TYPE, node, true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     if (CTIgetErrors() > 0)
     {

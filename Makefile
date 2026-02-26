@@ -30,7 +30,7 @@ help:
 	@echo "  generate_seeds:  Generates seeds for the afl run, these will generate valid civicc programs."
 	@echo "  fuzz_scanparse:  Fuzz the scanner and parser of the civcc compiler with afl, with correct and incorrect civicc programs."
 	@echo "  fuzz_scanparse_grammar:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
-	@echo "  fuzz_context_grammar:  Fuzz the context analysis of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_semantic_grammar:  Fuzz the semantic analysis of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegenprep_grammar:  Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegen_grammar:  Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegen_optimized_grammar:  Fuzz the codegen with optimizations of the civcc compiler with afl, with only syntax correct civicc programs."
@@ -204,16 +204,16 @@ fuzz_scanparse_grammar_multi: generate_seeds
 fuzz_scanparse_grammar: generate_seeds
 	$(call fuzz_single,civicc_scanparse,civicc,civicc_scanparse_grammar,AFL_CRASH_EXITCODE=1 AFL_CUSTOM_MUTATOR_ONLY=1)
 
-.PHONY: fuzz_context_grammar_multi
-fuzz_context_grammar_multi: generate_seeds
-	$(call fuzz_multicore,civicc_context,civicc,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+.PHONY: fuzz_semantic_grammar_multi
+fuzz_semantic_grammar_multi: generate_seeds
+	$(call fuzz_multicore,civicc_semantic,civicc,civicc_semantic_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
-.PHONY: fuzz_context_grammar
-fuzz_context_grammar: generate_seeds
-	$(call fuzz_single,civicc_context,civicc,civicc_context_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
+.PHONY: fuzz_semantic_grammar
+fuzz_semantic_grammar: generate_seeds
+	$(call fuzz_single,civicc_semantic,civicc,civicc_semantic_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 # Switch to grammar lib civiccfixedids to be able to generate matching ids and produce more 
-# syntax and context correct civicc programs
+# syntax and semantic correct civicc programs
 .PHONY: fuzz_codegenprep_grammar_multi
 fuzz_codegenprep_grammar_multi: generate_seeds
 	$(call fuzz_multicore,civicc_codegenprep,civiccfixedids,civicc_codegenprep_grammar,AFL_CUSTOM_MUTATOR_ONLY=1 AFL_FAST_CAL=1)

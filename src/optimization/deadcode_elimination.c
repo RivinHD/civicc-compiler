@@ -126,11 +126,14 @@ static void UCrestore()
                 ptrdiff_t else_value_origin = ((ptrdiff_t)entry >> UCshift) & UCmask;
                 release_assert(else_value_origin >= UC_NONE);
                 release_assert(else_value_origin <= UC_USAGE);
-                // Should have the same origin
+                // Should have the same origin i.e. we want to keep the vardec
                 release_assert(if_value_origin == else_value_origin);
             }
 
-            UCset(key, (enum usage_state)if_value_origin);
+            // If we found a value its at least consumed
+            enum usage_state origin = (enum usage_state)if_value_origin;
+            origin = origin == UC_NONE ? UC_CONSUMED : origin;
+            UCset(key, origin);
         }
     }
 
@@ -148,7 +151,10 @@ static void UCrestore()
             ptrdiff_t else_value_origin = ((ptrdiff_t)value >> UCshift) & UCmask;
             release_assert(else_value_origin >= UC_NONE);
             release_assert(else_value_origin <= UC_USAGE);
-            UCset(key, (enum usage_state)else_value_origin);
+            // If we found a value its at least consumed i.e. we want to keep the vardec
+            enum usage_state origin = (enum usage_state)else_value_origin;
+            origin = origin == UC_NONE ? UC_CONSUMED : origin;
+            UCset(key, origin);
         }
     }
 }

@@ -3,7 +3,7 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
-        ContextAnalysis;
+        SemanticAnalysis;
         CodeGenPreparation;
         Optimization;
         CodeGen;
@@ -81,7 +81,7 @@ cycle Optimization {
     }
 };
 
-phase ContextAnalysis {
+phase SemanticAnalysis {
     actions {
         traversal ExtractForIterator {
             uid = CA_EFI,
