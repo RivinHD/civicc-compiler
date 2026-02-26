@@ -1853,6 +1853,11 @@ node_st *CG_CGint(node_st *node)
     }
     else
     {
+        // We have to construct a negation, because the CiviC Assembler does not support negative
+        // integer
+        bool is_negative = val < 0;
+        val = is_negative ? -val : val;
+        release_assert(val > 0);
         char *val_str = int_to_str(val);
         if (HTlookup(constant_table, val_str) == NULL)
         {
@@ -1869,6 +1874,11 @@ node_st *CG_CGint(node_st *node)
             inst1("iloadc", idx);
 
             free(val_str);
+        }
+
+        if (is_negative)
+        {
+            inst0("ineg");
         }
     }
 

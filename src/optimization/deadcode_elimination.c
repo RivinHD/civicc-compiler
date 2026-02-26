@@ -3,7 +3,6 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
@@ -12,7 +11,6 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -32,6 +30,7 @@ static htable_stptr init_symbols = NULL;
 static bool remove_local_function = true;
 static bool check_return = false;
 static bool has_return = false;
+static bool tag_usages = false;
 
 static void reset()
 {
@@ -51,6 +50,7 @@ static void reset()
     remove_local_function = false;
     check_return = false;
     has_return = false;
+    tag_usages = false;
 }
 
 enum usage_state
@@ -219,9 +219,22 @@ node_st *OPT_DCEprogram(node_st *node)
 node_st *OPT_DCEfundef(node_st *node)
 {
     release_assert(collect_sideeffects == false);
+    release_assert(tag_usages == false);
 
     htable_stptr parent_current = current;
     current = FUNDEF_SYMBOLS(node);
+
+    // Parameters that are arrays are reference, thus we need to assume they have a usage.
+    node_st *param = FUNHEADER_PARAMS(FUNDEF_FUNHEADER(node));
+    while (param != NULL)
+    {
+        if (NODE_TYPE(PARAMS_VAR(param)) == NT_ARRAYVAR)
+        {
+            UCset(param, UC_USAGE);
+        }
+
+        param = PARAMS_NEXT(param);
+    }
 
     if (check_consumtion)
     {
@@ -258,6 +271,7 @@ node_st *OPT_DCEfundef(node_st *node)
 node_st *OPT_DCEfunbody(node_st *node)
 {
     release_assert(collect_sideeffects == false);
+    release_assert(tag_usages == false);
 
     if (check_consumtion)
     {
@@ -284,6 +298,7 @@ node_st *OPT_DCEfunbody(node_st *node)
 node_st *OPT_DCEvardecs(node_st *node)
 {
     release_assert(collect_sideeffects == false);
+    release_assert(tag_usages == false);
 
     if (check_consumtion)
     {
@@ -317,6 +332,7 @@ node_st *OPT_DCElocalfundefs(node_st *node)
 {
     // The content of local fundefs is called by the proccalls itself
     release_assert(collect_sideeffects == false);
+    release_assert(tag_usages == false);
 
     if (check_consumtion)
     {
@@ -384,6 +400,7 @@ node_st *OPT_DCElocalfundefs(node_st *node)
 node_st *OPT_DCEdeclarations(node_st *node)
 {
     release_assert(check_consumtion == false);
+    release_assert(tag_usages == false);
 
     node_st *decl = DECLARATIONS_DECL(node);
     if ((NODE_TYPE(decl) == NT_FUNDEF && FUNDEF_HAS_EXPORT(decl)) ||
@@ -549,6 +566,12 @@ node_st *OPT_DCEstatements(node_st *node)
         return node;
     }
 
+    if (tag_usages)
+    {
+        TRAVchildren(node);
+        return node;
+    }
+
     node_st *parent_sideeffect_stmts_first = sideeffect_stmts_first;
     node_st *parent_sideeffect_stmts_last = sideeffect_stmts_last;
     bool parent_collect_sideeffects = collect_sideeffects;
@@ -582,18 +605,22 @@ node_st *OPT_DCEstatements(node_st *node)
     node_st *stmt = STATEMENTS_STMT(node);
     node_st *entry;
     bool skip_check = false;
-    bool is_local = true; // Indicates if assigment to local variable
+    bool is_local = true;       // Indicates if assigment to local variable
+    bool requiere_none = false; // Indicates if assigment is an alloc call
     switch (NODE_TYPE(stmt))
     {
     case NT_ASSIGN:
         entry = deep_lookup(current, VAR_NAME(ASSIGN_VAR(stmt)));
         release_assert(entry != NULL);
         is_local = HTlookup(current, VAR_NAME(ASSIGN_VAR(stmt))) != NULL;
+        requiere_none = NODE_TYPE(ASSIGN_EXPR(stmt)) == NT_PROCCALL &&
+                        STReq(VAR_NAME(PROCCALL_VAR(ASSIGN_EXPR(stmt))), alloc_func);
         break;
     case NT_ARRAYASSIGN:
         entry = deep_lookup(current, VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(stmt))));
         release_assert(entry != NULL);
         is_local = HTlookup(current, VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(stmt)))) != NULL;
+        requiere_none = true; // We can only optimize if the var is never used.
         break;
     case NT_IFSTATEMENT:
     case NT_WHILELOOP:
@@ -628,7 +655,8 @@ node_st *OPT_DCEstatements(node_st *node)
     release_assert(entry != NULL);
     // We need to keep sideffecting assignment as they are not used by the current function call
     // but maybe later in another function call of this sideeffecting function.
-    if (UClookup(entry) != UC_USAGE && (is_local | is_init))
+    if (UClookup(entry) != UC_USAGE && (is_local | is_init) &&
+        (requiere_none ? UClookup(entry) == UC_NONE : true))
     {
         collect_sideeffects = true;
         STATEMENTS_STMT(node) = TRAVopt(STATEMENTS_STMT(node));
@@ -684,7 +712,7 @@ node_st *OPT_DCEvar(node_st *node)
 
 node_st *OPT_DCEassign(node_st *node)
 {
-    if (collect_sideeffects)
+    if (collect_sideeffects | tag_usages)
     {
         ASSIGN_EXPR(node) = TRAVopt(ASSIGN_EXPR(node));
     }
@@ -703,7 +731,9 @@ node_st *OPT_DCEassign(node_st *node)
         release_assert(entry != NULL);
         node_st *local_entry = HTlookup(current, name);
         release_assert(local_entry == NULL || UClookup(entry) == UC_USAGE ||
-                       STRprefix("@for", name));
+                       STRprefix("@for", name) ||
+                       (NODE_TYPE(ASSIGN_EXPR(node)) == NT_PROCCALL &&
+                        STReq(VAR_NAME(PROCCALL_VAR(ASSIGN_EXPR(node))), alloc_func)));
 
         if (collect_if_usages)
         {
@@ -734,7 +764,7 @@ node_st *OPT_DCEassign(node_st *node)
 
 node_st *OPT_DCEarrayassign(node_st *node)
 {
-    if (collect_sideeffects)
+    if (collect_sideeffects | tag_usages)
     {
         ARRAYASSIGN_EXPR(node) = TRAVopt(ARRAYASSIGN_EXPR(node));
         ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)) = TRAVopt(ARRAYEXPR_DIMS(ARRAYASSIGN_VAR(node)));
@@ -744,7 +774,7 @@ node_st *OPT_DCEarrayassign(node_st *node)
         char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
         node_st *entry = deep_lookup(current, name);
         release_assert(entry != NULL);
-        has_consumtion = UClookup(entry) == UC_USAGE;
+        has_consumtion = UClookup(entry) != UC_NONE;
     }
     else
     {
@@ -753,7 +783,7 @@ node_st *OPT_DCEarrayassign(node_st *node)
         node_st *entry = deep_lookup(current, name);
         release_assert(entry != NULL);
         node_st *local_entry = HTlookup(current, name);
-        release_assert(local_entry == NULL || UClookup(entry) == UC_USAGE);
+        release_assert(local_entry == NULL || UClookup(entry) != UC_NONE);
         UCset(entry, UC_CONSUMED);
 
         if (collect_if_usages)
@@ -914,6 +944,10 @@ node_st *OPT_DCEproccall(node_st *node)
             TRAVopt(PROCCALL_EXPRS(node));
         }
     }
+    else if (tag_usages)
+    {
+        TRAVopt(PROCCALL_EXPRS(node));
+    }
     else
     {
         bool already_optimized = UClookup(entry) != UC_USAGE;
@@ -949,11 +983,20 @@ node_st *OPT_DCEdowhileloop(node_st *node)
         return node;
     }
 
+    if (tag_usages)
+    {
+        TRAVchildren(node);
+        return node;
+    }
+
     // collect usage of the expression in the check as we go bottom up during usage collection
     if (check_stmts_sideffect(DOWHILELOOP_BLOCK(node), current) ||
         has_consume(DOWHILELOOP_BLOCK(node)))
     {
         DOWHILELOOP_EXPR(node) = TRAVopt(DOWHILELOOP_EXPR(node));
+        tag_usages = true;
+        DOWHILELOOP_BLOCK(node) = TRAVopt(DOWHILELOOP_BLOCK(node));
+        tag_usages = false;
     }
 
     bool parent_check_return = check_return;
@@ -1010,6 +1053,14 @@ node_st *OPT_DCEforloop(node_st *node)
         return node;
     }
 
+    if (tag_usages)
+    {
+        TRAVchildren(node);
+        return node;
+    }
+
+    bool is_consuming =
+        check_stmts_sideffect(FORLOOP_BLOCK(node), current) || has_consume(FORLOOP_BLOCK(node));
     htable_stptr parent_if_usage_stmts = if_usage_stmts;
     htable_stptr parent_else_usage_stmts = else_usage_stmts;
     bool parent_collect_if_usages = collect_if_usages;
@@ -1019,6 +1070,12 @@ node_st *OPT_DCEforloop(node_st *node)
 
     collect_else_usages = false;
     collect_if_usages = true;
+    if (is_consuming)
+    {
+        tag_usages = true;
+        FORLOOP_BLOCK(node) = TRAVopt(FORLOOP_BLOCK(node));
+        tag_usages = false;
+    }
     FORLOOP_BLOCK(node) = TRAVopt(FORLOOP_BLOCK(node));
     collect_if_usages = false;
     UCrestore();
@@ -1085,10 +1142,18 @@ node_st *OPT_DCEwhileloop(node_st *node)
         return node;
     }
 
+    if (tag_usages)
+    {
+        TRAVchildren(node);
+        return node;
+    }
+
     // Optimize by not calling, if no other than the here check expression is consumed
     // in the while loop and no sideffect, i.e. we can optimize the loop away with assignment to the
-    // while expr. NOTE: we can do this for the do while loop
-    if (check_stmts_sideffect(WHILELOOP_BLOCK(node), current) || has_consume(WHILELOOP_BLOCK(node)))
+    // while expr. NOTE: we can do this for the do while loop too.
+    bool is_consumed =
+        check_stmts_sideffect(WHILELOOP_BLOCK(node), current) || has_consume(WHILELOOP_BLOCK(node));
+    if (is_consumed)
     {
         // The block may change anything in the expression
         WHILELOOP_EXPR(node) = TRAVopt(WHILELOOP_EXPR(node));
@@ -1103,6 +1168,12 @@ node_st *OPT_DCEwhileloop(node_st *node)
 
     collect_if_usages = true;
     collect_else_usages = false;
+    if (is_consumed)
+    {
+        tag_usages = true;
+        WHILELOOP_BLOCK(node) = TRAVopt(WHILELOOP_BLOCK(node));
+        tag_usages = false;
+    }
     WHILELOOP_BLOCK(node) = TRAVopt(WHILELOOP_BLOCK(node)); // Statments may change
     collect_if_usages = false;
     UCrestore();
@@ -1149,6 +1220,12 @@ node_st *OPT_DCEifstatement(node_st *node)
         {
             TRAVchildren(node);
         }
+        return node;
+    }
+
+    if (tag_usages)
+    {
+        TRAVchildren(node);
         return node;
     }
 

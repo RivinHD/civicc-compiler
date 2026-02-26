@@ -60,8 +60,9 @@ template <size_t TCount, bool TOptimize> class BehaviorTest : public testing::Te
         using namespace std::filesystem;
         const path project_directory = std::filesystem::absolute(PROJECT_DIRECTORY);
         const path input_folder = project_directory / "test/data";
-        const path output_folder = project_directory / "build/test_output" /
-                                   (test_info->name() + std::string("__") + std::to_string(TCount));
+        const path output_folder =
+            project_directory / "build/test_output" /
+            (test_info->name() + std::string(TOptimize ? "_Opt_" : "__") + std::to_string(TCount));
         create_directories(output_folder);
         for (size_t i = 0; i < TCount; i++)
         {
@@ -829,7 +830,7 @@ TEST_F(BehaviorTest_1, Suite_NestedFuns_NestedFuns)
     ASSERT_THAT(vm_output, testing::HasSubstr(expected));
 }
 
-TEST_F(BehaviorTest_1, Suite_NestedFuns_Scpose)
+TEST_F(BehaviorTest_1, Suite_NestedFuns_Scopse)
 {
     std::string filepaths[] = {
         "testsuite_public/nested_funs/functional/scopes.cvc",
@@ -1124,7 +1125,6 @@ TEST_F(BehaviorTest_2, Functional_Codegen_Paths)
 //            Tests including optimizations
 // ===================================================
 
-/**
 TEST_F(BehaviorTestOpt_1, WhileLoops)
 {
     std::string filepaths[] = {"codegen/while_loops/main.cvc"};
@@ -1134,9 +1134,9 @@ TEST_F(BehaviorTestOpt_1, WhileLoops)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(150, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(1697, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, ArrayInit)
@@ -1148,9 +1148,9 @@ TEST_F(BehaviorTestOpt_1, ArrayInit)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(466, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(237, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, Binops)
@@ -1162,9 +1162,9 @@ TEST_F(BehaviorTestOpt_1, Binops)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(183, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(43, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, Casts)
@@ -1176,9 +1176,9 @@ TEST_F(BehaviorTestOpt_1, Casts)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(89, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(14, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, DoWhileLoops)
@@ -1190,9 +1190,9 @@ TEST_F(BehaviorTestOpt_1, DoWhileLoops)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(166, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(2517, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, ForLoops)
@@ -1204,9 +1204,9 @@ TEST_F(BehaviorTestOpt_1, ForLoops)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(174, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(3384, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_1, Monops)
@@ -1218,9 +1218,9 @@ TEST_F(BehaviorTestOpt_1, Monops)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(118, code_sizes[0]);
+    ASSERT_EQ(43, code_sizes[0]);
 
-    ASSERT_EQ(23, instruction_count);
+    ASSERT_EQ(2, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_2, Suite_Arrays_ExternArrayArg)
@@ -1233,10 +1233,10 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_ExternArrayArg)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(92, code_sizes[0]);
-    ASSERT_EQ(225, code_sizes[1]);
+    ASSERT_EQ(43, code_sizes[0]);
+    ASSERT_EQ(132, code_sizes[1]);
 
-    ASSERT_EQ(201, instruction_count);
+    ASSERT_EQ(193, instruction_count);
 }
 
 TEST_F(BehaviorTestOpt_2, Suite_Arrays_Scopes)
@@ -1250,9 +1250,9 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_Scopes)
     ASSERT_EQ(255, vm_status);
 
     ASSERT_EQ(318, code_sizes[0]);
-    ASSERT_EQ(112, code_sizes[1]);
+    ASSERT_EQ(81, code_sizes[1]);
 
-    ASSERT_THAT(vm_output, testing::HasSubstr("Exception: stack element is not an integer value"));
+    ASSERT_THAT(vm_output, testing::HasSubstr("Exception: array index out of bound"));
 }
 
 TEST_F(BehaviorTestOpt_2, Suite_Arrays_CombinedExternArray)
@@ -1265,10 +1265,10 @@ TEST_F(BehaviorTestOpt_2, Suite_Arrays_CombinedExternArray)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(151, code_sizes[0]);
+    ASSERT_EQ(135, code_sizes[0]);
     ASSERT_EQ(121, code_sizes[1]);
 
-    ASSERT_EQ(48, instruction_count);
+    ASSERT_EQ(47, instruction_count);
 
     ASSERT_THAT(vm_output, testing::HasSubstr("\n1235Instructions "));
 }
@@ -1284,9 +1284,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArrayInit)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(362, code_sizes[0]);
+    ASSERT_EQ(306, code_sizes[0]);
 
-    ASSERT_EQ(451, instruction_count);
+    ASSERT_EQ(422, instruction_count);
 
     const char *expected = "1 2 3 \n"
                            "4 5 6 \n"
@@ -1308,9 +1308,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArrayInitGlobal)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(275, code_sizes[0]);
+    ASSERT_EQ(251, code_sizes[0]);
 
-    ASSERT_EQ(164, instruction_count);
+    ASSERT_EQ(146, instruction_count);
 
     const char *expected = "1 2 \n"
                            "3 4 \n";
@@ -1329,9 +1329,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_ArraySingleEval)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(551, code_sizes[0]);
+    ASSERT_EQ(422, code_sizes[0]);
 
-    ASSERT_EQ(339, instruction_count);
+    ASSERT_EQ(325, instruction_count);
 
     const char *expected = "1 1\n"
                            "\n"
@@ -1375,9 +1375,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Arrays_Scopes)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(396, code_sizes[0]);
+    ASSERT_EQ(395, code_sizes[0]);
 
-    ASSERT_EQ(228, instruction_count);
+    ASSERT_EQ(227, instruction_count);
 
     const char *expected = "17\n"
                            "2\n"
@@ -1423,10 +1423,10 @@ TEST_F(BehaviorTestOpt_2, Suite_Basic_CombinedExternVar)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(108, code_sizes[0]);
+    ASSERT_EQ(72, code_sizes[0]);
     ASSERT_EQ(64, code_sizes[1]);
 
-    ASSERT_EQ(9, instruction_count);
+    ASSERT_EQ(8, instruction_count);
 
     const char *expected = "222";
 
@@ -1444,9 +1444,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_BoolOp)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(681, code_sizes[0]);
+    ASSERT_EQ(611, code_sizes[0]);
 
-    ASSERT_EQ(711, instruction_count);
+    ASSERT_EQ(692, instruction_count);
 
     const char *expected = "100\n"
                            "010\n"
@@ -1498,9 +1498,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_ForToWhile)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(403, code_sizes[0]);
+    ASSERT_EQ(386, code_sizes[0]);
 
-    ASSERT_EQ(904, instruction_count);
+    ASSERT_EQ(902, instruction_count);
 
     const char *expected = "0 1 2 3 4 5 6 7 8 9 \n"
                            "10 9 8 7 6 5 4 3 2 1 \n"
@@ -1526,9 +1526,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_ForLoop)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(306, code_sizes[0]);
+    ASSERT_EQ(234, code_sizes[0]);
 
-    ASSERT_EQ(201, instruction_count);
+    ASSERT_EQ(195, instruction_count);
 
     const char *expected = "9   8   7   6   5   \n"
                            "4   3   2   1   0   \n";
@@ -1567,9 +1567,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_RecursionEarlyReturn)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(174, code_sizes[0]);
+    ASSERT_EQ(158, code_sizes[0]);
 
-    ASSERT_EQ(313, instruction_count);
+    ASSERT_EQ(312, instruction_count);
 
     const char *expected = "1 1 2 6 24 120 \n";
 
@@ -1587,9 +1587,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_SimpleFor)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(156, code_sizes[0]);
+    ASSERT_EQ(140, code_sizes[0]);
 
-    ASSERT_EQ(137, instruction_count);
+    ASSERT_EQ(136, instruction_count);
 
     const char *expected = "0 1 2 3 4 5 6 7 8 9 \n";
 
@@ -1607,9 +1607,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_Typecheck)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(370, code_sizes[0]);
+    ASSERT_EQ(264, code_sizes[0]);
 
-    ASSERT_EQ(100, instruction_count);
+    ASSERT_EQ(88, instruction_count);
 
     const char *expected = "0\n"
                            "4\n"
@@ -1629,9 +1629,9 @@ TEST_F(BehaviorTestOpt_1, Suite_Basic_VarInit)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(248, code_sizes[0]);
+    ASSERT_EQ(238, code_sizes[0]);
 
-    ASSERT_EQ(73, instruction_count);
+    ASSERT_EQ(71, instruction_count);
 
     const char *expected = "3\n"
                            "3\n"
@@ -1655,16 +1655,16 @@ TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_NestedFuns)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(184, code_sizes[0]);
+    ASSERT_EQ(156, code_sizes[0]);
 
-    ASSERT_EQ(69, instruction_count);
+    ASSERT_EQ(62, instruction_count);
 
     const char *expected = "3215454454";
 
     ASSERT_THAT(vm_output, testing::HasSubstr(expected));
 }
 
-TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_Scpose)
+TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_Scopse)
 {
     std::string filepaths[] = {
         "testsuite_public/nested_funs/functional/scopes.cvc",
@@ -1675,9 +1675,9 @@ TEST_F(BehaviorTestOpt_1, Suite_NestedFuns_Scpose)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(356, code_sizes[0]);
+    ASSERT_EQ(322, code_sizes[0]);
 
-    ASSERT_EQ(112, instruction_count);
+    ASSERT_EQ(111, instruction_count);
 
     const char *expected = "11111\n"
                            "123\n"
@@ -1745,11 +1745,11 @@ TEST_F(BehaviorTestOpt_3, Functional_Assignment01_Test)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(1853, code_sizes[0]);
-    ASSERT_EQ(1499, code_sizes[1]);
-    ASSERT_EQ(450, code_sizes[2]);
+    ASSERT_EQ(1476, code_sizes[0]);
+    ASSERT_EQ(1480, code_sizes[1]);
+    ASSERT_EQ(433, code_sizes[2]);
 
-    ASSERT_EQ(6473, instruction_count);
+    ASSERT_EQ(6334, instruction_count);
 
     const char *expected = "25 25\n";
 
@@ -1768,12 +1768,12 @@ TEST_F(BehaviorTestOpt_4, Functional_Assignment01_Queens)
     check_skip(skipped);
     ASSERT_EQ(1, vm_status);
 
-    ASSERT_EQ(1847, code_sizes[0]);
-    ASSERT_EQ(1499, code_sizes[1]);
-    ASSERT_EQ(514, code_sizes[2]);
-    ASSERT_EQ(450, code_sizes[3]);
+    ASSERT_EQ(1437, code_sizes[0]);
+    ASSERT_EQ(1480, code_sizes[1]);
+    ASSERT_EQ(399, code_sizes[2]);
+    ASSERT_EQ(433, code_sizes[3]);
 
-    ASSERT_EQ(61536242, instruction_count);
+    ASSERT_EQ(61534591, instruction_count);
 
     const char *expected = "1\n"
                            "1 0 0 0 0 0 0 0 \n"
@@ -1892,10 +1892,10 @@ TEST_F(BehaviorTestOpt_2, Functional_Codegen_Paths)
     check_skip(skipped);
     ASSERT_EQ(0, vm_status);
 
-    ASSERT_EQ(2057, code_sizes[0]);
-    ASSERT_EQ(1409, code_sizes[1]);
+    ASSERT_EQ(1526, code_sizes[0]);
+    ASSERT_EQ(1114, code_sizes[1]);
 
-    ASSERT_EQ(30003895, instruction_count);
+    ASSERT_EQ(30003041, instruction_count);
 
     const char *expected =
         "896091\n"
@@ -1953,4 +1953,4 @@ TEST_F(BehaviorTestOpt_2, Functional_Codegen_Paths)
         "11\n";
 
     ASSERT_THAT(vm_output, testing::HasSubstr(expected));
-}*/
+}
