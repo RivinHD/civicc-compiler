@@ -156,8 +156,16 @@ node_st *OPT_CFbinop(node_st *node)
             if (right == 0)
             {
                 CTIobj(CTI_WARN, true, info,
-                       "Encountered 'Modulo by zero' as optimization result of '%d %c %d'. Using "
+                       "Encountered 'Division by zero' as optimization result of '%d %c %d'. Using "
                        "INT_MAX=2147483647 for further optimization.",
+                       left, '%', right);
+                iresult = INT_MAX;
+            }
+            else if (right == -1 && left == INT_MIN)
+            {
+                CTIobj(CTI_WARN, true, info,
+                       "Encountered 'Division Overflow' as optimization result of '%d %c %d'. "
+                       "Using INT_MAX=2147483647 for further optimization.",
                        left, '%', right);
                 iresult = INT_MAX;
             }

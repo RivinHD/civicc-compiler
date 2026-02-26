@@ -60,6 +60,10 @@ enum usage_state
     UC_USAGE = 2, // always MAX
 };
 
+// Shift to not overwrite the value of usage_state MAX
+const uint UCshift = 5;
+const uint UCmask = (1 << UCshift) - 1;
+
 static void UCset(void *key, enum usage_state state)
 {
     release_assert(usage_table != NULL);
@@ -93,13 +97,13 @@ static void UCrestore()
     {
         void *key = HTiterKey(iter);
         void *value = HTiterValue(iter);
-        ptrdiff_t if_value = (ptrdiff_t)value;
+        ptrdiff_t if_value = (ptrdiff_t)value & UCmask;
         release_assert(if_value >= UC_NONE);
         release_assert(if_value <= UC_USAGE);
         enum usage_state if_state = (enum usage_state)if_value;
 
         void *entry = HTlookup(else_usage_stmts, key);
-        ptrdiff_t else_value = (ptrdiff_t)entry;
+        ptrdiff_t else_value = (ptrdiff_t)entry & UCmask;
         release_assert(else_value >= UC_NONE);
         release_assert(else_value <= UC_USAGE);
         enum usage_state else_state = (enum usage_state)else_value;
@@ -112,9 +116,21 @@ static void UCrestore()
         else
         {
             // We need to restore
-            // Its always usage, as it also was used the the statement itself thus we need the
-            // var decleration to exist.
-            UCset(key, UC_USAGE);
+            // Its always usage or consumed, as it also was used the the statement itself. Thus, we
+            // need the var decleration to exist.
+            ptrdiff_t if_value_origin = ((ptrdiff_t)value >> UCshift) & UCmask;
+            release_assert(if_value_origin >= UC_NONE);
+            release_assert(if_value_origin <= UC_USAGE);
+            if (entry != NULL)
+            {
+                ptrdiff_t else_value_origin = ((ptrdiff_t)entry >> UCshift) & UCmask;
+                release_assert(else_value_origin >= UC_NONE);
+                release_assert(else_value_origin <= UC_USAGE);
+                // Should have the same origin
+                release_assert(if_value_origin == else_value_origin);
+            }
+
+            UCset(key, (enum usage_state)if_value_origin);
         }
     }
 
@@ -123,13 +139,16 @@ static void UCrestore()
     {
         void *key = HTiterKey(iter);
         void *value = HTiterValue(iter);
-        ptrdiff_t else_value = (ptrdiff_t)value;
+        ptrdiff_t else_value = (ptrdiff_t)value & UCmask;
         release_assert(else_value >= UC_NONE);
         release_assert(else_value <= UC_USAGE);
 
         if (HTlookup(if_usage_stmts, key) == NULL)
         {
-            UCset(key, UC_USAGE);
+            ptrdiff_t else_value_origin = ((ptrdiff_t)value >> UCshift) & UCmask;
+            release_assert(else_value_origin >= UC_NONE);
+            release_assert(else_value_origin <= UC_USAGE);
+            UCset(key, (enum usage_state)else_value_origin);
         }
     }
 }
@@ -679,21 +698,26 @@ node_st *OPT_DCEassign(node_st *node)
         node_st *local_entry = HTlookup(current, name);
         release_assert(local_entry == NULL || UClookup(entry) == UC_USAGE ||
                        STRprefix("@for", name));
-        UCset(entry, UC_CONSUMED);
 
         if (collect_if_usages)
         {
             release_assert(if_usage_stmts != NULL);
-            bool success = HTinsert(if_usage_stmts, entry, (void *)UC_CONSUMED);
+            bool success =
+                HTinsert(if_usage_stmts, entry,
+                         (void *)(ptrdiff_t)((UClookup(entry) << UCshift) + UC_CONSUMED));
             release_assert(success);
         }
 
         if (collect_else_usages)
         {
             release_assert(else_usage_stmts != NULL);
-            bool success = HTinsert(else_usage_stmts, entry, (void *)UC_CONSUMED);
+            bool success =
+                HTinsert(else_usage_stmts, entry,
+                         (void *)(ptrdiff_t)((UClookup(entry) << UCshift) + UC_CONSUMED));
             release_assert(success);
         }
+
+        UCset(entry, UC_CONSUMED);
 
         // collect next usages
         ASSIGN_EXPR(node) = TRAVopt(ASSIGN_EXPR(node));
@@ -729,14 +753,18 @@ node_st *OPT_DCEarrayassign(node_st *node)
         if (collect_if_usages)
         {
             release_assert(if_usage_stmts != NULL);
-            bool success = HTinsert(if_usage_stmts, entry, (void *)UC_CONSUMED);
+            bool success =
+                HTinsert(if_usage_stmts, entry,
+                         (void *)(ptrdiff_t)((UClookup(entry) << UCshift) + UC_CONSUMED));
             release_assert(success);
         }
 
         if (collect_else_usages)
         {
             release_assert(else_usage_stmts != NULL);
-            bool success = HTinsert(else_usage_stmts, entry, (void *)UC_CONSUMED);
+            bool success =
+                HTinsert(else_usage_stmts, entry,
+                         (void *)(ptrdiff_t)((UClookup(entry) << UCshift) + UC_CONSUMED));
             release_assert(success);
         }
 

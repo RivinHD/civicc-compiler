@@ -87,7 +87,7 @@ node_st *OPT_BEifstatement(node_st *node)
     while (NODE_TYPE(expr) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
-        if (entry == NULL)
+        if (entry == NULL || entry != expr)
         {
             break;
         }
@@ -132,9 +132,10 @@ node_st *OPT_BEifstatement(node_st *node)
         IFSTATEMENT_ELSE_BLOCK(node) = NULL;
     }
 
+    bool parent_conditioned_assign = conditioned_assign;
     conditioned_assign = true;
     TRAVchildren(node);
-    conditioned_assign = false;
+    conditioned_assign = parent_conditioned_assign;
 
     return node;
 }
@@ -145,7 +146,7 @@ node_st *OPT_BEternary(node_st *node)
     while (NODE_TYPE(pred) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(pred));
-        if (entry == NULL)
+        if (entry == NULL || entry == pred)
         {
             break;
         }
@@ -181,7 +182,7 @@ node_st *OPT_BEwhileloop(node_st *node)
     while (NODE_TYPE(expr) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
-        if (entry == NULL)
+        if (entry == NULL || entry == expr)
         {
             break;
         }
@@ -196,9 +197,10 @@ node_st *OPT_BEwhileloop(node_st *node)
         CCNcycleNotify();
     }
 
+    bool parent_conditioned_assign = conditioned_assign;
     conditioned_assign = true;
     TRAVchildren(node);
-    conditioned_assign = false;
+    conditioned_assign = parent_conditioned_assign;
 
     return node;
 }
@@ -211,7 +213,7 @@ node_st *OPT_BEforloop(node_st *node)
     while (NODE_TYPE(expr) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
-        if (entry == NULL)
+        if (entry == NULL || entry == expr)
         {
             break;
         }
@@ -220,7 +222,7 @@ node_st *OPT_BEforloop(node_st *node)
     while (NODE_TYPE(cond) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(cond));
-        if (entry == NULL)
+        if (entry == NULL || entry == expr)
         {
             break;
         }
@@ -229,7 +231,7 @@ node_st *OPT_BEforloop(node_st *node)
     while (iter != NULL && NODE_TYPE(iter) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(iter));
-        if (entry == NULL)
+        if (entry == NULL || entry == expr)
         {
             break;
         }
@@ -252,9 +254,10 @@ node_st *OPT_BEforloop(node_st *node)
         }
     }
 
+    bool parent_conditioned_assign = conditioned_assign;
     conditioned_assign = true;
     TRAVchildren(node);
-    conditioned_assign = false;
+    conditioned_assign = parent_conditioned_assign;
 
     return node;
 }
@@ -265,7 +268,7 @@ node_st *OPT_BEdowhileloop(node_st *node)
     while (NODE_TYPE(expr) == NT_VAR)
     {
         node_st *entry = HTlookup(assign_table, VAR_NAME(expr));
-        if (entry == NULL)
+        if (entry == NULL || entry == expr)
         {
             break;
         }
