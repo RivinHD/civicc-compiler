@@ -7,8 +7,12 @@ and develop the basic functionality of a Compiler. For the development we levera
 [DSL](https://coconut-uva.github.io/coconut/dsl_syntax.html) a specific AST. Different passes can then
 be used to generate, optimize, or even print the AST.
 
-## Requierements
-The full dependencies of CoCoNut are listed on the [Coconut](https://github.com/CoCoNut-UvA/coconut)
+### Compiler Runtime Dependencies
+The installation of the C Preprocessor `cpp` is required for the usage of the preprocessing 
+capabilities of the compiler, otherwise use the `-ncpp` flag.
+
+## Requirements
+The full dependencies of coconut are listed on the [Coconut](https://github.com/CoCoNut-UvA/coconut)
 repository. 
 
 **Supported Systems:** Linux, macOS
@@ -19,9 +23,8 @@ On Ubuntu the requirements can be install with:
 ```bash
 sudo apt update && sudo apt install build-essential cmake bison flex graphviz
 ```
-For macOS, see [macOS dependencies](#macos-dependencies).
 
-## macOS 
+## MacOS 
 The following build dependencies are required on macOS:
 ```bash
 brew install cmake coreutils binutils bison graphviz gnu-tar
@@ -59,13 +62,23 @@ Further a release version can be build with:
 make release
 ```
 
+If you are only interested in building the compiler, use:
+```
+make civicc
+```
+
 For further information and additional targets run: 
 ```
 make help
 ```
 
+## Compiler Flags
+The compiler has the following flags:
+- `--output/-o <output_file>`: Output assembly to the given output file instead of STDOUT
+- `--nocpreprocessor/-ncpp`: Disables the C preprocessor
+- `--nooptimization/-nopt`: Disables the optimizations.
 
-## VS Code support
+## VS Code Support
 For syntax highlighting of the CoCoNut DSL files (e.g. the `main.ccn` file), you can install the 
 [nutcracker](https://github.com/CoCoNut-UvA/nutcracker/) extension from the Visual Studio Marketplace 
 [here](https://marketplace.visualstudio.com/items?itemName=CoCoNut-UvA.nutcracker).
@@ -161,7 +174,7 @@ Therefore also need the dependencies list their.
 The `atnlr-4.8-complete.jar` will be automatically download in placed in the Grammar Mutator library
 by our `CMakeLists.txt`.
 
-### Further recommended setup steps (optional)
+### Further Recommended Setup Steps (Optional)
 
 Fuzzing has some risk on your system, you should have already read about them in the
 [0. Common sense risk](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#0-common-sense-risks).
@@ -212,7 +225,7 @@ The following targets are available:
 
 *Note:* Keeping the fuzz target/slice smaller is more efficient.
 
-#### Multicore fuzzing
+#### Multicore Fuzzing
 
 The fuzz on multiple cores, you can set use the `fuzz_<target>_multi` targets and set the number of
 cores to use with the flag `FUZZ_CORES=<Cores>`.

@@ -28,13 +28,13 @@ help:
 	@echo "  test:  Runs all test with ctest in parallel."
 	@echo "  afl_build:  Build the targets and sanatized targets with the afl compiler."
 	@echo "  generate_seeds:  Generates seeds for the afl run, these will generate valid civicc programs."
-	@echo "  fuzz_civicc:  Fuzz the complete civcc compiler with afl, with correct and incorrect civicc programs."
-	@echo "  fuzz_civicc_grammar:  Fuzz the complete civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_scanparse:  Fuzz the scanner and parser of the civcc compiler with afl, with correct and incorrect civicc programs."
 	@echo "  fuzz_scanparse_grammar:  Fuzz the scanner and parser of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_context_grammar:  Fuzz the context analysis of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegenprep_grammar:  Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs."
 	@echo "  fuzz_codegen_grammar:  Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_codegen_optimized_grammar:  Fuzz the codegen with optimizations of the civcc compiler with afl, with only syntax correct civicc programs."
+	@echo "  fuzz_optimization_grammar:  Fuzz the optimizations of the civcc compiler with afl, with only syntax correct civicc programs."
 
 .PHONY: jobs
 jobs:
@@ -186,15 +186,6 @@ define fuzz_single
 	cp -r -u afl/trees/${$@_grammar} afl/${$@_dirname}/out/default
 	LSAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:detect_leaks=1:exitcode=23:abort_on_error=1:symbolize=0 ASAN_OPTIONS=hard_rss_limit_mb=512:soft_rss_limit_mb=256:allocator_may_return_null=1:abort_on_error=1:symbolize=0:detect_leaks=0 AFL_AUTORESUME=1 AFL_CUSTOM_MUTATOR_LIBRARY=./build-afl/libgrammarmutator-${$@_grammar}.so ${$@_afl_extra_args} afl-fuzz -m none -t 10 -i ./afl/seeds/${$@_target} -o ./afl/${$@_dirname}/out -w ./build-afl/${$@_target}_asan -w ./build-afl/${$@_target}_lsan -w ./build-afl/${$@_target}_ubsan -w ./build-afl/${$@_target}_msan -- ./build-afl/${$@_target} @@
 endef
-
-# Fuzz the complete compiler
-.PHONY: fuzz_civicc_grammar_multi
-fuzz_civicc_grammar_multi: generate_seeds
-	$(call fuzz_multicore,civicc,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
-
-.PHONY: fuzz_civicc_grammar
-fuzz_civicc_grammar: generate_seeds
-	$(call fuzz_single,civicc,civicc,civicc_grammar,AFL_CUSTOM_MUTATOR_ONLY=1)
 
 # Fuzz the scanner and parser only
 .PHONY: fuzz_scanparse_multi

@@ -14,12 +14,13 @@ static void Usage(char *program)
     if (program_bin)
         program = program_bin + 1;
 
-    printf("Usage: %s [OPTION...] <civic file>\n", program);
+    printf("Usage: %s [OPTION...] <input file>\n", program);
     printf("Options:\n");
     printf("  --help/-h                    This help message.\n");
-    printf("  --output/-o <output_file>    Output assembly to output file instead of STDOUT.\n");
-    printf("  --nocpreprocessor/-ncpp       Disables the C preprocessor.\n");
-    printf("  --nooptimization/-nopt       Disables the optimization.\n");
+    printf("  --output/-o <output_file>    Output assembly to the given output file instead of "
+           "STDOUT.\n");
+    printf("  --nocpreprocessor/-ncpp      Disables the C preprocessor.\n");
+    printf("  --nooptimization/-nopt       Disables the optimizations.\n");
 }
 
 static void RequiereArguments(char *option, int count, int argc, int index, char *program)
