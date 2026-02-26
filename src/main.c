@@ -1,5 +1,3 @@
-#include <ctype.h>
-#include <getopt.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +6,7 @@
 #include "ccn/dynamic_core.h"
 #include "ccn/phase_driver.h"
 #include "global/globals.h"
-#include "release_assert.h"
+#include "palm/str.h"
 
 static void Usage(char *program)
 {
@@ -18,74 +16,80 @@ static void Usage(char *program)
 
     printf("Usage: %s [OPTION...] <civic file>\n", program);
     printf("Options:\n");
-    printf("  -h                           This help message.\n");
+    printf("  --help/-h                    This help message.\n");
     printf("  --output/-o <output_file>    Output assembly to output file instead of STDOUT.\n");
-    printf("  --verbose/-v                 Enable verbose mode.\n");
-    printf("  --breakpoint/-b <breakpoint> Set a breakpoint.\n");
-    printf("  --structure/-s               Pretty print the structure of the compiler.\n");
+    printf("  --nocpreprocessor/-ncpp       Disables the C preprocessor.\n");
+    printf("  --nooptimization/-nopt       Disables the optimization.\n");
+}
+
+static void RequiereArguments(char *option, int count, int argc, int index, char *program)
+{
+    if (index + count >= argc)
+    {
+        char *str_arg = count > 1 ? "arguments" : "argument";
+        printf("ERROR: The '%s' option requieres %d positional %s.\n\n", option, count, str_arg);
+        Usage(program);
+        exit(EXIT_FAILURE);
+    }
 }
 
 /* Parse command lines. Usages the globals struct to store data. */
 static int ProcessArgs(int argc, char *argv[])
 {
-    static struct option long_options[] = {{"verbose", no_argument, 0, 'v'},
-                                           {"output", required_argument, 0, 'o'},
-                                           {"breakpoint", required_argument, 0, 'b'},
-                                           {"structure", no_argument, 0, 's'},
-                                           {0, 0, 0, 0}};
+    int i_argc = 1;
 
-    int option_index;
-    int c;
-
-    while (1)
+    if (i_argc < argc)
     {
-        c = getopt_long(argc, argv, "hsvo:b:", long_options, &option_index);
+        char *arg = argv[i_argc];
 
-        // End of options
-        if (c == -1)
-            break;
-
-        switch (c)
+        while (arg[0] == '-') // all options should start with a '-'
         {
-        case 'v':
-            global.verbose = 1;
-            CCNsetVerbosity(PD_V_MEDIUM);
-            break;
-        case 'b':
-            if (optarg != NULL && isdigit(optarg[0]))
+            bool is_long = arg[1] == '-';
+            if (STReq(arg, "-o") || (is_long && STReq(arg, "--output")))
             {
-                long int id = strtol(optarg, NULL, 10);
-                release_assert(id >= 0);
-                CCNsetBreakpointWithID((size_t)id);
+                RequiereArguments(arg, 1, argc, i_argc, argv[0]);
+                global.output_file = argv[++i_argc];
+            }
+            else if (STReq(arg, "-ncpp") || (is_long && STReq(arg, "--nocpreprocessor")))
+            {
+                global.preprocessor_enabled = false;
+            }
+            else if (STReq(arg, "-nopt") || (is_long && STReq(arg, "--nooptimization")))
+            {
+                global.optimization_enabled = false;
+            }
+            else if (STReq(arg, "-h") || (is_long && STReq(arg, "--help")))
+            {
+                Usage(argv[0]);
+                exit(EXIT_FAILURE);
             }
             else
             {
-                CCNsetBreakpoint(optarg);
+                printf("ERROR: Invalid option '%s'\n\n.", arg);
+                Usage(argv[0]);
+                exit(EXIT_FAILURE);
             }
-            break;
-        case 's':
-            CCNshowTree();
-            break;
-        case 'o':
-            global.output_file = optarg;
-            break;
-        case 'h':
-            Usage(argv[0]);
-            exit(EXIT_SUCCESS);
-        case '?':
-            Usage(argv[0]);
-            exit(EXIT_FAILURE);
+
+            if (i_argc >= argc)
+            {
+                break;
+            }
+
+            arg = argv[++i_argc];
         }
     }
-    if (optind == argc - 1)
+
+    if (i_argc == argc - 1)
     {
-        global.input_file = argv[optind];
+        global.input_file = argv[i_argc];
     }
     else
     {
+        printf("ERROR: No civic file is given as last argument.\n\n.");
         Usage(argv[0]);
         exit(EXIT_FAILURE);
     }
+
     return EXIT_SUCCESS;
 }
 

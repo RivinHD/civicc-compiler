@@ -6,13 +6,17 @@
 #include <ccn/phase_driver.h>
 #include <ccngen/enum.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 
 static void warn_float_result_infnan(node_st *node, double val, double left, double right, char op)
 {
-    struct ctinfo info = NODE_TO_CTINFO(node);
-    CTIobj(CTI_WARN, true, info, "Encountered '%f' as optimization result of '%f %c %f'.", val,
-           left, op, right);
+    if (isnan(val) || isinf(val))
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        CTIobj(CTI_WARN, true, info, "Encountered '%f' as optimization result of '%f %c %f'.", val,
+               left, op, right);
+    }
 }
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))

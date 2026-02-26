@@ -9,6 +9,7 @@
 struct globals
 {
     bool preprocessor_enabled;
+    bool optimization_enabled;
     const char *input_file;
     const char *output_file;
     char *filename;

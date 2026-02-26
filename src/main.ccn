@@ -16,6 +16,7 @@ traversal Print {
 };
 
 cycle Optimization {
+    gate = isOptimizationEnabled,
     actions {
         traversal AlgebraicSimplification {
             uid = OPT_AS,
