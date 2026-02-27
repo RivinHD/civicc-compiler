@@ -6,8 +6,8 @@
 #include "palm/hash_table.h"
 #include "palm/str.h"
 #include "release_assert.h"
-#include "to_string.h"
 #include "user_types.h"
+#include <ccn/phase_driver.h>
 #include <ccngen/ast.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -696,4 +696,12 @@ static void free_symbols(htable_stptr symbols)
     }
 
     HTdelete(symbols);
+}
+
+static void check_phase_error()
+{
+    if (CTIgetErrors() > 0)
+    {
+        CCNerrorPhase();
+    }
 }

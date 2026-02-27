@@ -979,5 +979,6 @@ node_st *CA_TCprogram(node_st *node)
     release_assert(rettype == DT_NULL);
     release_assert(has_return == false);
     release_assert(anytype == false);
+    check_phase_error();
     return node;
 }

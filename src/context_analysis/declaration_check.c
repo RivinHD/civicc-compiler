@@ -338,5 +338,6 @@ node_st *CA_DCprogram(node_st *node)
     sync_symbol_keys(current);
     htable_stptr parent = HTlookup(current, htable_parent_name);
     release_assert(parent == NULL);
+    check_phase_error();
     return node;
 }

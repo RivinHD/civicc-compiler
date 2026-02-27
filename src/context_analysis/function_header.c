@@ -54,6 +54,8 @@ node_st *CA_FHprogram(node_st *node)
                    "Defined main function should not contain any function parameters.");
         }
     }
+
+    check_phase_error();
     return node;
 }
 
