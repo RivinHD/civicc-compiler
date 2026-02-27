@@ -24,7 +24,7 @@ On Ubuntu the requirements can be install with:
 sudo apt update && sudo apt install build-essential cmake bison flex graphviz
 ```
 
-## MacOS 
+### MacOS 
 The following build dependencies are required on macOS:
 ```bash
 brew install cmake coreutils binutils bison graphviz gnu-tar
@@ -179,22 +179,9 @@ by our `CMakeLists.txt`.
 Fuzzing has some risk on your system, you should have already read about them in the
 [0. Common sense risk](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#0-common-sense-risks).
 
-The mitigate the physical I/O risk, we can write to a filesystem that lives on the RAM, also known
-as `ramdisk` or `tmpfs`. 
-This is exactly what AFL recommends in their 
-[Fuzzing in Depth](https://aflplus.plus/docs/fuzzing_in_depth/) documentation.
-Therefore, we will mount a `tmpfs` for our own usage and anytime AFL is called we will use the 
-`AFL_TMPDIR` flag to tell AFL were to write data if needed:
-1. Create an empty directory to mount to:
-    ```
-    mkdir /mnt/tmpfs
-    ```
-2. Mount the directory:
-    ```
-    mount -t tmpfs -o size=16G tmpfs /mnt/tmpfs/
-    ```
-    Here we have a limit of 16 gigabytes of ram to use for our ram filesystem.
-
+We do not write the files under fuzzing in the filesystem, because we use shmem persistent mode for all our
+target. Otherwise, one would create a filesystem that lives on the RAM, also known as `ramdisk` or `tmpfs`,
+to mitigate the physical I/O risk.
 
 ### Start Fuzzing
 
@@ -204,7 +191,7 @@ sudo afl-sytem-config
 ```
 This will reconfigure your system for more fuzzing performance.\
 *NOTE:* These changes will reduce the security of the system!\
-But these are none-persistent changes and will be reset after system is rebooted.
+But these are none-persistent changes and will be reset after the system is rebooted.
 
 Now you can setup the fuzzing campaign with:
 ```
@@ -224,8 +211,6 @@ The following targets are available:
 - `codegen_grammar`: Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs.
 - `codegen_optimized_grammar`:  Fuzz the codegen with optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
 - `optimization_grammar`: Fuzz the optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
-
-*Note:* Keeping the fuzz target/slice smaller is more efficient.
 
 #### Multicore Fuzzing
 
