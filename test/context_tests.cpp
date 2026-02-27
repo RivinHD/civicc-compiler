@@ -5877,7 +5877,7 @@ TEST_F(ContextTest, DoubleDec)
     SetUpNoExecute("double/vardec/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("already defined"),
-                               testing::HasSubstr("'value1'"), testing::HasSubstr("3:5 - 3:20")));
+                               testing::HasSubstr("'value1'"), testing::HasSubstr("3:5 - 3:19")));
 }
 
 TEST_F(ContextTest, DoubleFunDef)
@@ -5885,7 +5885,7 @@ TEST_F(ContextTest, DoubleFunDef)
     SetUpNoExecute("double/fundef/main.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
                 testing::AllOf(testing::HasSubstr("'fun_one' already defined"),
-                               testing::HasSubstr("1:1 - 1:23")));
+                               testing::HasSubstr("1:1 - 1:21")));
 }
 
 TEST_F(ContextTest, VarDecInvalid)
@@ -5938,7 +5938,8 @@ TEST_F(ContextTest, Suite_Basic_InvalidReturnVoidFunc)
     ASSERT_EXIT(
         run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
         testing::AllOf(testing::HasSubstr("'true' has type 'bool' but expected type 'void'"),
-                       testing::HasSubstr(" 1 Error")));
+                       testing::HasSubstr("Cannot return 'none-void' for void function"),
+                       testing::HasSubstr(" 2 Error")));
 }
 
 TEST_F(ContextTest, Suite_Basic_InvalidStatement)
@@ -5978,7 +5979,7 @@ TEST_F(ContextTest, Suite_Arrays_ShadowedDimension)
 {
     SetUpNoExecute("testsuite_public/arrays/check_error/shadowed_dimension.cvc");
     ASSERT_EXIT(run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
-                testing::AllOf(testing::HasSubstr("'a' already defined at 1:11 - 1:19"),
+                testing::AllOf(testing::HasSubstr("'a' already defined at 1:10 - 1:17"),
                                testing::HasSubstr(" 1 Error")));
 }
 
@@ -6015,6 +6016,7 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("non-void function does not return a value in all control paths"),
             testing::HasSubstr("'6.000000' has type 'float' but expected type 'int'"),
             testing::HasSubstr("'false' has type 'bool' but expected type 'int'"),
+            testing::HasSubstr("Cannot return 'none-void' for void function"),
             testing::HasSubstr("'1' has type 'int' but expected type 'void'"),
             testing::HasSubstr("'1.000000' has type 'float' but expected type 'void'"),
             testing::HasSubstr("'false' has type 'bool' but expected type 'void'"),
@@ -6043,13 +6045,14 @@ TEST_F(ContextTest, Typecheck_Invalid)
             testing::HasSubstr("'param' has type 'float' but expected type 'int'"),
             testing::HasSubstr("Array 'param' has '2' dimension, but '3' dimensions are used"),
             testing::HasSubstr("Array 'param' can only be accessed with dimension indicies"),
+            testing::HasSubstr("'m' has type 'int' but expected type 'float'"),
             testing::HasSubstr("Expected array for argument 'param', but got scalar 'm'"),
             testing::HasSubstr("Array 'input1' has '1' dimension, but '2' dimensions are used"),
             testing::HasSubstr("Array 'input2' has '4' dimension, but '2' dimensions are used"),
             testing::HasSubstr("Array 'param' can only be accessed with dimension indicies"),
             testing::HasSubstr("'0.000000' has type 'float' but expected type 'int'"),
             testing::HasSubstr("error: Assignment to for loop iterator 'i' is illegal"),
-            testing::HasSubstr(" 62 Error")));
+            testing::HasSubstr(" 66 Error")));
 }
 
 TEST_F(ContextTest, Typecheck_EdgeCaseArray)
@@ -6059,4 +6062,14 @@ TEST_F(ContextTest, Typecheck_EdgeCaseArray)
                 testing::AllOf(testing::HasSubstr(
                                    "Scalar 'json' can not be accessed with an array expression."),
                                testing::HasSubstr(" 1 Error")));
+}
+
+TEST_F(ContextTest, Typecheck_EdgeCaseProccall)
+{
+    SetUpNoExecute("typecheck/edge_case_proccall/main.cvc");
+    ASSERT_EXIT(
+        run_context_analysis(input_filepath.c_str()), testing::ExitedWithCode(1),
+        testing::AllOf(testing::HasSubstr("'json' has type 'int' but expected type 'float'"),
+                       testing::HasSubstr("Cannot return 'none-void' for void function"),
+                       testing::HasSubstr(" 2 Error")));
 }

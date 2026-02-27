@@ -3,7 +3,7 @@ start phase RootPhase {
 
     actions {
         pass SPdoScanParse;
-        ContextAnalysis;
+        SemanticAnalysis;
         CodeGenPreparation;
         Optimization;
         CodeGen;
@@ -15,16 +15,73 @@ traversal Print {
     uid = PRT
 };
 
-phase Optimization {
+cycle Optimization {
+    gate = isOptimizationEnabled,
     actions {
-        traversal OptSubstraction {
-            uid = OS,
-            nodes = { Binop }
+        traversal AlgebraicSimplification {
+            uid = OPT_AS,
+            nodes = {
+                Program,
+                Binop,
+                Monop,
+                ProcCall,
+                FunDef,
+                Ternary
+            }
+        };
+        traversal AlgebraicReordering {
+            uid = OPT_AR,
+            nodes = {
+                Binop
+            }
+        };
+        traversal ConstantFolding {
+            uid = OPT_CF,
+            nodes = {
+                Program,
+                Binop,
+                Ternary
+            }
+        };
+        traversal BranchEvaluation { // Optimize branching decision on constant values
+            uid = OPT_BE,
+            nodes = {
+                IfStatement,
+                Ternary,
+                WhileLoop,
+                ForLoop,
+                DoWhileLoop,
+                Statements,
+                Program,
+                FunDef, 
+                Assign
+            }
+        };
+        traversal DeadCodeElimination {
+            uid = OPT_DCE,
+            nodes = {
+                Program,
+                Fundef,
+                Funbody,
+                Declarations,
+                LocalFunDefs,
+                VarDecs,
+                Statements,
+                Var,
+                Assign,
+                ProcCall,
+                DoWhileLoop,
+                ArrayAssign,
+                ForLoop,
+                WhileLoop,
+                IfStatement,
+                Ternary
+            }
         };
     }
 };
 
-phase ContextAnalysis {
+phase SemanticAnalysis {
     actions {
         traversal ExtractForIterator {
             uid = CA_EFI,
@@ -227,15 +284,12 @@ enum DataType {
 /* Nodesets ***********/
 /**********************/
 
-nodeset Expr = {Ternary, Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool};
+nodeset Expr = {Ternary, Binop, Monop, Cast, ProcCall, Var, ArrayExpr, Int, Float, Bool, Pop};
 nodeset Statement = {Assign, ProcCall, IfStatement, WhileLoop, DoWhileLoop, ForLoop, RetStatement, ArrayAssign};
 nodeset Declaration = {FunDec, FunDef, GlobalDec, GlobalDef};
 nodeset VarOptArrayVar = {Var, ArrayVar};
 nodeset VarOptArrayExpr = {Var, ArrayExpr};
 nodeset ExprOptArrayInit = Expr | {ArrayInit};
-
-// Nodes you want to be able to link to from your symbol table.
-nodeset Link = Expr | Statement;
 
 /**********************/
 /* Nodes **************/
@@ -243,7 +297,7 @@ nodeset Link = Expr | Statement;
 
 root node Program {
     children {
-        Declarations decls { constructor, mandatory }
+        Declarations decls { constructor }
     },
 
     attributes {
@@ -282,7 +336,8 @@ node GlobalDec {  // implicitly conditions the 'extern' attribute
     },
 
     attributes {
-        DataType type { constructor }  // mandatory
+        DataType type { constructor },  // mandatory
+        string alias { constructor }
     }
 };
 
@@ -516,5 +571,19 @@ node Float {
 node Bool {
     attributes {
         bool val { constructor }  // mandatory
+    }
+};
+
+// Pops a proccall element from the stack and loads the replacement value
+node Pop {
+    children {
+        Expr expr { constructor, mandatory },
+        Expr replace { constructor } 
+    },
+
+    attributes {
+        // The type of the pop expression
+        DataType type { constructor }, // mandatory
+        bool replace_before_pop { constructor } // mandatory
     }
 };

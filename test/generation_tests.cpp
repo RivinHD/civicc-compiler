@@ -71,7 +71,8 @@ class GenerationTest : public testing::Test
         SetUpNoExecute(filepath);
         testing::internal::CaptureStdout();
         testing::internal::CaptureStderr();
-        root = run_code_generation(input_filepath.c_str(), output_buffer, output_buffer_size);
+        root =
+            run_code_generation(input_filepath.c_str(), output_buffer, output_buffer_size, false);
         EXPECT_NE(nullptr, root) << "Could not parse ast in file: '" << input_filepath << "'";
         err_output = testing::internal::GetCapturedStderr();
         std_output = testing::internal::GetCapturedStdout();

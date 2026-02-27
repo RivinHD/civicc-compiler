@@ -1,6 +1,5 @@
 #include "ccngen/ast.h"
 #include "definitions.h"
-#include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/hash_table.h"
 #include "palm/str.h"
@@ -35,8 +34,7 @@ node_st *CA_FHprogram(node_st *node)
     {
         release_assert(NODE_TYPE(main_candidate) == NT_FUNDEF);
 
-        struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
+        struct ctinfo info = NODE_TO_CTINFO(FUNDEF_FUNHEADER(main_candidate));
 
         if (FUNDEF_HAS_EXPORT(main_candidate) == false)
         {
@@ -55,8 +53,6 @@ node_st *CA_FHprogram(node_st *node)
             CTIobj(CTI_WARN, true, info,
                    "Defined main function should not contain any function parameters.");
         }
-
-        free(info.filename);
     }
     return node;
 }

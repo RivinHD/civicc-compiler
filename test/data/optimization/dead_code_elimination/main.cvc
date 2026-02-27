@@ -1,0 +1,192 @@
+int unused_global = 1; // optimize away
+int unused_global_sideeffect = extern_sideeffect(); // optimize away, except proccall
+float used_global = 0.0;
+int i = 0; // keep the __init assigment
+
+extern int[param1, param2] arr;
+export int[param2] arr_ex;
+
+export bool unused_exported = true; 
+
+extern void unused_remove();
+extern int extern_sideeffect();
+extern int printInt(int val);
+extern void printNewlines(int val);
+
+int[10] unused_global_array = 0; // optimize away
+float[3,3] unused_global_array_init = [[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]; // optimize away
+
+void unused() {
+    int another_unused() {
+        int a = 20;
+        a = a + 20;
+        unused();
+        return 1;
+    }
+
+    return;
+}
+
+export int test() {
+    int a = no_sideeffect();
+
+    void unused() {
+        int another_unused() {
+            int a = 20;
+            a = a + 20;
+            unused();
+            return 1;
+        }
+
+        return;
+    }
+
+    no_sideeffect(); // optimize away
+    no_sideeffect(); // optimize away
+
+    sideeffect();
+
+    return a;
+}
+
+export int main() {
+    int b = 20;
+    int a;
+    int c;
+    float d = 0.0;
+    int[b] t = 1;
+    int k = 1;
+
+    test(); // keep because has sideeffecting function
+
+    c = 20; // optimize away
+    a = 15; // optimize away as both if have a assignment
+    if(b == 20) {
+        a = 10;
+    } 
+    else {
+        a = 15; // optimze away
+        a = 20;
+        a = a + 1;
+    }
+    printInt(a);
+    printNewlines(2);
+
+    a = 20; // keep 
+    if (b == 20) {
+        a = 10;
+    }
+    printInt(a);
+    printNewlines(2);
+
+    a = 30; // keep 
+    if (b == 20) {
+        
+    }
+    else {
+        a = 10;
+    }
+    printInt(a);
+
+    // Optimize away, only keep proccall to sideeffect() but with the ternary operation
+    // Also c should be optimized out
+    if (b == no_sideeffect() && (float)b == sideeffect() && (float)b == sideeffect() || (float)c == sideeffect())
+    {
+    }
+
+    do {
+        d = d + 1.0;
+    } while (d < 20.0);
+
+    while (d > 5.0) {
+        d = d - 1.0;
+    } 
+
+    do {
+    } while(increase_sideeffect(2)); // Do not remove do while
+    printInt(i);
+    printNewlines(2);
+
+    while(increase_sideeffect(10)) // Do not remove while
+    {
+    }
+    printInt(i);
+    printNewlines(2);
+
+    while(k < 0) { // Optimize away
+        k = k + 1;
+    }
+
+    do { // Optimize away
+        k = k + 5;
+    }
+    while(k < 0);
+
+    k = 20;
+    while(k < 0) { // keep
+        k = k + 1;
+    }
+    printInt(k);
+    printNewlines(2);
+
+    do { // keep
+        k = k + 5;
+    }
+    while(k < 0);
+    printInt(k);
+    printNewlines(2);
+
+    // Optimize away
+    for(int i = 0, 10) {
+       t[i] = i;
+    }
+
+    // Optimize away
+    for(int i = 2, 20, 2) {
+        t[i] = i * 5;
+    }
+
+    // Optimize away
+    for(int i = (int)sideeffect(), (int)sideeffect(), (int)increase_sideeffect(5)) {
+    }
+
+    // Keep
+    for (int i = 1, 4) {
+        printInt(i);
+    }
+
+    // Optimize away
+    t[no_sideeffect()] = 10;
+
+    // keep, and the ternary to if statement
+    t[(int)sideeffect()] = (int)((bool)sideeffect() && increase_sideeffect(2));
+    
+    return 0;
+}
+
+int no_sideeffect() {
+    int b = 20; // optimize away
+    b = 5; // optimize away
+    b = 10 + b * b; // optimize away
+    b = 15;
+    return 1 + b;
+
+    // Dead code after this
+    no_sideeffect();
+    return 10;
+}
+
+float sideeffect() {
+    used_global = 10.0; // keep sideeffect
+    return 36.0;
+}
+
+void remove_unused() {
+    int b = 5 + 5 + 1;
+    return;
+}
+
+bool increase_sideeffect(int a) {
+    i = i + 1;
+    return i <= a;
+}

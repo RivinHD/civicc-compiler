@@ -9,6 +9,7 @@
 #include "user_types.h"
 #include "utils.h"
 #include <ccn/dynamic_core.h>
+#include <ccngen/trav.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -307,7 +308,7 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
         level++;
 
         // Check import table if entry is a possilbe import type
-        if (HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
+        if (entry != NULL && HTlookup(symbols, htable_parent_name) == NULL && idx == NULL &&
             (NODE_TYPE(entry) == NT_GLOBALDEC || NODE_TYPE(entry) == NT_DIMENSIONVARS))
         {
             idx = HTlookup(import_table, (void *)name);
@@ -330,6 +331,7 @@ static ptrdiff_t IDXsmart_lookup(htable_stptr table, htable_stptr import_table,
 node_st *CG_CGprogram(node_st *node)
 {
     reset_state();
+
     FILE *fd = NULL;
     if (global.output_buf == NULL && global.output_file != NULL)
     {
@@ -494,6 +496,11 @@ node_st *CG_CGglobaldec(node_st *node)
         }
     }
 
+    if (GLOBALDEC_ALIAS(node) != NULL)
+    {
+        bool success = IDXinsert(import_table, GLOBALDEC_ALIAS(node), var_import_counter);
+        release_assert(success);
+    }
     bool success = IDXinsert(import_table, globaldec_name, var_import_counter++);
     release_assert(success);
     importvar(pretty_name, node);
@@ -526,7 +533,8 @@ node_st *CG_CGglobaldef(node_st *node)
                 // With this naming we ensure that name of the dimension does not matter in
                 // the export/import and only the array name need to be correct.
                 void *entry = HTlookup(index_table, lookup_name);
-                ptrdiff_t idx = IDXlookup(entry == NULL ? import_table : index_table, lookup_name);
+                release_assert(entry != NULL);
+                ptrdiff_t idx = IDXlookup(index_table, lookup_name);
                 release_assert(idx >= 0);
                 char *export_name = STRfmt("__dim%d_%s", dim_counter++, pretty_name);
                 exportvar(export_name, idx);
@@ -582,7 +590,18 @@ node_st *CG_CGfunbody(node_st *node)
     TRAVopt(FUNBODY_STMTS(node));
     if (FUNHEADER_TYPE(FUNDEF_FUNHEADER(fundef)) == DT_void)
     {
-        inst0("return");
+        // Do not print a return if last statment is a return
+        node_st *stmts = FUNBODY_STMTS(node);
+        bool is_return = false;
+        while (stmts != NULL)
+        {
+            is_return = NODE_TYPE(STATEMENTS_STMT(stmts)) == NT_RETSTATEMENT;
+            stmts = STATEMENTS_NEXT(stmts);
+        }
+        if (!is_return)
+        {
+            inst0("return");
+        }
     }
 
     TRAVopt(FUNBODY_LOCALFUNDEFS(node));
@@ -613,11 +632,12 @@ node_st *CG_CGassign(node_st *node)
     int level = INT_MAX;
     char *name = VAR_NAME(ASSIGN_VAR(node));
     node_st *entry = deep_lookup_level(current, name, &level);
+    release_assert(entry != NULL);
+    release_assert(level != INT_MAX);
     enum DataType parent_type = type;
     type = symbol_to_type(entry);
     release_assert(type != DT_void);
     release_assert(type != DT_NULL);
-    release_assert(level != INT_MAX);
 
     node_st *var = get_var_from_symbol(entry);
     node_st *expr = ASSIGN_EXPR(node);
@@ -691,6 +711,18 @@ node_st *CG_CGassign(node_st *node)
                         {
                             release_assert(BINOP_OP(expr) == BO_sub);
                             inst1("idec_1", index);
+                        }
+                    }
+                    else if (val == -1)
+                    {
+                        if (BINOP_OP(expr) == BO_add)
+                        {
+                            inst1("idec_1", index);
+                        }
+                        else
+                        {
+                            release_assert(BINOP_OP(expr) == BO_sub);
+                            inst1("iinc_1", index);
                         }
                     }
                     else
@@ -874,9 +906,7 @@ node_st *CG_CGbinop(node_st *node)
             if (NODE_TYPE(BINOP_RIGHT(node)) == NT_INT && INT_VAL(BINOP_RIGHT(node)) == 0)
             {
                 struct ctinfo info = NODE_TO_CTINFO(node);
-                info.filename = STRcpy(global.input_file);
                 CTIobj(CTI_WARN, true, info, "Division by zero.");
-                free(info.filename);
             }
             inst0("idiv");
             break;
@@ -884,9 +914,7 @@ node_st *CG_CGbinop(node_st *node)
             if (NODE_TYPE(BINOP_RIGHT(node)) == NT_FLOAT && FLOAT_VAL(BINOP_RIGHT(node)) == 0.0)
             {
                 struct ctinfo info = NODE_TO_CTINFO(node);
-                info.filename = STRcpy(global.input_file);
                 CTIobj(CTI_WARN, true, info, "Division by zero.");
-                free(info.filename);
             }
             inst0("fdiv");
             break;
@@ -1112,6 +1140,8 @@ node_st *CG_CGproccall(node_st *node)
 
     int level = INT_MAX;
     node_st *entry = deep_lookup_level(current, name, &level);
+    release_assert(entry != NULL);
+    release_assert(level != INT_MAX);
     enum DataType has_type = symbol_to_type(entry);
     if (type != DT_void)
     {
@@ -1119,7 +1149,6 @@ node_st *CG_CGproccall(node_st *node)
         release_assert(type != DT_NULL);
         release_assert(type == has_type);
     }
-    release_assert(level != INT_MAX);
 
     if (level == 0)
     {
@@ -1229,17 +1258,24 @@ node_st *CG_CGifstatement(node_st *node)
         TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
         label(end_label);
     }
-    else if (IFSTATEMENT_BLOCK(node) == NULL)
+    else if (IFSTATEMENT_BLOCK(node) == NULL && IFSTATEMENT_ELSE_BLOCK(node) != NULL)
     {
         instL("branch_t", end_label);
         TRAVopt(IFSTATEMENT_ELSE_BLOCK(node));
         label(end_label);
     }
-    else if (IFSTATEMENT_ELSE_BLOCK(node) == NULL)
+    else if (IFSTATEMENT_ELSE_BLOCK(node) == NULL && IFSTATEMENT_BLOCK(node) != NULL)
     {
         instL("branch_f", end_label);
         TRAVopt(IFSTATEMENT_BLOCK(node));
         label(end_label);
+    }
+    else
+    {
+        release_assert(IFSTATEMENT_BLOCK(node) == NULL);
+        release_assert(IFSTATEMENT_ELSE_BLOCK(node) == NULL);
+        // No need to generate branch and label, we just pop the generate boolean
+        inst0("bpop");
     }
 
     free(else_label);
@@ -1293,9 +1329,7 @@ node_st *CG_CGforloop(node_st *node)
     if (iter != NULL && NODE_TYPE(iter) == NT_INT && INT_VAL(iter) == 0)
     {
         struct ctinfo info = NODE_TO_CTINFO(iter);
-        info.filename = STRcpy(global.input_file);
         CTIobj(CTI_WARN, true, info, "Step is '0' and may lead to undefined behaviour.");
-        free(info.filename);
     }
 
     node_st *assign = FORLOOP_ASSIGN(node);
@@ -1502,13 +1536,13 @@ node_st *CG_CGvar(node_st *node)
     //  }
     ptrdiff_t idx =
         IDXsmart_lookup(index_table, import_table, current, VAR_NAME(node), &level, &entry);
+    release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(type != DT_NULL);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
-    release_assert(level != INT_MAX);
-    release_assert(entry != NULL);
 
     char type_str = '\0';
     switch (has_type)
@@ -1667,12 +1701,12 @@ node_st *CG_CGarrayexpr(node_st *node)
     node_st *entry = NULL;
     ptrdiff_t idx = IDXsmart_lookup(index_table, import_table, current,
                                     VAR_NAME(ARRAYEXPR_VAR(node)), &level, &entry);
+    release_assert(level != INT_MAX);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
     release_assert(type == has_type);
-    release_assert(level != INT_MAX);
-    release_assert(entry != NULL);
 
     // Calculate index
     enum DataType parent_type = type;
@@ -1769,6 +1803,7 @@ node_st *CG_CGarrayassign(node_st *node)
     enum DataType parent_type = type;
     char *name = VAR_NAME(ARRAYEXPR_VAR(ARRAYASSIGN_VAR(node)));
     node_st *entry = deep_lookup(current, name);
+    release_assert(entry != NULL);
     enum DataType has_type = symbol_to_type(entry);
     release_assert(has_type != DT_NULL);
     release_assert(has_type != DT_void);
@@ -1818,6 +1853,11 @@ node_st *CG_CGint(node_st *node)
     }
     else
     {
+        // We have to construct a negation, because the CiviC Assembler does not support negative
+        // integer
+        bool is_negative = val < 0;
+        val = is_negative ? -val : val;
+        release_assert(val > 0);
         char *val_str = int_to_str(val);
         if (HTlookup(constant_table, val_str) == NULL)
         {
@@ -1834,6 +1874,11 @@ node_st *CG_CGint(node_st *node)
             inst1("iloadc", idx);
 
             free(val_str);
+        }
+
+        if (is_negative)
+        {
+            inst0("ineg");
         }
     }
 
@@ -1910,5 +1955,43 @@ node_st *CG_CGternary(node_st *node)
 
     free(pfalse_label);
     free(end_label);
+    return node;
+}
+
+node_st *CG_CGpop(node_st *node)
+{
+    if (POP_REPLACE_BEFORE_POP(node))
+    {
+        TRAVopt(POP_REPLACE(node));
+    }
+
+    enum DataType parent_type = type;
+    type = POP_TYPE(node);
+    TRAVopt(POP_EXPR(node));
+    type = parent_type;
+
+    switch (POP_TYPE(node))
+    {
+    case DT_NULL:
+        release_assert(false);
+        break;
+    case DT_void:
+        // Nothing to do
+        break;
+    case DT_bool:
+        inst0("bpop");
+        break;
+    case DT_int:
+        inst0("ipop");
+        break;
+    case DT_float:
+        inst0("fpop");
+        break;
+    }
+
+    if (!POP_REPLACE_BEFORE_POP(node))
+    {
+        TRAVopt(POP_REPLACE(node));
+    }
     return node;
 }

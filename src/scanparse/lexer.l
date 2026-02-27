@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
+#include <stdbool.h>
 
 #include "release_assert.h"
 #include "ccngen/ast.h"
@@ -15,6 +16,7 @@
 #include "palm/ctinfo.h"
 #include <stdio.h>
 #include "utils.h"
+#include "scanparse/preprocessor.h"
 
 // Use for error messages, see parser.y
 extern int yyerror(char *errname);
@@ -88,67 +90,81 @@ SEPC ({SEP}|\{)
 "true"[^A-Za-z0-9_]            { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( TRUEVAL); }
 "false"[^A-Za-z0-9_]           { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( FALSEVAL); }
 
 "extern"{SEP}                   { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( EXTERN); }
 "export"{SEP}                   { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( EXPORT); }
 "return"({SEPB}|;)             { 
-                             yyleng = yyleng - 1; 
-                             yyless(yyleng); 
-                             FILTER( RETURN); }
+                            yyleng = yyleng - 1; 
+                            yyless(yyleng); 
+                            yycolumn -= 1;
+                            FILTER( RETURN); }
 
 
 "void"{SEP}                { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( VOID); }
 "bool"({SEP}|\[|\))                { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( BOOL); }
 "int"({SEP}|\[|\))                 { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( INT); }
 "float"({SEP}|\[|\))               { 
                             yyleng = yyleng - 1; 
                             yyless(yyleng); 
+                            yycolumn -= 1;
                             FILTER( FLOAT);}
 
 
 "if"{SEPB}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( IF);
                             }
 "while"{SEPB}               { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( WHILE);
                             }
 "for"{SEPB}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( FOR);
                             }
 "do"{SEPC}                 { 
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( DO);
                             }
 "else"{SEPC}              {
                              yyleng = yyleng - 1; 
                              yyless(yyleng);
+                             yycolumn -= 1;
                              FILTER( ELSE);
                             }
 
@@ -161,13 +177,8 @@ SEPC ({SEP}|\{)
 
     if(errno == ERANGE)
     {
-        char* filename = STRcpy(global.input_file);
-        struct ctinfo info = {global.line, yycolumn - yyleng, 0, yycolumn, filename, NULL};
+        struct ctinfo info = {global.line, yycolumn - yyleng, 0, yycolumn, global.filename, NULL};
         CTIobj(CTI_WARN, true, info, "Float out of range. Will clamp the value '%s' to '%f'.\n", yytext, value);
-        if(filename != NULL)
-        {
-            free(filename);
-        }
     }
 
     yylval.cflt = value;
@@ -203,14 +214,19 @@ SEPC ({SEP}|\{)
 
 [ \t]+                      { global.col += yyleng; }
 
-"#"[^\n]*\n {
+"# "[0-9]+" \""[^\n]+"\""[^\n]*\n {
     // Preprocessor linemarker
     // Reset the line on the linemarkers
     // Also enable use to skip preprocesor stuff if it is disabled
     yycolumn = 1;
-    global.line = 1;
     global.col = 1;
+    if (global.filename != NULL) {
+        free(global.filename);
+        global.filename = NULL;
+    }
+    parse_linemarker(yytext, &global.line, &global.filename);
     scanparse_fprintf(stdout, "Linemarker: '%s'\n", yytext);
+    scanparse_fprintf(stdout, "Extraced: '%d' -- %s\n", global.line, global.filename);
 }
 
 . {                             
@@ -244,14 +260,9 @@ static inline void convert_int(int base, int start_offset)
 
     if(value > INT_MAX || value < INT_MIN)
     {
-        char* filename = STRcpy(global.input_file);
         value = (value > INT_MAX) ? INT_MAX : INT_MIN;
-        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, filename, NULL};
+        struct ctinfo info = {yylineno, yycolumn - yyleng, 0, yycolumn - 1, global.filename, NULL};
         CTIobj(CTI_WARN, true, info, "Int out of range. Will clamp the value '%s' to '%d'.\n", yytext, (int)value);
-        if(filename != NULL)
-        {
-            free(filename);
-        }
     }
 
     yylval.cint= (int)value;

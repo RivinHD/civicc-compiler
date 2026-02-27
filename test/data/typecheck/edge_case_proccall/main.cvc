@@ -1,0 +1,8 @@
+export bool m;
+export int[(int)(float)(bool)(json())] s;
+export int[(int)(float)(bool)(json())] json;
+void gram(float[s] p)
+{
+    return gram(json);
+}
+extern int json();

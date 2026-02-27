@@ -1,0 +1,43 @@
+export int main() {
+    int a;
+    if(true) { // Optimize away
+        a = 5;
+    }
+    else
+    { 
+        a = 10;
+    }
+
+    if (a == 5) {
+        a = a * 20 + (int)true; // casting should be optimized
+    } else {
+        a = a * 30 + (int)false; // casting should be optimized
+    }
+
+    while(false) { // Optimize away
+        a = a +50;
+    }
+
+    do {
+        a = a + 50;
+    } while(false);
+
+    for (int i = 5, 0) {
+        a = 20; // Optimize away
+    }
+
+    for (int i = 0, 5, 20) {
+        a = 50; // Optimize away
+    }
+
+    for (int i = 100, 90, -20) {
+        a = -20; // Keept because -20 is expression
+    }
+
+    a = 5;
+    for (int i = 0, a, a) {
+        a = -50; // Optimize away
+    }
+    
+    return 0;
+}

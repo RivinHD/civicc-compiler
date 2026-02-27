@@ -81,7 +81,10 @@ node_st *CGP_AAarrayexpr(node_st *node)
             release_assert(cur_expr != NULL);
 
             // If the global def is exported we need dimension variables for module linkage
-            if ((NODE_TYPE(cur_expr) == NT_INT && !is_exported) || NODE_TYPE(cur_expr) == NT_VAR)
+            if ((NODE_TYPE(cur_expr) == NT_INT && !is_exported) ||
+                (NODE_TYPE(cur_expr) == NT_VAR &&
+                 (is_exported ? NODE_TYPE(deep_lookup(current, VAR_NAME(cur_expr))) == NT_GLOBALDEF
+                              : true)))
             {
                 exprs = EXPRS_NEXT(exprs);
                 continue;
@@ -242,11 +245,14 @@ node_st *CGP_AAfundef(node_st *node)
     uint32_t parent_temp_counter = temp_counter;
     last_vardecs = NULL;
 
+    // init function uses the parent temp counter
+    bool is_init = STReq(global_init_func, VAR_NAME(FUNHEADER_VAR(FUNDEF_FUNHEADER(node))));
+
     current = FUNDEF_SYMBOLS(node);
     release_assert(current != NULL);
 
     last_fundef = node;
-    temp_counter = 0;
+    temp_counter = is_init ? parent_temp_counter : 0;
 
     TRAVopt(FUNDEF_FUNHEADER(node));
     TRAVopt(FUNDEF_FUNBODY(node));
@@ -255,7 +261,7 @@ node_st *CGP_AAfundef(node_st *node)
     release_assert(current != NULL);
     last_fundef = parent_fundef;
     last_vardecs = parent_last_vardecs;
-    temp_counter = parent_temp_counter;
+    temp_counter = is_init ? temp_counter : parent_temp_counter;
     return node;
 }
 

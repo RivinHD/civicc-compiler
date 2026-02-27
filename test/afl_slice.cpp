@@ -1,4 +1,5 @@
 #include "release_assert.h"
+#include <ccngen/action_handling.h>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -50,6 +51,11 @@ __AFL_FUZZ_INIT();
 
 int main(int argc, char *argv[])
 {
+#ifdef AFL_LSAN_MODE
+    __AFL_LSAN_OFF();
+    __AFL_LSAN_ON();
+#endif
+
 #ifndef __AFL_COMPILER
     if (argc < 2)
     {
@@ -75,7 +81,7 @@ int main(int argc, char *argv[])
     const char *filepath = "From AFL shared Memory";
 #endif // __AFL_COMPILER
 
-    while (__AFL_LOOP(1))
+    while (__AFL_LOOP(10000))
     {
 #ifdef __AFL_COMPILER
         size_t len = __AFL_FUZZ_TESTCASE_LEN;
@@ -85,7 +91,7 @@ int main(int argc, char *argv[])
         std::memcpy(src, buf, len);
 #else
         const char *filepath = argv[i_argc++];
-        printf("Compiling '%s'\n", filepath);
+        fprintf(stderr, "Compiling '%s'\n", filepath);
 #endif
 #if SLICE_TARGET == 1
 #ifdef __AFL_COMPILER
@@ -107,14 +113,29 @@ int main(int argc, char *argv[])
 #endif // __AFL_COMPILER
 #elif SLICE_TARGET == 4
 #ifdef __AFL_COMPILER
-        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0);
+        node_st *root = run_optimization_buf(filepath, src, (uint32_t)len, CCNAC_ID_OPTIMIZATION);
 #else
-        node_st *root = run_code_generation(filepath, NULL, 0);
+        node_st *root = run_optimization(filepath, CCNAC_ID_OPTIMIZATION);
+#endif // __AFL_COMPILER
+#elif SLICE_TARGET == 5
+#ifdef __AFL_COMPILER
+        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0, false);
+#else
+        node_st *root = run_code_generation(filepath, NULL, 0, false);
+#endif // __AFL_COMPILER
+#elif SLICE_TARGET == 6
+#ifdef __AFL_COMPILER
+        node_st *root = run_code_generation_buf(filepath, src, (uint32_t)len, NULL, NULL, 0, true);
+#else
+        node_st *root = run_code_generation(filepath, NULL, 0, true);
 #endif // __AFL_COMPILER
 #else
         static_assert(false, "No valid slice target given to preprocessor");
 #endif
         cleanup_nodes(root);
+#ifdef AFL_LSAN_MODE
+        __AFL_LEAK_CHECK();
+#endif
     }
 
     if (src != NULL)

@@ -241,13 +241,13 @@ basicType: BOOL
 globalDec: EXTERN basicType arrayVar SEMICOLON
          {
             assertType($3, NT_ARRAYVAR);
-            $$ = ASTglobaldec($3, $2);
+            $$ = ASTglobaldec($3, $2, NULL);
             AddLocToNode($$, &@1, &@4);
          }
          | EXTERN basicType var SEMICOLON
          {
             assertType($3, NT_VAR);
-            $$ = ASTglobaldec($3, $2);
+            $$ = ASTglobaldec($3, $2, NULL);
             AddLocToNode($$, &@1, &@4);
          };
 
@@ -270,6 +270,7 @@ params: param COMMA params
         assertType($1, NT_PARAMS);
         assertType($3, NT_PARAMS);
         PARAMS_NEXT($1) = $3;
+        $$ = $1;
         AddLocToNode($$, &@1, &@3);
       }
       | param
@@ -1066,6 +1067,10 @@ void AddLocToNode(node_st *node, void *begin_loc, void *end_loc)
     NODE_BCOL(node) = (uint32_t)loc_b->first_column;
     NODE_ELINE(node) = (uint32_t)loc_e->last_line;
     NODE_ECOL(node) = (uint32_t)loc_e->last_column;
+    if (NODE_FILENAME(node) == NULL)
+    {
+        NODE_FILENAME(node) = STRcpy(global.filename);
+    }
 }
 
 int yyerror(char *error)
@@ -1079,6 +1084,7 @@ int yyerror(char *error)
 node_st *SPdoScanParse(node_st *root)
 {
     DBUG_ASSERT(root == NULL, "Started parsing with existing syntax tree.");
+    release_assert(root == NULL);
     if (global.input_buf == NULL)
     {
         FILE* fd = preprocessorStart();
@@ -1098,6 +1104,12 @@ node_st *SPdoScanParse(node_st *root)
         YY_BUFFER_STATE buffer = yy_scan_bytes(global.input_buf, global.input_buf_len);
         yyparse();
         yy_delete_buffer(buffer);
+    }
+
+    if(global.filename != NULL) 
+    {
+        free(global.filename);
+        global.filename = NULL;
     }
 
     return parseresult;

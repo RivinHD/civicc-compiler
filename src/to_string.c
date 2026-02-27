@@ -152,15 +152,18 @@ bool has_child_next(node_st *node, node_st **child_next)
     case NT_FUNDEC:
     case NT_PROGRAM:
     case NT_TERNARY:
+    case NT_POP:
         return false;
 
-    default:
     case _NT_SIZE:
     case NT_NULL:
         // unknown datatype detected
         release_assert(false);
         return false;
     }
+
+    release_assert(false);
+    return false;
 }
 
 char *_node_to_string_array(node_st *node, unsigned int depth, char *depth_string,
@@ -301,7 +304,15 @@ char *get_node_name(node_st *node)
             break;
         case NT_GLOBALDEC:
             extra_string = datatype_to_string(GLOBALDEC_TYPE(node));
-            node_string = STRfmt("GlobalDec -- type:'%s'", extra_string);
+            if (GLOBALDEC_ALIAS(node) == NULL)
+            {
+                node_string = STRfmt("GlobalDec -- type:'%s'", extra_string);
+            }
+            else
+            {
+                node_string = STRfmt("GlobalDec -- type:'%s', alias:'%s'", extra_string,
+                                     GLOBALDEC_ALIAS(node));
+            }
             break;
         case NT_FUNDEF:
             node_string = STRfmt("FunDef -- has_export:'%d'", FUNDEF_HAS_EXPORT(node));
@@ -318,9 +329,13 @@ char *get_node_name(node_st *node)
         case NT_TERNARY:
             node_string = STRcpy("Ternary");
             break;
+        case NT_POP:
+            extra_string = datatype_to_string(POP_TYPE(node));
+            node_string = STRfmt("Pop -- type:'%s'; replace_before_pop: '%d'", extra_string,
+                                 POP_REPLACE_BEFORE_POP(node));
+            break;
         case NT_NULL:
         case _NT_SIZE:
-        default:
             // unknown datatype detected
             release_assert(false);
             break;

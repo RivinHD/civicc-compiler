@@ -308,7 +308,7 @@ index 1f5f9c6..ac6b839 100644
  /**
   * Installs interrupt handlers
 diff --git a/palm/src/ctinfo.c b/palm/src/ctinfo.c
-index 6812dff..3257095 100644
+index 6812dff..f55daa3 100644
 --- a/palm/src/ctinfo.c
 +++ b/palm/src/ctinfo.c
 @@ -40,8 +40,7 @@ static int warnings = 0;
@@ -464,17 +464,19 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -284,21 +282,16 @@ static void CleanUp()
+@@ -284,21 +282,18 @@ static void CleanUp()
   *
   ******************************************************************************/
  
 -static void AbortCompilation()
 -{
 +static void AbortCompilation() {
++#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
      fprintf(stderr, "\n*** Compilation failed ***\n");
 -    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n",
 -        errors, warnings);
 +    fprintf(stderr, "*** %d Error(s), %d Warning(s)\n\n", errors, warnings);
++#endif
  
      CleanUp();
  
@@ -489,7 +491,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -318,11 +311,9 @@ void CTIabortCompilation()
+@@ -318,11 +313,9 @@ void CTIabortCompilation()
   *
   ******************************************************************************/
  
@@ -504,7 +506,7 @@ index 6812dff..3257095 100644
  
      CleanUp();
  
-@@ -345,8 +336,7 @@ static void InternalCompilerErrorBreak(int sig)
+@@ -345,8 +338,7 @@ static void InternalCompilerErrorBreak(int sig)
   *
   ******************************************************************************/
  
@@ -514,7 +516,7 @@ index 6812dff..3257095 100644
      CleanUp();
      exit(0);
  }
-@@ -359,14 +349,12 @@ static void UserForcedBreak(int sig)
+@@ -359,14 +351,12 @@ static void UserForcedBreak(int sig)
   *
   ******************************************************************************/
  
@@ -532,7 +534,7 @@ index 6812dff..3257095 100644
  /** <!--********************************************************************-->
   *
   * @fn int CTIgetErrorMessageLineLength( void)
-@@ -377,8 +365,7 @@ void CTIinstallInterruptHandlers(void)
+@@ -377,8 +367,7 @@ void CTIinstallInterruptHandlers(void)
   *
   ******************************************************************************/
  
@@ -542,7 +544,7 @@ index 6812dff..3257095 100644
      return message_line_length - strlen(error_message_header);
  }
  
-@@ -390,8 +377,7 @@ int CTIgetErrorMessageLineLength(void)
+@@ -390,8 +379,7 @@ int CTIgetErrorMessageLineLength(void)
   *
   ******************************************************************************/
  
@@ -552,7 +554,7 @@ index 6812dff..3257095 100644
      if (errors > 0) {
          AbortCompilation();
      }
-@@ -400,14 +386,7 @@ void CTIabortOnError(void)
+@@ -400,14 +388,7 @@ void CTIabortOnError(void)
  /**
   * @return The number of errors currently produced.
   */
@@ -568,7 +570,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -419,19 +398,14 @@ int CTIgetErrors()
+@@ -419,19 +400,14 @@ int CTIgetErrors()
   *
   ******************************************************************************/
  
@@ -590,7 +592,7 @@ index 6812dff..3257095 100644
  
  /** <!--********************************************************************-->
   *
-@@ -451,22 +425,19 @@ int CTIgetWarnings()
+@@ -451,22 +427,19 @@ int CTIgetWarnings()
   *
   ******************************************************************************/
  
@@ -619,7 +621,7 @@ index 6812dff..3257095 100644
      if (type == CTI_ERROR) {
          errors++;
      } else if (type == CTI_WARN) {
-@@ -474,8 +445,7 @@ static void HandleCtiCall(enum cti_type type)
+@@ -474,8 +447,7 @@ static void HandleCtiCall(enum cti_type type)
      }
  }
  
@@ -629,7 +631,7 @@ index 6812dff..3257095 100644
      switch (type) {
      case CTI_WARN:
          return warn_message_header;
-@@ -497,15 +467,20 @@ static char *GetMessageHeader(enum cti_type type)
+@@ -497,15 +469,20 @@ static char *GetMessageHeader(enum cti_type type)
   * @param format printf style format string
   * @param ... variable args.
   */
@@ -652,7 +654,7 @@ index 6812dff..3257095 100644
  
      va_end(arg_p);
  }
-@@ -514,15 +489,21 @@ void CTI(enum cti_type type, bool newline, const char *format, ...)
+@@ -514,15 +491,21 @@ void CTI(enum cti_type type, bool newline, const char *format, ...)
   * See @CTI
   * @param obj an object of type struct ctinfo with extra information.
   */
@@ -676,3 +678,285 @@ index 6812dff..3257095 100644
  
      va_end(arg_p);
  }
+diff --git a/palm/src/hash_table.c b/palm/src/hash_table.c
+index d92523b..e4de3ea 100644
+--- a/palm/src/hash_table.c
++++ b/palm/src/hash_table.c
+@@ -5,10 +5,10 @@
+ #include <assert.h>
+ #include <stdio.h>
+ 
++#include "palm/dbug.h"
+ #include "palm/hash_table.h"
+ #include "palm/memory.h"
+ #include "palm/str.h"
+-#include "palm/dbug.h"
+ 
+ struct htable_entry {
+     void *key;
+@@ -38,8 +38,8 @@ struct htable_iter {
+  * @param hash_func the function used for hashing keys.
+  * @param is_equal_func the function to determine if two values are equal.
+  */
+-struct htable *HTnew(size_t size, hash_key_ft hash_func, is_equal_ft is_equal_func)
+-{
++struct htable *HTnew(size_t size, hash_key_ft hash_func,
++                     is_equal_ft is_equal_func) {
+     struct htable *table = MEMmalloc(sizeof(struct htable));
+     table->size = size;
+     table->elements = 0;
+@@ -50,10 +50,9 @@ struct htable *HTnew(size_t size, hash_key_ft hash_func, is_equal_ft is_equal_fu
+     return table;
+ }
+ 
+-struct htable *HTcpy(struct htable *table)
+-{
+-    struct htable *new_table = HTnew(table->size, table->hash_f,
+-                                     table->is_equal_f);
++struct htable *HTcpy(struct htable *table) {
++    struct htable *new_table =
++        HTnew(table->size, table->hash_f, table->is_equal_f);
+ 
+     for (htable_iter_st *iter = HTiterate(table); iter;
+          iter = HTiterateNext(iter)) {
+@@ -63,9 +62,8 @@ struct htable *HTcpy(struct htable *table)
+     return new_table;
+ }
+ 
+-static
+-struct htable_entry *NewEntry(struct htable *table, void *key, void *value)
+-{
++static struct htable_entry *NewEntry(struct htable *table, void *key,
++                                     void *value) {
+     struct htable_entry *entry = MEMmalloc(sizeof(struct htable_entry));
+     entry->key = key;
+     entry->value = value;
+@@ -74,15 +72,11 @@ struct htable_entry *NewEntry(struct htable *table, void *key, void *value)
+     return entry;
+ }
+ 
+-static
+-void DeleteEntry(struct htable *table, struct htable_entry *entry)
+-{
++static void DeleteEntry(struct htable *table, struct htable_entry *entry) {
+     MEMfree(entry);
+ }
+ 
+-static
+-bool Insert(struct htable *table, void *key, void *value)
+-{
++static bool Insert(struct htable *table, void *key, void *value) {
+     struct htable_entry **target = NULL;
+ 
+     size_t index = table->hash_f(key) % table->size;
+@@ -109,11 +103,9 @@ bool Insert(struct htable *table, void *key, void *value)
+     table->elements++;
+ 
+     return true;
+-
+ }
+ 
+-bool HTinsert(struct htable *table, void *key, void *value)
+-{
++bool HTinsert(struct htable *table, void *key, void *value) {
+     return Insert(table, key, value);
+ }
+ 
+@@ -122,14 +114,17 @@ bool HTinsert(struct htable *table, void *key, void *value)
+  *
+  * @return the deleted value or NULL if key is not foound.
+  */
+-void *HTremove(htable_st *table, void *key)
+-{
++void *HTremove(htable_st *table, void *key) {
+     size_t index = table->hash_f(key) % table->size;
+ 
+     void *value = NULL;
+     struct htable_entry *previous = NULL;
+     struct htable_entry *entry = table->entries[index];
+ 
++    if (entry == NULL) {
++        return NULL;
++    }
++
+     if (entry && table->is_equal_f(entry->key, key)) {
+         value = entry->value;
+         table->entries[index] = entry->next;
+@@ -162,8 +157,7 @@ void *HTremove(htable_st *table, void *key)
+ /**
+  * @return value found or NULL if key is not present.
+  */
+-void *HTlookup(struct htable *table, void *key)
+-{
++void *HTlookup(struct htable *table, void *key) {
+     size_t index = table->hash_f(key) % table->size;
+     if (table->entries[index]) {
+         struct htable_entry *last = table->entries[index];
+@@ -180,8 +174,7 @@ void *HTlookup(struct htable *table, void *key)
+  * Clears all entries in the hash table.
+  * Does not delete the table, so can be reused.
+  */
+-void HTclear(struct htable *table)
+-{
++void HTclear(struct htable *table) {
+     for (size_t i = 0; i < table->size; i++) {
+         struct htable_entry *entry = table->entries[i];
+         while (entry) {
+@@ -197,20 +190,15 @@ void HTclear(struct htable *table)
+  * Delete all entries in the table and the table itself.
+  * Table is not usable after this operation.
+  */
+-void HTdelete(struct htable *table)
+-{
++void HTdelete(struct htable *table) {
+     HTclear(table);
+     MEMfree(table->entries);
+     MEMfree(table);
+ }
+ 
+-size_t HTelementCount(htable_st *table)
+-{
+-    return table->elements;
+-}
++size_t HTelementCount(htable_st *table) { return table->elements; }
+ 
+-void HTfold(htable_st *table, fold_ft fun, void *init_acc)
+-{
++void HTfold(htable_st *table, fold_ft fun, void *init_acc) {
+     for (size_t i = 0; i < table->size; i++) {
+         struct htable_entry *entry = table->entries[i];
+         while (entry) {
+@@ -220,9 +208,7 @@ void HTfold(htable_st *table, fold_ft fun, void *init_acc)
+     }
+ }
+ 
+-
+-void HTmap(struct htable *table, map_ft fun)
+-{
++void HTmap(struct htable *table, map_ft fun) {
+     for (size_t i = 0; i < table->size; i++) {
+         struct htable_entry *entry = table->entries[i];
+         while (entry) {
+@@ -232,8 +218,7 @@ void HTmap(struct htable *table, map_ft fun)
+     }
+ }
+ 
+-void HTmapWithKey(struct htable *table, mapk_ft fun)
+-{
++void HTmapWithKey(struct htable *table, mapk_ft fun) {
+     for (size_t i = 0; i < table->size; i++) {
+         struct htable_entry *entry = table->entries[i];
+         while (entry) {
+@@ -247,8 +232,7 @@ void HTmapWithKey(struct htable *table, mapk_ft fun)
+  * Map function that passes an extra data parameter to the
+  * map function
+  */
+-void HTmapWithDataAndKey(htable_st *table, void *data, mapdk_ft fun)
+-{
++void HTmapWithDataAndKey(htable_st *table, void *data, mapdk_ft fun) {
+     for (size_t i = 0; i < table->size; i++) {
+         struct htable_entry *entry = table->entries[i];
+         while (entry) {
+@@ -305,9 +289,7 @@ htable_iter_st *HTiterateNext(htable_iter_st *iter) {
+ }
+ 
+ /* Destroy iterator early */
+-void HTiterateCancel(htable_iter_st *iter) {
+-    MEMfree(iter);
+-}
++void HTiterateCancel(htable_iter_st *iter) { MEMfree(iter); }
+ 
+ /* Get iterator value */
+ void *HTiterValue(htable_iter_st *iter) {
+@@ -327,73 +309,56 @@ void *HTiterKey(htable_iter_st *iter) {
+     return iter->current_entry->key;
+ }
+ 
+-
+ /* Implementations */
+ 
+ /* String char * -> void * */
+-static
+-size_t StringHash(char *key)
+-{
++static size_t StringHash(void *key) {
+     /* This is the djb2 algorithm as found for hashing strings.
+      * Source: http://www.cse.yorku.ca/~oz/hash.html
+      */
+ 
++    char *strkey = (char *)key;
+     unsigned long hash = 5381;
+     int c;
+ 
+-    while ((c = *key++))
++    while ((c = *strkey++))
+         hash = ((hash << 5) + hash) + c;
+ 
+     return hash;
+ }
+ 
++static bool StringEqual(void *ptr1, void *ptr2) {
++    return STReq((char *)ptr1, (char *)ptr2);
++}
++
+ /**
+  * Create a new hash table for strings.
+  * @param size determines the number of buckets in the table.
+  */
+-struct htable *HTnew_String(size_t size)
+-{
+-    return HTnew(size, (hash_key_ft)StringHash, (is_equal_ft)STReq);
++struct htable *HTnew_String(size_t size) {
++    return HTnew(size, StringHash, StringEqual);
+ }
+ 
+-//Ptr htable: void * -> void *
+-static
+-size_t PtrHash(void *ptr)
+-{
+-    size_t hash_key = (((size_t) ptr >> 5) & 0x1f);
++// Ptr htable: void * -> void *
++static size_t PtrHash(void *ptr) {
++    size_t hash_key = (((size_t)ptr >> 5) & 0x1f);
+ 
+     return hash_key;
+ }
+ 
+-static
+-bool PtrEqual(void *ptr1, void *ptr2)
+-{
+-    return ptr1 == ptr2;
+-}
++static bool PtrEqual(void *ptr1, void *ptr2) { return ptr1 == ptr2; }
+ 
+ /**
+  * Create a new hash table for pointers.
+  * @param size determines the number of buckets in the table.
+  */
+-struct htable *HTnew_Ptr(size_t size)
+-{
+-    return HTnew(size, (hash_key_ft)PtrHash, (is_equal_ft)PtrEqual);
+-}
++struct htable *HTnew_Ptr(size_t size) { return HTnew(size, PtrHash, PtrEqual); }
+ 
+ // Int htable: int * -> void *;
+-static
+-size_t IntHash(int *val)
+-{
+-    return (size_t)(*val);
+-}
++static size_t IntHash(void *val) { return (size_t)(*((int *)val)); }
+ 
+-static
+-bool IntEqual(int *ptr1, int *ptr2)
+-{
+-    return *ptr1 == *ptr2;
++static bool IntEqual(void *ptr1, void *ptr2) {
++    return *((int *)ptr1) == *((int *)ptr2);
+ }
+ 
+-struct htable *HTnew_Int(size_t size)
+-{
+-    return HTnew(size, (hash_key_ft)IntHash, (is_equal_ft)IntEqual);
+-}
++struct htable *HTnew_Int(size_t size) { return HTnew(size, IntHash, IntEqual); }

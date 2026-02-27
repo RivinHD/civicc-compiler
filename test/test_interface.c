@@ -24,7 +24,9 @@ node_st *run_scan_parse_buf(const char *filepath, char *buffer, uint32_t buffer_
     global.input_buf = buffer;
     global.input_buf_len = buffer_length;
     resetPhaseDriver();
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     phase_driver.verbosity = PD_V_HIGH;
+#endif
     node_st *node =
         CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SPDOSCANPARSE), CCN_ROOT_TYPE, NULL, false);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
@@ -40,7 +42,7 @@ node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t b
 {
     node_st *node = run_scan_parse_buf(filepath, buffer, buffer_length);
     node =
-        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_CONTEXTANALYSIS), CCN_ROOT_TYPE, node, true);
+        CCNdispatchAction(CCNgetActionFromID(CCNAC_ID_SEMANTICANALYSIS), CCN_ROOT_TYPE, node, true);
     node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
     if (CTIgetErrors() > 0)
     {
@@ -53,6 +55,21 @@ node_st *run_context_analysis_buf(const char *filepath, char *buffer, uint32_t b
 node_st *run_context_analysis(const char *filepath)
 {
     return run_context_analysis_buf(filepath, NULL, 0);
+}
+
+node_st *run_optimization_buf(const char *filepath, char *buffer, uint32_t buffer_length,
+                              enum ccn_action_id opt_id)
+{
+    node_st *node = run_code_gen_preparation_buf(filepath, buffer, buffer_length);
+    node = CCNdispatchAction(CCNgetActionFromID(opt_id), CCN_ROOT_TYPE, node, true);
+    node = TRAVstart(node, TRAV_check); // Check for inconstientcies in the AST
+    CTIabortOnError();
+    return node;
+}
+
+node_st *run_optimization(const char *filepath, enum ccn_action_id opt_id)
+{
+    return run_optimization_buf(filepath, NULL, 0, opt_id);
 }
 
 node_st *run_code_gen_preparation_buf(const char *filepath, char *buffer, uint32_t buffer_length)
@@ -76,9 +93,12 @@ node_st *run_code_gen_preparation(const char *filepath)
 
 node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint32_t buffer_length,
                                  const char *output_filepath, char *out_buffer,
-                                 uint32_t out_buffer_length)
+                                 uint32_t out_buffer_length, bool optimize)
 {
-    node_st *node = run_code_gen_preparation_buf(input_filepath, buffer, buffer_length);
+    node_st *node = optimize ? run_optimization_buf(input_filepath, buffer, buffer_length,
+                                                    CCNAC_ID_OPTIMIZATION)
+                             : run_code_gen_preparation_buf(input_filepath, buffer, buffer_length);
+
     global.output_file = output_filepath;
     global.output_buf = out_buffer;
     global.output_buf_len = out_buffer_length;
@@ -87,15 +107,17 @@ node_st *run_code_generation_buf(const char *input_filepath, char *buffer, uint3
     return node;
 }
 
-node_st *run_code_generation_file(const char *input_filepath, const char *output_filepath)
+node_st *run_code_generation_file(const char *input_filepath, const char *output_filepath,
+                                  bool optimize)
 {
-    return run_code_generation_buf(input_filepath, NULL, 0, output_filepath, NULL, 0);
+    return run_code_generation_buf(input_filepath, NULL, 0, output_filepath, NULL, 0, optimize);
 }
 
 node_st *run_code_generation(const char *input_filepath, char *out_buffer,
-                             uint32_t out_buffer_length)
+                             uint32_t out_buffer_length, bool optimize)
 {
-    return run_code_generation_buf(input_filepath, NULL, 0, NULL, out_buffer, out_buffer_length);
+    return run_code_generation_buf(input_filepath, NULL, 0, NULL, out_buffer, out_buffer_length,
+                                   optimize);
 }
 
 node_st *run_code_generation_node(node_st *node, char *out_buffer, uint32_t out_buffer_length)

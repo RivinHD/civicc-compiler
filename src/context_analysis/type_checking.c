@@ -1,5 +1,4 @@
 #include "ccngen/ast.h"
-#include "global/globals.h"
 #include "palm/ctinfo.h"
 #include "palm/str.h"
 #include "release_assert.h"
@@ -37,13 +36,11 @@ static void type_check(node_st *node, const char *name, enum DataType expected, 
     }
 
     struct ctinfo info = NODE_TO_CTINFO(node);
-    info.filename = STRcpy(global.input_file);
     char *expected_str = datatype_to_string(expected);
     char *value_str = datatype_to_string(value);
     const char *pretty_name = get_pretty_name(name);
     CTIobj(CTI_ERROR, true, info, "'%s' has type '%s' but expected type '%s'.", pretty_name,
            value_str, expected_str);
-    free(info.filename);
     free(expected_str);
     free(value_str);
 }
@@ -51,13 +48,11 @@ static void type_check(node_st *node, const char *name, enum DataType expected, 
 static void binop_not_defined_on_type(node_st *node, enum DataType type)
 {
     struct ctinfo info = NODE_TO_CTINFO(node);
-    info.filename = STRcpy(global.input_file);
     char *op_str = binoptype_to_string(BINOP_OP(node));
     release_assert(type != DT_NULL);
     char *type_str = datatype_to_string(type);
     CTIobj(CTI_ERROR, true, info, "The binop operation '%s' is not defined on the type '%s'.",
            op_str, type_str);
-    free(info.filename);
     free(op_str);
     free(type_str);
 }
@@ -72,9 +67,7 @@ static bool check_nesting(unsigned int level, node_st *init)
         if (NODE_TYPE(init) == NT_ARRAYINIT)
         {
             struct ctinfo info = NODE_TO_CTINFO(init);
-            info.filename = STRcpy(global.input_file);
             CTIobj(CTI_ERROR, true, info, "Too many dimensions in array initalization.");
-            free(info.filename);
             return false;
         }
         else
@@ -98,11 +91,9 @@ static bool check_nesting(unsigned int level, node_st *init)
     }
 
     struct ctinfo info = NODE_TO_CTINFO(init);
-    info.filename = STRcpy(global.input_file);
     CTIobj(CTI_ERROR, true, info,
            "Insufficient dimensions in array initalization, missing '%d' further dimensions.",
            level);
-    free(info.filename);
 
     return false;
 }
@@ -159,12 +150,10 @@ static void arrexpr_dimension_check(node_st *node, const char *name, node_st *ex
     if (expected_count != actual_count)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info,
                "Array '%s' has '%d' dimension, but '%d' dimensions are used.", pretty_name,
                expected_count, actual_count);
-        free(info.filename);
     }
 }
 
@@ -244,11 +233,9 @@ node_st *CA_TCvar(node_st *node)
     if (NODE_TYPE(var) == NT_ARRAYEXPR || NODE_TYPE(var) == NT_ARRAYVAR)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info, "Array '%s' can only be accessed with dimension indicies.",
                pretty_name);
-        free(info.filename);
     }
 
     enum DataType has_type = symbol_to_type(entry);
@@ -289,10 +276,8 @@ node_st *CA_TCcast(node_st *node)
     if (type == DT_void)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         char *type_str = datatype_to_string(has_type);
         CTIobj(CTI_ERROR, true, info, "Cannot cast from type 'void' into type '%s'.", type_str);
-        free(info.filename);
         free(type_str);
     }
     CAST_FROMTYPE(node) = type;
@@ -323,11 +308,9 @@ node_st *CA_TCarrayexpr(node_st *node)
     if (NODE_TYPE(defvar) != NT_ARRAYEXPR && NODE_TYPE(defvar) != NT_ARRAYVAR)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info, "Scalar '%s' can not be accessed with an array expression.",
                pretty_name);
-        free(info.filename);
     }
     else
     {
@@ -393,13 +376,11 @@ node_st *CA_TCmonop(node_st *node)
     if (!is_correct)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         char *op_str = monoptype_to_string(MONOP_OP(node));
         release_assert(type != DT_NULL);
         char *type_str = datatype_to_string(type);
         CTIobj(CTI_ERROR, true, info, "The monop operation '%s' is not defined on the type '%s'.",
                op_str, type_str);
-        free(info.filename);
         free(op_str);
         free(type_str);
     }
@@ -571,10 +552,14 @@ node_st *CA_TCretstatement(node_st *node)
         if (type != DT_void)
         {
             struct ctinfo info = NODE_TO_CTINFO(node);
-            info.filename = STRcpy(global.input_file);
             CTIobj(CTI_ERROR, true, info, "Cannot return 'void' for none-void function.");
-            free(info.filename);
         }
+    }
+    else if (type == DT_void)
+    {
+        struct ctinfo info = NODE_TO_CTINFO(node);
+        CTIobj(CTI_ERROR, true, info, "Cannot return 'none-void' for void function.");
+        TRAVopt(expr);
     }
     else
     {
@@ -649,6 +634,29 @@ node_st *CA_TCproccall(node_st *node)
                     }
                     release_assert(entry != NULL);
 
+                    enum DataType exprtype = DT_NULL;
+                    switch (NODE_TYPE(exprentry))
+                    {
+                    case NT_VARDEC:
+                        exprtype = VARDEC_TYPE(exprentry);
+                        break;
+                    case NT_PARAMS:
+                        exprtype = PARAMS_TYPE(exprentry);
+                        break;
+                    case NT_GLOBALDEC:
+                        exprtype = GLOBALDEC_TYPE(exprentry);
+                        break;
+                    case NT_DIMENSIONVARS:
+                        exprtype = DT_int;
+                        break;
+                    default:
+                        release_assert(false);
+                        break;
+                    }
+                    release_assert(exprtype != DT_NULL);
+
+                    type_check(paramvar, VAR_NAME(expr), PARAMS_TYPE(params), exprtype);
+
                     node_st *exprvar = get_var_from_symbol(exprentry);
                     if (NODE_TYPE(exprvar) == NT_ARRAYVAR || NODE_TYPE(exprvar) == NT_ARRAYEXPR)
                     {
@@ -657,22 +665,18 @@ node_st *CA_TCproccall(node_st *node)
                     else
                     {
                         struct ctinfo info = NODE_TO_CTINFO(expr);
-                        info.filename = STRcpy(global.input_file);
                         CTIobj(CTI_ERROR, true, info,
                                "Expected array for argument '%s', but got scalar '%s'.",
                                get_pretty_name(VAR_NAME(ARRAYVAR_VAR(paramvar))),
                                get_pretty_name(VAR_NAME(expr)));
-                        free(info.filename);
                     }
                 }
                 else
                 {
                     struct ctinfo info = NODE_TO_CTINFO(expr);
-                    info.filename = STRcpy(global.input_file);
                     CTIobj(CTI_ERROR, true, info,
                            "Expected array for argument '%s', but got scalar expression.",
                            get_pretty_name(VAR_NAME(ARRAYVAR_VAR(paramvar))));
-                    free(info.filename);
                 }
             }
             else
@@ -705,10 +709,8 @@ node_st *CA_TCproccall(node_st *node)
     if (params_count != exprs_count)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         CTIobj(CTI_ERROR, true, info, "Expected '%d' arguments, but only got '%d'.", params_count,
                exprs_count);
-        free(info.filename);
     }
     return node;
 }
@@ -793,13 +795,11 @@ node_st *CA_TCassign(node_st *node)
         char *name = NODE_TYPE(var) == NT_ARRAYEXPR ? VAR_NAME(ARRAYEXPR_VAR(var))
                                                     : VAR_NAME(ARRAYVAR_VAR(var));
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info,
                "Array '%s' can not be assigned a scalar value without providing dimension "
                "indices.",
                pretty_name);
-        free(info.filename);
         return node;
     }
 
@@ -807,11 +807,9 @@ node_st *CA_TCassign(node_st *node)
     if (STRprefix("@for", name))
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(name);
         CTIobj(CTI_ERROR, true, info, "Assignment to for loop iterator '%s' is illegal.",
                pretty_name);
-        free(info.filename);
         return node;
     }
 
@@ -841,11 +839,9 @@ node_st *CA_TCarrayassign(node_st *node)
     if (NODE_TYPE(var) == NT_VAR || NODE_TYPE(var) == NT_DIMENSIONVARS)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         const char *pretty_name = get_pretty_name(VAR_NAME(var));
         CTIobj(CTI_ERROR, true, info, "Can not use scalar variable '%s' as array variable.",
                pretty_name);
-        free(info.filename);
         return node;
     }
 
@@ -906,11 +902,9 @@ node_st *CA_TCvardec(node_st *node)
         if (expr_type == NT_ARRAYINIT)
         {
             struct ctinfo info = NODE_TO_CTINFO(node);
-            info.filename = STRcpy(global.input_file);
             const char *pretty_name = get_pretty_name(name);
             CTIobj(CTI_ERROR, true, info,
                    "Array expression can not be assigned to the variable '%s'.", pretty_name);
-            free(info.filename);
         }
         else
         {
@@ -925,10 +919,8 @@ node_st *CA_TCvardec(node_st *node)
             if (success == false)
             {
                 struct ctinfo info = NODE_TO_CTINFO(node);
-                info.filename = STRcpy(global.input_file);
                 CTIobj(CTI_ERROR, true, info,
                        "Array initalization does not match the dimension of the array.");
-                free(info.filename);
             }
         }
 
@@ -966,10 +958,8 @@ node_st *CA_TCfundef(node_st *node)
     if (!has_return && rettype != DT_void)
     {
         struct ctinfo info = NODE_TO_CTINFO(node);
-        info.filename = STRcpy(global.input_file);
         CTIobj(CTI_ERROR, true, info,
                "non-void function does not return a value in all control paths.");
-        free(info.filename);
     }
 
     type = parent_type;

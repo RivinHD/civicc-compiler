@@ -1,0 +1,33 @@
+export int main() {
+    int a = 20;
+    int b = 15 * 20 * a * 5;
+    int c = 34 - 324 - b + a - a;
+    int d = (14 + 3) + (3 + a + b);
+    int d2 = 14 + a;
+    float e = 15.0 + 13.0;
+    float f = 0.0 * e * (float)d * 3.0 * 3.0;
+    float f2 = 2.0 * e * (float)d * 3.0 * 3.0; // no reordering
+    float g = (0.0 * e) * (f * 3.0);
+    float h = (e * 0.0) * (g * 3.0);
+    float i = (e * 2.0) * (0.0 * 3.0);
+    float j = (e * 2.0) * (2.0 * 0.0);
+    float k = (e * 0.0) * 2.0;
+    float l = (0.0 * 4.0) * 2.0;
+    bool m = true;
+    bool n = false * m * (bool)(l + 2.0 + 3.0 + j + h);
+    bool nint = false * m * (bool)(a + 2 + 3 + b + c);
+    bool o = true && false + m && n;
+    float[a + b + 10 +20] p;
+    int[d * c * 20 * (d + 20 + a)] q = 2;
+
+    if(true + m + n + false + true) {
+    }
+
+    while(n * o || n + o + m) {
+    }
+    
+    do
+    {} while((bool)(e == f) && (k == 2.0) + m + true + n || false * true * m * n);
+
+    return 5+ 5+ a * 2;
+}

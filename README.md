@@ -7,8 +7,12 @@ and develop the basic functionality of a Compiler. For the development we levera
 [DSL](https://coconut-uva.github.io/coconut/dsl_syntax.html) a specific AST. Different passes can then
 be used to generate, optimize, or even print the AST.
 
-## Requierements
-The full dependencies of CoCoNut are listed on the [Coconut](https://github.com/CoCoNut-UvA/coconut)
+### Compiler Runtime Dependencies
+The installation of the C Preprocessor `cpp` is required for the usage of the preprocessing 
+capabilities of the compiler, otherwise use the `-ncpp` flag.
+
+## Requirements
+The full dependencies of coconut are listed on the [Coconut](https://github.com/CoCoNut-UvA/coconut)
 repository. 
 
 **Supported Systems:** Linux, macOS
@@ -19,9 +23,8 @@ On Ubuntu the requirements can be install with:
 ```bash
 sudo apt update && sudo apt install build-essential cmake bison flex graphviz
 ```
-For macOS, see [macOS dependencies](#macos-dependencies).
 
-## macOS 
+### MacOS 
 The following build dependencies are required on macOS:
 ```bash
 brew install cmake coreutils binutils bison graphviz gnu-tar
@@ -59,13 +62,23 @@ Further a release version can be build with:
 make release
 ```
 
+If you are only interested in building the compiler, use:
+```
+make civicc
+```
+
 For further information and additional targets run: 
 ```
 make help
 ```
 
+## Compiler Flags
+The compiler has the following flags:
+- `--output/-o <output_file>`: Output assembly to the given output file instead of STDOUT
+- `--nocpreprocessor/-ncpp`: Disables the C preprocessor
+- `--nooptimization/-nopt`: Disables the optimizations.
 
-## VS Code support
+## VS Code Support
 For syntax highlighting of the CoCoNut DSL files (e.g. the `main.ccn` file), you can install the 
 [nutcracker](https://github.com/CoCoNut-UvA/nutcracker/) extension from the Visual Studio Marketplace 
 [here](https://marketplace.visualstudio.com/items?itemName=CoCoNut-UvA.nutcracker).
@@ -161,27 +174,14 @@ Therefore also need the dependencies list their.
 The `atnlr-4.8-complete.jar` will be automatically download in placed in the Grammar Mutator library
 by our `CMakeLists.txt`.
 
-### Further recommended setup steps (optional)
+### Further Recommended Setup Steps (Optional)
 
 Fuzzing has some risk on your system, you should have already read about them in the
 [0. Common sense risk](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/fuzzing_in_depth.md#0-common-sense-risks).
 
-The mitigate the physical I/O risk, we can write to a filesystem that lives on the RAM, also known
-as `ramdisk` or `tmpfs`. 
-This is exactly what AFL recommends in their 
-[Fuzzing in Depth](https://aflplus.plus/docs/fuzzing_in_depth/) documentation.
-Therefore, we will mount a `tmpfs` for our own usage and anytime AFL is called we will use the 
-`AFL_TMPDIR` flag to tell AFL were to write data if needed:
-1. Create an empty directory to mount to:
-    ```
-    mkdir /mnt/tmpfs
-    ```
-2. Mount the directory:
-    ```
-    mount -t tmpfs -o size=16G tmpfs /mnt/tmpfs/
-    ```
-    Here we have a limit of 16 gigabytes of ram to use for our ram filesystem.
-
+We do not write the files under fuzzing in the filesystem, because we use shmem persistent mode for all our
+target. Otherwise, one would create a filesystem that lives on the RAM, also known as `ramdisk` or `tmpfs`,
+to mitigate the physical I/O risk.
 
 ### Start Fuzzing
 
@@ -191,7 +191,7 @@ sudo afl-sytem-config
 ```
 This will reconfigure your system for more fuzzing performance.\
 *NOTE:* These changes will reduce the security of the system!\
-But these are none-persistent changes and will be reset after system is rebooted.
+But these are none-persistent changes and will be reset after the system is rebooted.
 
 Now you can setup the fuzzing campaign with:
 ```
@@ -204,15 +204,15 @@ make fuzz_<target>
 ```
 
 The following targets are available:
-- `civicc`: Fuzz the complete compiler
-- `civicc_grammar`: Fuzz the complete compiler
-- `scanparse`: Fuzz the scanner and parser only
+- `scanparse`: Fuzz the scanner and parser only.
 - `scanparse_grammar`: Fuzz only the positive space of the scanner and parser i.e. grammar valid CivicC code.
-- `context_grammar`: Fuzz with grammar valid CivicC code the scanner, parser & context analysis of the program.
+- `semantic_grammar`: Fuzz with grammar valid CivicC code the scanner, parser & semantic analysis of the program.
+- `codegenprep_grammar`: Fuzz the codegen preparation of the civcc compiler with afl, with only syntax correct civicc programs.
+- `codegen_grammar`: Fuzz the codegen of the civcc compiler with afl, with only syntax correct civicc programs.
+- `codegen_optimized_grammar`:  Fuzz the codegen with optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
+- `optimization_grammar`: Fuzz the optimizations of the civcc compiler with afl, with only syntax correct civicc programs.
 
-*Note:* Keeping the fuzz target/slice smaller is more efficient.
-
-#### Multicore fuzzing
+#### Multicore Fuzzing
 
 The fuzz on multiple cores, you can set use the `fuzz_<target>_multi` targets and set the number of
 cores to use with the flag `FUZZ_CORES=<Cores>`.

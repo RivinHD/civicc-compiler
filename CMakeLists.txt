@@ -6,7 +6,11 @@ set(SOURCE_FILES
     src/print/print.c
     src/scanparse/scanParse.c
     src/scanparse/preprocessor.c
-    src/optimization/opt_sub.c
+    src/optimization/algebraic_simplification.c
+    src/optimization/algebraic_reordering.c
+    src/optimization/constant_folding.c
+    src/optimization/deadcode_elimination.c
+    src/optimization/branch_evaluation.c
     src/context_analysis/function_header.c
     src/context_analysis/declaration_check.c
     src/context_analysis/free_symbols.c
@@ -27,6 +31,7 @@ set(TEST_FILES
     test/test_interface.c
     test/scanparse_tests.cpp
     test/context_tests.cpp
+    test/optimization_tests.cpp
     test/codegenprep_tests.cpp
     test/behavior_tests.cpp
     test/generation_tests.cpp
@@ -100,7 +105,7 @@ else()
 endif()
 
 if("${PATH_CIVAS}" STREQUAL "PATH_CIVAS-NOTFOUND")
-    message(STATUS "Missing 'civas' skipping behavior tests & codegen assembly check!")
+    message(WARNING "Missing 'civas' skipping behavior tests & codegen assembly check!")
     set(PATH_CIVAS_FOUND TRUE)
 else()
     message(STATUS "Found 'civas' at: '${PATH_CIVAS}'")
@@ -108,7 +113,7 @@ else()
 endif()
 
 if("${PATH_CIVVM}" STREQUAL "PATH_CIVVM-NOTFOUND")
-    message(STATUS "Missing 'civvm' skipping behavior tests!")
+    message(WARNING "Missing 'civvm' skipping behavior tests!")
     set(PATH_CIVVM_FOUND FALSE)
 else()
     message(STATUS "Found 'civvm' at: '${PATH_CIVVM}'")
@@ -132,26 +137,26 @@ if(AFL_ENABLED)
     if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
         message(WARNING "Build type 'Debug' is set for Fuzzing. Build type 'Release' is recommend
         as we want to fuzz as fast as possible.")
+    else()
+        # We remove the NDEBUG flags for the AFL builds as assertions are key part of crashes.
+        string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+        string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+
+        # Add additional optimization options
+        add_compile_options(-flto)
+        string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR_ARCH)
+        if(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(arm|aarch).*") # ARM architecture
+            # See https://developer.arm.com/community/arm-community-blogs/b/tools-software-ides-blog/posts/compiler-flags-across-architectures-march-mtune-and-mcpu
+            add_compile_options(-mcpu=native)
+        elseif(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(amd64|86).*") # x86 architecture
+            add_compile_options(-march=native -mtune=native)
+        else()
+            message(WARNING "Native Architecture optimizations not supported on: ${CMAKE_SYSTEM_PROCESSOR}")
+        endif()
     endif()
 
     # We set the scanparse exit code to 1 as it can be used for positive space fuzzing
     add_compile_definitions(YY_EXIT_FAILURE=1)
-
-    # We remove the NDEBUG flags for the AFL builds as assertions are key part of crashes.
-    string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-    string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-
-    # Add additional optimization options
-    add_compile_options(-flto)
-    string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR_ARCH)
-    if(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(arm|aarch).*") # ARM architecture
-        # See https://developer.arm.com/community/arm-community-blogs/b/tools-software-ides-blog/posts/compiler-flags-across-architectures-march-mtune-and-mcpu
-        add_compile_options(-mcpu=native)
-    elseif(${SYSTEM_PROCESSOR_ARCH} MATCHES ".*(amd64|86).*") # x86 architecture
-        add_compile_options(-march=native -mtune=native)
-    else()
-        message(WARNING "Native Architecture optimizations not supported on: ${CMAKE_SYSTEM_PROCESSOR}")
-    endif()
 endif()
 
 
@@ -246,12 +251,30 @@ target_include_directories("civicc_codegenprep${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
+add_executable("civicc_optimization${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
+target_compile_definitions("civicc_optimization${AFL_EXT}"
+    PRIVATE SLICE_TARGET=4)
+target_link_libraries("civicc_optimization${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_optimization${AFL_EXT}")
+target_include_directories("civicc_optimization${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
 add_executable("civicc_codegen${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
 target_compile_definitions("civicc_codegen${AFL_EXT}"
-    PRIVATE SLICE_TARGET=4)
+    PRIVATE SLICE_TARGET=5)
 target_link_libraries("civicc_codegen${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
 coconut_add_includes("civicc_codegen${AFL_EXT}")
 target_include_directories("civicc_codegen${AFL_EXT}"
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
+)
+
+add_executable("civicc_codegen_optimized${AFL_EXT}" ${FUZZ_FILES} test/afl_slice.cpp)
+target_compile_definitions("civicc_codegen_optimized${AFL_EXT}"
+    PRIVATE SLICE_TARGET=6)
+target_link_libraries("civicc_codegen_optimized${AFL_EXT}" PRIVATE "civicc_lib${AFL_EXT}")
+coconut_add_includes("civicc_codegen_optimized${AFL_EXT}")
+target_include_directories("civicc_codegen_optimized${AFL_EXT}"
     PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src" "${CMAKE_CURRENT_LIST_DIR}/test"
 )
 
@@ -274,10 +297,12 @@ if(NOT AFL_ENABLED)
     if((${PATH_CIVAS_FOUND}) AND (${PATH_CIVVM_FOUND}))
         if("${PROG_TIMEOUT}" STREQUAL "PROG_TIMEOUT-NOTFOUND")
             if(APPLE)
-                message(FATAL_ERROR "Behaviour tests requiere '${TIMEOUT_NAME}' to exists.\nInstall with 'brew install coreutils'")
+                message(WARNING "Missing '${TIMEOUT_NAME}' skipping behavior tests!\nInstall with 'brew install coreutils'")
             else()
-                message(FATAL_ERROR "Behaviour tests requiere '${TIMEOUT_NAME}' to exists.")
+                message(WARNING "Missing '${TIMEOUT_NAME}' skipping behavior tests!")
             endif()
+        else()
+            add_compile_definitions(HAS_PROG_TIMEOUT)
         endif()
     endif()
 
